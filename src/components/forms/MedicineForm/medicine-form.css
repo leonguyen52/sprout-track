@@ -85,3 +85,40 @@
 .dark .medicine-form-countdown-danger {
   color: #ef4444;
 }
+
+/* Manage Medicines Tab Dark Mode */
+.dark .bg-gray-50 {
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+.dark .border-gray-100 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .text-gray-800 {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark .text-gray-500 {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dark .text-gray-600 {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .text-gray-400 {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dark .border-gray-100 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .bg-teal-100 {
+  background-color: rgba(45, 212, 191, 0.2);
+}
+
+.dark .text-teal-600 {
+  color: #4fd1c5;
+}

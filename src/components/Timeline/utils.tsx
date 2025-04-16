@@ -725,6 +725,7 @@ export const getActivityEndpoint = (activity: ActivityType): string => {
   if ('duration' in activity) return 'sleep-log';
   if ('amount' in activity) return 'feed-log';
   if ('condition' in activity) return 'diaper-log';
+  if ('doseAmount' in activity && 'medicineId' in activity) return 'medicine-log';
   if ('content' in activity) return 'note';
   if ('soapUsed' in activity) return 'bath-log';
   if ('title' in activity && 'category' in activity) return 'milestone-log';

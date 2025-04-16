@@ -26,6 +26,7 @@ import './medicine-form.css';
  *   babyId={selectedBaby?.id}
  *   initialTime={new Date().toISOString()}
  *   onSuccess={() => fetchData()}
+ *   activity={medicineActivity} // Pass activity for editing
  * />
  * ```
  */
@@ -35,6 +36,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
   babyId,
   initialTime,
   onSuccess,
+  activity,
 }) => {
   const [activeTab, setActiveTab] = useState<MedicineFormTab>('active-doses');
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
@@ -45,12 +47,18 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
     setRefreshTrigger(prev => prev + 1);
   }, []);
   
-  // Reset to active doses tab when form opens
+  // Set the active tab when form opens
   useEffect(() => {
     if (isOpen) {
-      setActiveTab('active-doses');
+      // If we have an activity passed in, open the Give Medicine tab for editing
+      // Otherwise default to active doses tab
+      if (activity) {
+        setActiveTab('give-medicine');
+      } else {
+        setActiveTab('active-doses');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, activity]);
   
   return (
     <FormPage
@@ -115,6 +123,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
               onSuccess={onSuccess}
               refreshData={refreshData}
               setIsSubmitting={setIsSubmitting}
+              activity={activity}
             />
           )}
           

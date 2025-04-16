@@ -51,6 +51,7 @@ const TimelineActivityDetails = ({
       else if ('duration' in activity) onEdit(activity, 'sleep');
       else if ('amount' in activity) onEdit(activity, 'feed');
       else if ('condition' in activity) onEdit(activity, 'diaper');
+      else if ('doseAmount' in activity && 'medicineId' in activity) onEdit(activity, 'medicine');
       else if ('content' in activity) onEdit(activity, 'note');
       else if ('soapUsed' in activity) onEdit(activity, 'bath');
       else if ('title' in activity && 'category' in activity) onEdit(activity, 'milestone');

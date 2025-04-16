@@ -10,7 +10,7 @@ export type TimelineActivityType = ImportedActivityType & {
 // Use TimelineActivityType for internal component logic
 export type ActivityType = TimelineActivityType;
 
-export type FilterType = 'sleep' | 'feed' | 'diaper' | 'note' | 'bath' | 'pump' | 'milestone' | 'measurement' | null;
+export type FilterType = 'sleep' | 'feed' | 'diaper' | 'medicine' | 'note' | 'bath' | 'pump' | 'milestone' | 'measurement' | null;
 
 export interface TimelineProps {
   activities: ImportedActivityType[];
@@ -45,7 +45,7 @@ export interface TimelineActivityDetailsProps {
   isOpen: boolean;
   onClose: () => void;
   onDelete: (activity: ActivityType) => void;
-  onEdit: (activity: ActivityType, type: 'sleep' | 'feed' | 'diaper' | 'note' | 'bath' | 'pump' | 'milestone' | 'measurement') => void;
+  onEdit: (activity: ActivityType, type: 'sleep' | 'feed' | 'diaper' | 'medicine' | 'note' | 'bath' | 'pump' | 'milestone' | 'measurement') => void;
 }
 
 export interface ActivityDetail {

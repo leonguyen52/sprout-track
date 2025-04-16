@@ -10,3 +10,9 @@ html.dark .switch-dark[aria-checked="true"] {
 html.dark .switch-thumb-dark {
   background-color: #f3f4f6; /* gray-100 */
 }
+
+/* Dark mode text for switch labels */
+html.dark label[for="active-status"],
+html.dark .text-sm.font-medium.leading-none {
+  color: #e5e7eb !important; /* gray-200 for better contrast in dark mode */
+}

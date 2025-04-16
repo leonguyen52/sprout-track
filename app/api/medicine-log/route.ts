@@ -134,9 +134,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit') || '10', 10) : undefined;
 
     // Build where clause
-    const where: any = {
-      deletedAt: null,
-    };
+    const where: any = {};
 
     // Add filters
     if (id) {
@@ -240,7 +238,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 }
 
 /**
- * Handle DELETE request to soft delete a medicine log
+ * Handle DELETE request to hard delete a medicine log
  */
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
@@ -272,10 +270,9 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Soft delete by setting deletedAt
-    await prisma.medicineLog.update({
+    // Hard delete the record
+    await prisma.medicineLog.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
 
     return NextResponse.json<ApiResponse>({

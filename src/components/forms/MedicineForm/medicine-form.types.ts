@@ -33,6 +33,11 @@ export interface MedicineFormProps {
    * Optional callback function to call when a medicine log is successfully created or updated
    */
   onSuccess?: () => void;
+  
+  /**
+   * Optional medicine activity for editing
+   */
+  activity?: any;
 }
 
 /**
@@ -65,7 +70,7 @@ export interface GiveMedicineTabProps {
   initialTime: string;
   
   /**
-   * Optional callback function to call when a medicine log is successfully created
+   * Optional callback function to call when a medicine log is successfully created or updated
    */
   onSuccess?: () => void;
   
@@ -78,6 +83,11 @@ export interface GiveMedicineTabProps {
    * Function to set the submitting state in the parent component
    */
   setIsSubmitting?: React.Dispatch<React.SetStateAction<boolean>>;
+
+  /**
+   * Optional existing medicine log activity for editing
+   */
+  activity?: any;
 }
 
 /**

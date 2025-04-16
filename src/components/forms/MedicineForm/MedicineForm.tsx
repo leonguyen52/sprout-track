@@ -9,6 +9,7 @@ import { FormPage, FormPageContent, FormPageFooter } from '@/src/components/ui/f
 import { Input } from '@/src/components/ui/input';
 import { Button } from '@/src/components/ui/button';
 import { Switch } from '@/src/components/ui/switch';
+import { Label } from '@/src/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -227,10 +228,10 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
           <div className="space-y-4">
             {/* Medicine Name */}
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>
+              <Label htmlFor="name" className={styles.formLabel}>
                 Medicine Name
                 <span className="text-red-500 ml-1">*</span>
-              </label>
+              </Label>
               <div className="relative">
                 <Input
                   type="text"
@@ -253,9 +254,9 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
             {/* Typical Dose Size and Unit */}
             <div className="grid grid-cols-2 gap-4">
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>
+                <Label htmlFor="typicalDoseSize" className={styles.formLabel}>
                   Typical Dose Size
-                </label>
+                </Label>
                 <Input
                   type="number"
                   name="typicalDoseSize"
@@ -274,9 +275,9 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
               </div>
               
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>
+                <Label htmlFor="unitAbbr" className={styles.formLabel}>
                   Unit
-                </label>
+                </Label>
                 <Select
                   value={formData.unitAbbr}
                   onValueChange={handleUnitChange}
@@ -303,9 +304,9 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
             
             {/* Minimum Time Between Doses */}
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>
+              <Label htmlFor="doseMinTime" className={styles.formLabel}>
                 Minimum Time Between Doses
-              </label>
+              </Label>
               <div className="relative">
                 <Input
                   type="text"
@@ -329,20 +330,20 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
                 onCheckedChange={handleActiveToggle}
                 id="active-status"
               />
-              <label
+              <Label
                 htmlFor="active-status"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 Active Medicine
-              </label>
+              </Label>
             </div>
             
             {/* Associated Contacts */}
             {contacts.length > 0 && (
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>
+                <Label htmlFor="contacts" className={styles.formLabel}>
                   Associated Contacts
-                </label>
+                </Label>
                 <div className="space-y-2 mt-1 max-h-40 overflow-y-auto p-2 border rounded-md">
                   {contacts.map((contact) => (
                     <div key={contact.id} className="flex items-center space-x-2">
@@ -353,7 +354,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
                           handleContactToggle(contact.id, checked as boolean)
                         }
                       />
-                      <label
+                      <Label
                         htmlFor={`contact-${contact.id}`}
                         className="text-sm font-medium leading-none flex items-center"
                       >
@@ -362,7 +363,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
                         <Badge variant="outline" className="ml-2 text-xs">
                           {contact.role}
                         </Badge>
-                      </label>
+                      </Label>
                     </div>
                   ))}
                 </div>

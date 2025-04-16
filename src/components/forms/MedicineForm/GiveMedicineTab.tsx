@@ -29,7 +29,8 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   initialTime, 
   onSuccess,
   refreshData,
-  setIsSubmitting
+  setIsSubmitting,
+  activity
 }) => {
   const { formatDate, toUTCString } = useTimezone();
   const [isLoading, setIsLoading] = useState(false);
@@ -55,11 +56,11 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   // Form data state
   const [formData, setFormData] = useState<MedicineLogFormData>({
     babyId: babyId || '',
-    medicineId: '',
+    medicineId: activity && 'medicineId' in activity ? activity.medicineId : '',
     time: initialTime,
-    doseAmount: 0,
-    unitAbbr: '',
-    notes: '',
+    doseAmount: activity && 'doseAmount' in activity ? activity.doseAmount : 0,
+    unitAbbr: activity && 'unitAbbr' in activity ? activity.unitAbbr : '',
+    notes: activity && 'notes' in activity ? activity.notes : '',
   });
   
   // Form validation errors
@@ -79,7 +80,7 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
         const medicinesResponse = await fetch('/api/medicine?active=true');
         
         if (!medicinesResponse.ok) {
-          throw new Error('Failed to fetch medicines');
+          throw new Error('Failed to load medicines');
         }
         
         const medicinesData = await medicinesResponse.json();
@@ -88,7 +89,7 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
         const unitsResponse = await fetch('/api/units');
         
         if (!unitsResponse.ok) {
-          throw new Error('Failed to fetch units');
+          throw new Error('Failed to load units');
         }
         
         const unitsData = await unitsResponse.json();
@@ -96,6 +97,12 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
         // Update state with fetched data
         if (medicinesData.success) {
           setMedicines(medicinesData.data);
+          
+          // If editing an existing medicine log, set the selected medicine
+          if (activity && 'medicineId' in activity) {
+            const medicine = medicinesData.data.find((m: MedicineWithContacts) => m.id === activity.medicineId);
+            setSelectedMedicine(medicine || null);
+          }
         } else {
           setError(medicinesData.error || 'Failed to load medicines');
         }
@@ -215,77 +222,52 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form
     if (!validateForm()) {
       return;
     }
     
-    // Check if baby ID is available
-    if (!babyId) {
-      setError('Baby ID is required');
-      return;
-    }
-    
-    // Convert local time to UTC ISO string using the timezone context
-    // We use selectedDateTime instead of formData.time for better accuracy
-    const utcTimeString = toUTCString(selectedDateTime);
-    
-    console.log('Original time (local):', formData.time);
-    console.log('Converted time (UTC):', utcTimeString);
-    
-    // Update babyId in form data and use the UTC time
-    const submitData = {
-      ...formData,
-      babyId,
-      time: utcTimeString, // Send the UTC ISO string instead of local time
-    };
-    
     setIsLoading(true);
     setError(null);
-    
-    // Update parent component's loading state if available
     setIsSubmitting?.(true);
     
     try {
-      const response = await fetch('/api/medicine-log', {
-        method: 'POST',
+      // Determine if this is an edit or a new entry
+      const isEdit = activity && 'id' in activity;
+      const url = isEdit ? `/api/medicine-log?id=${activity.id}` : '/api/medicine-log';
+      const method = isEdit ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submitData),
+        body: JSON.stringify(formData),
       });
       
-      const data = await response.json();
-      
-      if (data.success) {
-        // Reset form
-        setFormData({
-          babyId: babyId,
-          medicineId: '',
-          time: new Date().toISOString(),
-          doseAmount: 0,
-          unitAbbr: '',
-          notes: '',
-        });
-        setSelectedMedicine(null);
-        
-        // Refresh active doses data
-        refreshData();
-        
-        // Call onSuccess callback if provided
-        if (onSuccess) {
-          onSuccess();
-        }
-      } else {
-        setError(data.error || 'Failed to save medicine log');
+      if (!response.ok) {
+        throw new Error(`Failed to ${isEdit ? 'update' : 'save'} medicine log`);
       }
+      
+      // Reset form
+      setFormData({
+        babyId: babyId || '',
+        medicineId: '',
+        time: new Date().toISOString(),
+        doseAmount: 0,
+        unitAbbr: '',
+        notes: '',
+      });
+      
+      // Refresh data
+      refreshData();
+      
+      // Call success callback
+      onSuccess?.();
     } catch (err) {
       console.error('Error saving medicine log:', err);
       setError('Failed to save medicine log. Please try again.');
     } finally {
       setIsLoading(false);
-      
-      // Update parent component's loading state if available
       setIsSubmitting?.(false);
     }
   };
