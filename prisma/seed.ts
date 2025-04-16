@@ -25,8 +25,8 @@ async function main() {
     });
   }
 
-  // Create units
-  const units: UnitData[] = [
+  // Define all available units
+  const unitData: UnitData[] = [
     { unitAbbr: 'OZ', unitName: 'Ounces' },
     { unitAbbr: 'ML', unitName: 'Milliliters' },
     { unitAbbr: 'TBSP', unitName: 'Tablespoon' },
@@ -45,13 +45,43 @@ async function main() {
     { unitAbbr: 'MMOL', unitName: 'Millimoles' },
   ];
 
-  for (const unit of units) {
-    await prisma.unit.upsert({
-      where: { unitAbbr: unit.unitAbbr },
-      update: unit,
-      create: unit,
+  // Handle units separately
+  await updateUnits(unitData);
+}
+
+/**
+ * Updates units in the database by checking which units exist and only adding the ones that don't exist yet.
+ * @param unitData Array of unit data objects with unitAbbr and unitName
+ */
+async function updateUnits(unitData: UnitData[]): Promise<void> {
+  console.log('Checking for missing units...');
+  
+  // Get existing units from the database
+  const existingUnits = await prisma.unit.findMany({
+    select: { unitAbbr: true }
+  });
+  
+  // Create a set of existing unit abbreviations for faster lookups
+  const existingUnitAbbrs = new Set(existingUnits.map(unit => unit.unitAbbr));
+  
+  // Filter out units that already exist
+  const missingUnits = unitData.filter(unit => !existingUnitAbbrs.has(unit.unitAbbr));
+  
+  if (missingUnits.length === 0) {
+    console.log('All units already exist in the database.');
+    return;
+  }
+  
+  console.log(`Adding ${missingUnits.length} missing units: ${missingUnits.map(u => u.unitAbbr).join(', ')}`);
+  
+  // Create the missing units
+  for (const unit of missingUnits) {
+    await prisma.unit.create({
+      data: unit
     });
   }
+  
+  console.log('Units update completed successfully.');
 }
 
 main()
