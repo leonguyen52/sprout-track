@@ -9,7 +9,8 @@ import {
   Ruler,
   Scale,
   RotateCw,
-  Thermometer
+  Thermometer,
+  PillBottle
 } from 'lucide-react';
 import { diaper, bottleBaby } from '@lucide/lab';
 import { 
@@ -20,6 +21,10 @@ import {
 } from './types';
 
 export const getActivityIcon = (activity: ActivityType) => {
+  if ('doseAmount' in activity && 'medicineId' in activity) {
+    // Medicine log
+    return <PillBottle className="h-4 w-4 text-white" />;
+  }
   if ('type' in activity) {
     if ('duration' in activity) {
       return <Moon className="h-4 w-4 text-white" />; // Sleep activity
@@ -449,6 +454,21 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
 };
 
 export const getActivityDescription = (activity: ActivityType, settings: Settings | null): ActivityDescription => {
+  if ('doseAmount' in activity && 'medicineId' in activity) {
+    // Medicine log
+    let medName = 'Medicine';
+    if ('medicine' in activity && activity.medicine && typeof activity.medicine === 'object' && 'name' in activity.medicine) {
+      medName = (activity.medicine as { name?: string }).name || medName;
+    }
+    const dose = activity.doseAmount ? `${activity.doseAmount} ${activity.unitAbbr || ''}`.trim() : '';
+    const medTime = formatTime(activity.time, settings, true);
+    let notes = activity.notes ? activity.notes : '';
+    if (notes.length > 50) notes = notes.substring(0, 50) + '...';
+    return {
+      type: medName,
+      details: [dose, medTime, notes].filter(Boolean).join('  a ')
+    };
+  }
   if ('type' in activity) {
     if ('duration' in activity) {
       const startTimeFormatted = activity.startTime ? formatTime(activity.startTime, settings, true) : 'unknown';
@@ -717,6 +737,13 @@ export const getActivityEndpoint = (activity: ActivityType): string => {
 };
 
 export const getActivityStyle = (activity: ActivityType): ActivityStyle => {
+  if ('doseAmount' in activity && 'medicineId' in activity) {
+    // Medicine log: pill bottle green
+    return {
+      bg: 'bg-[#43B755]',
+      textColor: 'text-white',
+    };
+  }
   if ('type' in activity) {
     if ('duration' in activity) {
       return {
