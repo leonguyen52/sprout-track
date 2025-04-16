@@ -27,7 +27,8 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   babyId, 
   initialTime, 
   onSuccess,
-  refreshData
+  refreshData,
+  setIsSubmitting
 }) => {
   const { formatDate, toUTCString } = useTimezone();
   const [isLoading, setIsLoading] = useState(false);
@@ -241,6 +242,9 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
     setIsLoading(true);
     setError(null);
     
+    // Update parent component's loading state if available
+    setIsSubmitting?.(true);
+    
     try {
       const response = await fetch('/api/medicine-log', {
         method: 'POST',
@@ -279,6 +283,9 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
       setError('Failed to save medicine log. Please try again.');
     } finally {
       setIsLoading(false);
+      
+      // Update parent component's loading state if available
+      setIsSubmitting?.(false);
     }
   };
   
@@ -302,7 +309,7 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
       
       {/* Form */}
       {!isFetching && (
-        <form onSubmit={handleSubmit}>
+        <form id="give-medicine-form" onSubmit={handleSubmit}>
           {/* Medicine selection */}
           <div className={cn(styles.formGroup, "medicine-form-form-group")}>
             <label className={cn(styles.formLabel, "medicine-form-label")}>
@@ -418,24 +425,7 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
             />
           </div>
           
-          {/* Submit button */}
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="w-full mt-4"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <PillBottle className="mr-2 h-4 w-4" />
-                Record Medicine
-              </>
-            )}
-          </Button>
+          {/* Form submission is handled by the parent component's footer */}
         </form>
       )}
     </div>

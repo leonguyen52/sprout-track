@@ -73,6 +73,11 @@ export interface GiveMedicineTabProps {
    * Function to refresh the active doses data
    */
   refreshData: () => void;
+  
+  /**
+   * Function to set the submitting state in the parent component
+   */
+  setIsSubmitting?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 /**

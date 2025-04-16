@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/src/lib/utils';
 import { medicineFormStyles as styles } from './medicine-form.styles';
 import { MedicineFormProps, MedicineFormTab } from './medicine-form.types';
-import { PillBottle } from 'lucide-react';
+import { PillBottle, Loader2 } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { FormPage, FormPageContent, FormPageFooter } from '@/src/components/ui/form-page';
 import ActiveDosesTab from './ActiveDosesTab';
@@ -38,6 +38,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<MedicineFormTab>('active-doses');
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Function to refresh data in all tabs
   const refreshData = useCallback(() => {
@@ -113,6 +114,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
               initialTime={initialTime}
               onSuccess={onSuccess}
               refreshData={refreshData}
+              setIsSubmitting={setIsSubmitting}
             />
           )}
           
@@ -125,13 +127,54 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
       </FormPageContent>
       
       <FormPageFooter>
-        <Button
-          variant="outline"
-          onClick={onClose}
-          className="w-full"
-        >
-          Close
-        </Button>
+        <div className="flex justify-end space-x-2">
+          {activeTab === 'active-doses' && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+            >
+              Close
+            </Button>
+          )}
+          
+          {activeTab === 'give-medicine' && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                form="give-medicine-form"
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </>
+          )}
+          
+          {activeTab === 'manage-medicines' && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+            >
+              Close
+            </Button>
+          )}
+        </div>
       </FormPageFooter>
     </FormPage>
   );

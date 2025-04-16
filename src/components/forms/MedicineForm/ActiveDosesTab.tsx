@@ -5,7 +5,6 @@ import { cn } from '@/src/lib/utils';
 import { medicineFormStyles as styles } from './medicine-form.styles';
 import { ActiveDosesTabProps, MedicineLogWithDetails, ActiveDose } from './medicine-form.types';
 import { PillBottle, Clock, AlertCircle, Loader2 } from 'lucide-react';
-import { StatusBubble } from '@/src/components/ui/status-bubble';
 import { Button } from '@/src/components/ui/button';
 import { useTimezone } from '@/app/context/timezone';
 
@@ -160,15 +159,7 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
     return `${mins}m remaining`;
   };
   
-  // Determine status for StatusBubble
-  const getDoseStatus = (isSafe: boolean, minutesRemaining?: number): 'sleeping' | 'awake' | 'feed' | 'diaper' => {
-    // StatusBubble expects specific status types, so we map our states to compatible ones
-    if (isSafe) return 'awake'; // Use 'awake' for safe status (green)
-    if (!minutesRemaining) return 'awake';
-    
-    if (minutesRemaining <= 15) return 'feed'; // Use 'feed' for almost safe (yellow)
-    return 'sleeping'; // Use 'sleeping' for waiting (red/orange)
-  };
+
   
   return (
     <div className={cn(styles.tabContent, "medicine-form-tab-content")}>
@@ -236,14 +227,6 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
                     {formatTimeRemaining(dose.minutesRemaining || 0)}
                   </span>
                 </div>
-                
-                <StatusBubble 
-                  status={getDoseStatus(dose.isSafe, dose.minutesRemaining)}
-                  startTime={dose.isSafe ? undefined : new Date(dose.time).toISOString()}
-                  warningTime={dose.doseMinTime}
-                  durationInMinutes={dose.minutesRemaining || 0}
-                  className="ml-2"
-                />
               </div>
               
               <div className={cn(styles.totalDose, "medicine-form-total-dose mt-2")}>
