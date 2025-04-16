@@ -6,7 +6,7 @@ import {
   FormPageFooter
 } from '@/src/components/ui/form-page';
 import { TimelineActivityDetailsProps } from './types';
-import { getActivityDetails } from './utils';
+import { getActivityDetails, formatTime } from './utils';
 import { useTheme } from '@/src/context/theme';
 import './timeline-activity-details.css';
 
@@ -30,7 +30,7 @@ const TimelineActivityDetails = ({
       medName = (activity.medicine as { name?: string }).name || medName;
     }
     const dose = activity.doseAmount ? `${activity.doseAmount} ${activity.unitAbbr || ''}`.trim() : '';
-    const medTime = activity.time ? activity.time : '';
+    const medTime = activity.time ? formatTime(activity.time, settings, true) : '';
     let notes = activity.notes ? activity.notes : '';
     if (notes.length > 50) notes = notes.substring(0, 50) + '...';
     medicineDetails = [

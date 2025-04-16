@@ -224,10 +224,18 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
       return;
     }
     
-    // Update babyId in form data
+    // Convert local time to UTC ISO string using the timezone context
+    // We use selectedDateTime instead of formData.time for better accuracy
+    const utcTimeString = toUTCString(selectedDateTime);
+    
+    console.log('Original time (local):', formData.time);
+    console.log('Converted time (UTC):', utcTimeString);
+    
+    // Update babyId in form data and use the UTC time
     const submitData = {
       ...formData,
       babyId,
+      time: utcTimeString, // Send the UTC ISO string instead of local time
     };
     
     setIsLoading(true);

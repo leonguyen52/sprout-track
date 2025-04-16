@@ -466,7 +466,7 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
     if (notes.length > 50) notes = notes.substring(0, 50) + '...';
     return {
       type: medName,
-      details: [dose, medTime, notes].filter(Boolean).join('  a ')
+      details: [medTime, `- ${dose}`, notes].filter(Boolean).join(' ')
     };
   }
   if ('type' in activity) {
