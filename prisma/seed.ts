@@ -37,6 +37,12 @@ async function main() {
     { unitAbbr: 'KG', unitName: 'Kilograms' },
     { unitAbbr: 'F', unitName: 'Fahrenheit' },
     { unitAbbr: 'C', unitName: 'Celsius' },
+    { unitAbbr: 'MG', unitName: 'Milligrams' },
+    { unitAbbr: 'MCG', unitName: 'Micrograms' },
+    { unitAbbr: 'L', unitName: 'Liters' },
+    { unitAbbr: 'CC', unitName: 'Cubic Centimeters' },
+    { unitAbbr: 'MOL', unitName: 'Moles' },
+    { unitAbbr: 'MMOL', unitName: 'Millimoles' },
   ];
 
   for (const unit of units) {
