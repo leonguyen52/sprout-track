@@ -4,63 +4,44 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '@/src/lib/utils';
 import { medicineFormStyles as styles } from './medicine-form.styles';
 import { ManageMedicinesTabProps, MedicineWithContacts, MedicineFormData } from './medicine-form.types';
-import { PillBottle, Loader2, AlertCircle, Edit, Trash2, Plus, Check, X, User } from 'lucide-react';
+import { 
+  PillBottle, 
+  Loader2, 
+  AlertCircle, 
+  Edit, 
+  Trash2, 
+  Plus, 
+  ChevronRight, 
+  User, 
+  Clock 
+} from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
-import { Input } from '@/src/components/ui/input';
-import { Textarea } from '@/src/components/ui/textarea';
-import { Switch } from '@/src/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/src/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/src/components/ui/dialog';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/src/components/ui/accordion';
-import { Badge } from '@/src/components/ui/badge';
-import { Checkbox } from '@/src/components/ui/checkbox';
+import { Badge } from '@/src/components/ui/badge';  
+import MedicineForm from './MedicineForm';
 
 /**
  * ManageMedicinesTab Component
  * 
  * Interface for managing medicines and their associations with contacts
+ * Uses an accordion-style list with expandable details and a form-page component for adding/editing
  */
 const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) => {
+  // Loading and error states
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Data states
   const [medicines, setMedicines] = useState<MedicineWithContacts[]>([]);
   const [units, setUnits] = useState<{unitAbbr: string, unitName: string}[]>([]);
   const [contacts, setContacts] = useState<{id: string, name: string, role: string}[]>([]);
   
-  // Dialog states
-  const [showMedicineDialog, setShowMedicineDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  // Medicine form state
+  const [showMedicineForm, setShowMedicineForm] = useState(false);
+  const [selectedMedicine, setSelectedMedicine] = useState<MedicineWithContacts | null>(null);
   
-  // Form data and errors
-  const [formData, setFormData] = useState<MedicineFormData>({
-    name: '',
-    typicalDoseSize: undefined,
-    unitAbbr: '',
-    doseMinTime: '',
-    active: true,
-    contactIds: [],
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [selectedMedicineId, setSelectedMedicineId] = useState<string | null>(null);
+  // Accordion state for expanded medicine details
+  const [expandedMedicine, setExpandedMedicine] = useState<string | null>(null);
   
   // Fetch medicines, units, and contacts
   useEffect(() => {
@@ -125,155 +106,32 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
     fetchData();
   }, []);
   
-  // Reset form data
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      typicalDoseSize: undefined,
-      unitAbbr: '',
-      doseMinTime: '',
-      active: true,
-      contactIds: [],
-    });
-    setErrors({});
-    setSelectedMedicineId(null);
-  };
-  
-  // Open medicine dialog for adding a new medicine
-  const handleAddMedicine = () => {
-    resetForm();
-    setShowMedicineDialog(true);
-  };
-  
-  // Open medicine dialog for editing an existing medicine
+  // Handle medicine edit button click
   const handleEditMedicine = (medicine: MedicineWithContacts) => {
-    // Extract contact IDs from medicine.contacts
-    const contactIds = medicine.contacts.map(c => c.contact.id);
-    
-    setFormData({
-      id: medicine.id,
-      name: medicine.name,
-      typicalDoseSize: medicine.typicalDoseSize || undefined,
-      unitAbbr: medicine.unitAbbr || '',
-      doseMinTime: medicine.doseMinTime || '',
-      active: medicine.active,
-      contactIds,
-    });
-    setSelectedMedicineId(medicine.id);
-    setShowMedicineDialog(true);
+    setSelectedMedicine(medicine);
+    setShowMedicineForm(true);
   };
   
-  // Open delete confirmation dialog
-  const handleDeleteClick = (medicineId: string) => {
-    setSelectedMedicineId(medicineId);
-    setShowDeleteDialog(true);
+  // Handle add new medicine button click
+  const handleAddMedicine = () => {
+    setSelectedMedicine(null);
+    setShowMedicineForm(true);
   };
   
-  // Handle form field changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear error for the field
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+  // Handle accordion toggle
+  const handleAccordionToggle = (medicineId: string) => {
+    setExpandedMedicine(expandedMedicine === medicineId ? null : medicineId);
   };
   
-  // Handle number input changes
-  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    const numValue = parseFloat(value);
-    
-    if (!isNaN(numValue)) {
-      setFormData(prev => ({ ...prev, [name]: numValue }));
-      
-      // Clear error for the field
-      if (errors[name]) {
-        setErrors(prev => ({ ...prev, [name]: '' }));
-      }
-    } else if (value === '') {
-      // Allow empty value
-      setFormData(prev => ({ ...prev, [name]: undefined }));
-    }
-  };
-  
-  // Handle unit selection
-  const handleUnitChange = (unitAbbr: string) => {
-    setFormData(prev => ({ ...prev, unitAbbr }));
-    
-    // Clear error for unit field
-    if (errors.unitAbbr) {
-      setErrors(prev => ({ ...prev, unitAbbr: '' }));
-    }
-  };
-  
-  // Handle active toggle
-  const handleActiveChange = (checked: boolean) => {
-    setFormData(prev => ({ ...prev, active: checked }));
-  };
-  
-  // Handle contact selection
-  const handleContactChange = (contactId: string, checked: boolean) => {
-    setFormData(prev => {
-      const currentContactIds = prev.contactIds || [];
-      
-      if (checked) {
-        // Add contact ID if it's not already in the array
-        return {
-          ...prev,
-          contactIds: [...currentContactIds, contactId]
-        };
-      } else {
-        // Remove contact ID
-        return {
-          ...prev,
-          contactIds: currentContactIds.filter(id => id !== contactId)
-        };
-      }
-    });
-  };
-  
-  // Validate form
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    
-    // Check required fields
-    if (!formData.name.trim()) {
-      newErrors.name = 'Medicine name is required';
-    }
-    
-    // Validate time format if provided
-    if (formData.doseMinTime) {
-      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-      if (!timeRegex.test(formData.doseMinTime)) {
-        newErrors.doseMinTime = 'Time must be in format HH:MM';
-      }
-    }
-    
-    // Update errors state
-    setErrors(newErrors);
-    
-    // Form is valid if there are no errors
-    return Object.keys(newErrors).length === 0;
-  };
-  
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate form
-    if (!validateForm()) {
-      return;
-    }
-    
+  // Handle save medicine
+  const handleSaveMedicine = async (formData: MedicineFormData) => {
     setIsLoading(true);
     setError(null);
     
     try {
       const isEditing = !!formData.id;
-      const url = isEditing ? `/api/medicine?id=${formData.id}` : '/api/medicine';
       const method = isEditing ? 'PUT' : 'POST';
+      const url = '/api/medicine' + (isEditing ? `?id=${formData.id}` : '');
       
       const response = await fetch(url, {
         method,
@@ -286,20 +144,23 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
       const data = await response.json();
       
       if (data.success) {
-        // Refresh medicines list
-        const medicinesResponse = await fetch('/api/medicine');
-        const medicinesData = await medicinesResponse.json();
-        
-        if (medicinesData.success) {
-          setMedicines(medicinesData.data);
+        // Update local state
+        if (isEditing) {
+          setMedicines(prev => prev.map(m => 
+            m.id === formData.id ? { ...m, ...data.data } : m
+          ));
+        } else {
+          setMedicines(prev => [...prev, data.data]);
         }
         
-        // Close dialog and reset form
-        setShowMedicineDialog(false);
-        resetForm();
+        // Close form
+        setShowMedicineForm(false);
+        setSelectedMedicine(null);
         
         // Refresh parent data if needed
-        refreshData();
+        if (refreshData) {
+          refreshData();
+        }
       } else {
         setError(data.error || `Failed to ${isEditing ? 'update' : 'create'} medicine`);
       }
@@ -311,15 +172,13 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
     }
   };
   
-  // Handle medicine deletion
-  const handleDelete = async () => {
-    if (!selectedMedicineId) return;
-    
+  // Handle delete medicine
+  const handleDeleteMedicine = async (id: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await fetch(`/api/medicine?id=${selectedMedicineId}`, {
+      const response = await fetch(`/api/medicine?id=${id}`, {
         method: 'DELETE',
       });
       
@@ -327,14 +186,16 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
       
       if (data.success) {
         // Remove deleted medicine from state
-        setMedicines(prev => prev.filter(m => m.id !== selectedMedicineId));
+        setMedicines(prev => prev.filter(m => m.id !== id));
         
-        // Close dialog
-        setShowDeleteDialog(false);
-        setSelectedMedicineId(null);
+        // Close form if open
+        setShowMedicineForm(false);
+        setSelectedMedicine(null);
         
         // Refresh parent data if needed
-        refreshData();
+        if (refreshData) {
+          refreshData();
+        }
       } else {
         setError(data.error || 'Failed to delete medicine');
       }
@@ -346,11 +207,13 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
     }
   };
   
+
+  
   return (
-    <div className={cn(styles.tabContent, "medicine-form-tab-content")}>
+    <div className={styles.tabContent}>
       {/* Loading state for initial data fetch */}
       {isFetching && (
-        <div className={cn(styles.loadingContainer, "medicine-form-loading-container")}>
+        <div className="flex flex-col items-center justify-center p-6">
           <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
           <p className="mt-2 text-gray-600">Loading medicines...</p>
         </div>
@@ -358,65 +221,70 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
       
       {/* Error state */}
       {error && (
-        <div className={cn(styles.errorContainer, "medicine-form-error-container")}>
-          <AlertCircle className="h-8 w-8 text-red-500" />
-          <p className="mt-2 text-red-500">{error}</p>
+        <div className="flex flex-col items-center justify-center p-6 text-red-500">
+          <AlertCircle className="h-8 w-8" />
+          <p className="mt-2">{error}</p>
         </div>
       )}
       
       {/* Medicines list */}
-      {!isFetching && (
+      {!isFetching && !error && (
         <>
-          <div className={cn(styles.medicinesList, "medicine-form-medicines-list")}>
+          <div className="space-y-4">
             {medicines.length === 0 ? (
-              <div className={cn(styles.emptyState, "medicine-form-empty-state")}>
-                <PillBottle className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                <p>No medicines added yet</p>
+              <div className="flex flex-col items-center justify-center p-6 text-center">
+                <PillBottle className="h-12 w-12 mb-2 text-gray-400" />
+                <p className="text-gray-500">No medicines added yet</p>
               </div>
             ) : (
-              <Accordion type="single" collapsible className="w-full">
+              <div className="space-y-2">
                 {medicines.map((medicine) => (
-                  <AccordionItem key={medicine.id} value={medicine.id}>
-                    <AccordionTrigger className={cn(
-                      styles.medicineItem,
-                      "medicine-form-medicine-item",
-                      medicine.active ? styles.medicineItemActive : styles.medicineItemInactive,
-                      medicine.active ? "medicine-form-medicine-item-active" : "medicine-form-medicine-item-inactive"
-                    )}>
+                  <div 
+                    key={medicine.id} 
+                    className="rounded-lg bg-gray-50 border border-gray-100 shadow-sm overflow-hidden"
+                  >
+                    <div 
+                      className="flex items-center justify-between p-3 cursor-pointer"
+                      onClick={() => handleAccordionToggle(medicine.id)}
+                    >
                       <div className="flex items-center">
-                        <div className={cn(styles.iconContainer, "medicine-form-icon-container mr-2")}>
+                        <div className="flex-shrink-0 p-1.5 mr-2 rounded-full bg-teal-100 text-teal-600">
                           <PillBottle className="h-4 w-4" />
                         </div>
-                        <div className={cn(styles.medicineDetails, "medicine-form-medicine-details")}>
-                          <span className="font-medium">{medicine.name}</span>
-                          {medicine.typicalDoseSize && medicine.unitAbbr && (
-                            <span className="text-sm text-gray-500 ml-2">
-                              ({medicine.typicalDoseSize} {medicine.unitAbbr})
-                            </span>
-                          )}
-                          {!medicine.active && (
-                            <Badge variant="outline" className="ml-2 bg-gray-100 text-gray-500">
-                              Inactive
-                            </Badge>
-                          )}
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-800">{medicine.name}</div>
+                          <div className="text-xs text-gray-500">
+                            {medicine.typicalDoseSize && medicine.unitAbbr && (
+                              <span>{medicine.typicalDoseSize} {medicine.unitAbbr}</span>
+                            )}
+                            {!medicine.active && (
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                Inactive
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="p-2 space-y-3">
+                      <ChevronRight 
+                        className={`h-4 w-4 text-gray-400 transition-transform ${expandedMedicine === medicine.id ? 'rotate-90' : ''}`}
+                      />
+                    </div>
+                    
+                    {expandedMedicine === medicine.id && (
+                      <div className="p-3 pt-0 border-t border-gray-100 mt-1">
                         {medicine.doseMinTime && (
-                          <div className="text-sm">
-                            <span className="font-medium">Minimum time between doses:</span>{' '}
-                            {medicine.doseMinTime}
+                          <div className="flex items-center text-xs text-gray-600 mb-2">
+                            <Clock className="h-3 w-3 mr-1 text-gray-400" />
+                            <span>Min time between doses: {medicine.doseMinTime}</span>
                           </div>
                         )}
                         
-                        {medicine.contacts.length > 0 && (
-                          <div className="text-sm">
-                            <span className="font-medium">Associated contacts:</span>
-                            <div className="flex flex-wrap gap-2 mt-1">
+                        {medicine.contacts && medicine.contacts.length > 0 && (
+                          <div className="mb-2">
+                            <div className="text-xs text-gray-500 mb-1">Associated contacts:</div>
+                            <div className="flex flex-wrap gap-1">
                               {medicine.contacts.map(c => (
-                                <Badge key={c.contact.id} variant="secondary" className="flex items-center">
+                                <Badge key={c.contact.id} variant="secondary" className="text-xs flex items-center">
                                   <User className="h-3 w-3 mr-1" />
                                   {c.contact.name}
                                 </Badge>
@@ -429,7 +297,10 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleEditMedicine(medicine)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditMedicine(medicine);
+                            }}
                           >
                             <Edit className="h-4 w-4 mr-1" />
                             Edit
@@ -440,7 +311,7 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
                             className="text-red-500 hover:text-red-600"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteClick(medicine.id);
+                              handleDeleteMedicine(medicine.id);
                             }}
                           >
                             <Trash2 className="h-4 w-4 mr-1" />
@@ -448,232 +319,33 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
                           </Button>
                         </div>
                       </div>
-                    </AccordionContent>
-                  </AccordionItem>
+                    )}
+                  </div>
                 ))}
-              </Accordion>
+              </div>
             )}
+            
+            <div className="flex justify-center mt-4">
+              <Button
+                onClick={handleAddMedicine}
+                className="bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Medicine
+              </Button>
+            </div>
           </div>
           
-          {/* Add medicine button */}
-          <Button
-            className={cn(styles.addButton, "medicine-form-add-button")}
-            onClick={handleAddMedicine}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add Medicine
-          </Button>
-          
-          {/* Medicine form dialog */}
-          <Dialog open={showMedicineDialog} onOpenChange={setShowMedicineDialog}>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {formData.id ? 'Edit Medicine' : 'Add New Medicine'}
-                </DialogTitle>
-                <DialogDescription>
-                  {formData.id
-                    ? 'Update medicine details and associated contacts'
-                    : 'Add a new medicine to the system'}
-                </DialogDescription>
-              </DialogHeader>
-              
-              <form onSubmit={handleSubmit} className={cn(styles.medicineForm, "medicine-form-medicine-form")}>
-                {/* Medicine name */}
-                <div className={cn(styles.formGroup, "medicine-form-form-group")}>
-                  <label className={cn(styles.formLabel, "medicine-form-label")}>
-                    Medicine Name *
-                  </label>
-                  <Input
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                    className={errors.name ? 'border-red-500' : ''}
-                  />
-                  {errors.name && (
-                    <p className={cn(styles.formError, "medicine-form-error")}>
-                      {errors.name}
-                    </p>
-                  )}
-                </div>
-                
-                {/* Typical dose and unit */}
-                <div className={cn(styles.formRow, "medicine-form-form-row")}>
-                  <div className={cn(styles.formCol, "medicine-form-form-col")}>
-                    <label className={cn(styles.formLabel, "medicine-form-label")}>
-                      Typical Dose Size
-                    </label>
-                    <Input
-                      type="number"
-                      name="typicalDoseSize"
-                      value={formData.typicalDoseSize ?? ''}
-                      onChange={handleNumberChange}
-                      min="0"
-                      step="0.1"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  
-                  <div className={cn(styles.formCol, "medicine-form-form-col")}>
-                    <label className={cn(styles.formLabel, "medicine-form-label")}>
-                      Unit
-                    </label>
-                    <div className={cn(styles.selectContainer, "medicine-form-select-container")}>
-                      <Select
-                        value={formData.unitAbbr || ''}
-                        onValueChange={handleUnitChange}
-                        disabled={isLoading || units.length === 0}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a unit" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {units.map((unit) => (
-                            <SelectItem key={unit.unitAbbr} value={unit.unitAbbr}>
-                              {unit.unitName} ({unit.unitAbbr})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Minimum time between doses */}
-                <div className={cn(styles.formGroup, "medicine-form-form-group")}>
-                  <label className={cn(styles.formLabel, "medicine-form-label")}>
-                    Minimum Time Between Doses (HH:MM)
-                  </label>
-                  <Input
-                    name="doseMinTime"
-                    value={formData.doseMinTime || ''}
-                    onChange={handleChange}
-                    placeholder="04:00"
-                    disabled={isLoading}
-                    className={errors.doseMinTime ? 'border-red-500' : ''}
-                  />
-                  {errors.doseMinTime && (
-                    <p className={cn(styles.formError, "medicine-form-error")}>
-                      {errors.doseMinTime}
-                    </p>
-                  )}
-                </div>
-                
-                {/* Active status */}
-                <div className="flex items-center space-x-2 py-2">
-                  <Switch
-                    checked={formData.active}
-                    onCheckedChange={handleActiveChange}
-                    disabled={isLoading}
-                  />
-                  <label className={cn(styles.formLabel, "medicine-form-label cursor-pointer")}>
-                    Active
-                  </label>
-                </div>
-                
-                {/* Associated contacts */}
-                <div className={cn(styles.contactsSection, "medicine-form-contacts-section")}>
-                  <h3 className={cn(styles.contactsHeader, "medicine-form-contacts-header")}>
-                    Associated Contacts (e.g., prescribing doctor)
-                  </h3>
-                  
-                  {contacts.length === 0 ? (
-                    <p className="text-sm text-gray-500">No contacts available</p>
-                  ) : (
-                    <div className={cn(styles.contactsList, "medicine-form-contacts-list")}>
-                      {contacts.map((contact) => (
-                        <div key={contact.id} className={cn(styles.contactItem, "medicine-form-contact-item")}>
-                          <Checkbox
-                            id={`contact-${contact.id}`}
-                            checked={(formData.contactIds || []).includes(contact.id)}
-                            onCheckedChange={(checked) => 
-                              handleContactChange(contact.id, checked === true)
-                            }
-                            disabled={isLoading}
-                          />
-                          <label
-                            htmlFor={`contact-${contact.id}`}
-                            className={cn(styles.contactName, "medicine-form-contact-name")}
-                          >
-                            {contact.name} ({contact.role})
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                <DialogFooter className="mt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowMedicineDialog(false)}
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        {formData.id ? 'Update' : 'Save'}
-                      </>
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-          
-          {/* Delete confirmation dialog */}
-          <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Confirm Deletion</DialogTitle>
-                <DialogDescription>
-                  Are you sure you want to delete this medicine? This action cannot be undone.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <DialogFooter className="mt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowDeleteDialog(false)}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          {/* Medicine Form using FormPage component */}
+          <MedicineForm
+            isOpen={showMedicineForm}
+            onClose={() => setShowMedicineForm(false)}
+            medicine={selectedMedicine}
+            units={units}
+            contacts={contacts}
+            onSave={handleSaveMedicine}
+            onDelete={handleDeleteMedicine}
+          />
         </>
       )}
     </div>
