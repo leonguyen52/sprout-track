@@ -151,4 +151,5 @@ export interface ActiveDose {
   isSafe: boolean;
   minutesRemaining?: number;
   totalIn24Hours: number;
+  doseMinTime: string;
 }

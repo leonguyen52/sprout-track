@@ -331,8 +331,8 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
               Time
             </label>
             <DateTimePicker
-              date={selectedDateTime}
-              setDate={handleDateTimeChange}
+              value={selectedDateTime}
+              onChange={handleDateTimeChange}
               disabled={isLoading}
             />
             {errors.time && (

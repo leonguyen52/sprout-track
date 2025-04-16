@@ -22,57 +22,54 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
   const [activeDoses, setActiveDoses] = useState<ActiveDose[]>([]);
   
   // Function to process medicine logs into active doses
-  const processActiveDoses = useCallback((medicineLogs: MedicineLogWithDetails[]) => {
-    // Group logs by medicine ID
-    const medicineGroups: Record<string, MedicineLogWithDetails[]> = {};
+  const createActiveDoses = useCallback((logs: MedicineLogWithDetails[]): ActiveDose[] => {
+    const doses: ActiveDose[] = [];
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     
-    medicineLogs.forEach(log => {
-      if (!medicineGroups[log.medicineId]) {
-        medicineGroups[log.medicineId] = [];
-      }
-      medicineGroups[log.medicineId].push(log);
-    });
+    // Group logs by medicine
+    const medicineGroups = logs.reduce((groups, log) => {
+      const key = log.medicine.id;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(log);
+      return groups;
+    }, {} as Record<string, MedicineLogWithDetails[]>);
     
     // Process each medicine group
-    const now = new Date();
-    const doses: ActiveDose[] = [];
-    
-    Object.entries(medicineGroups).forEach(([medicineId, logs]) => {
-      // Sort logs by time (newest first)
-      logs.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    Object.values(medicineGroups).forEach((medicineGroup: MedicineLogWithDetails[]) => {
+      if (!medicineGroup.length) return;
       
-      // Get the most recent log
-      const latestLog = logs[0];
+      // Sort by time, most recent first
+      medicineGroup.sort((a: MedicineLogWithDetails, b: MedicineLogWithDetails) => 
+        new Date(b.time).getTime() - new Date(a.time).getTime()
+      );
       
-      // Calculate when next dose is safe (if doseMinTime is set)
+      const latestLog = medicineGroup[0];
+      const medicine = latestLog.medicine;
+      
+      // Calculate if it's safe to give another dose
       let isSafe = true;
+      let nextDoseTime = "";
       let minutesRemaining = 0;
-      let nextDoseTime: string | undefined = undefined;
+      let doseMinTime = "00:30"; // Default to 30 minutes if not specified
       
-      if (latestLog.medicine.doseMinTime) {
-        const [hours, minutes] = latestLog.medicine.doseMinTime.split(':').map(Number);
-        const minTimeMinutes = hours * 60 + minutes;
+      if (medicine.doseMinTime) {
+        doseMinTime = medicine.doseMinTime;
+        const [hours, minutes] = medicine.doseMinTime.split(':').map(Number);
+        const minTimeMs = (hours * 60 + minutes) * 60 * 1000;
+        const lastDoseTime = new Date(latestLog.time).getTime();
+        const safeTime = new Date(lastDoseTime + minTimeMs);
         
-        // Calculate time elapsed since last dose
-        const logTime = new Date(latestLog.time);
-        minutesRemaining = minTimeMinutes - calculateDurationMinutes(logTime.toISOString(), now.toISOString());
+        nextDoseTime = safeTime.toISOString();
+        isSafe = safeTime <= now;
         
-        // Determine if it's safe to give another dose
-        isSafe = minutesRemaining <= 0;
-        
-        // Calculate next safe dose time
         if (!isSafe) {
-          const nextTime = new Date(logTime);
-          nextTime.setMinutes(nextTime.getMinutes() + minTimeMinutes);
-          nextDoseTime = nextTime.toISOString();
+          minutesRemaining = calculateDurationMinutes(now.toISOString(), safeTime.toISOString());
         }
       }
       
       // Calculate total amount given in last 24 hours
-      const twentyFourHoursAgo = new Date(now);
-      twentyFourHoursAgo.setHours(now.getHours() - 24);
-      
-      const logsIn24Hours = logs.filter(log => 
+      const logsIn24Hours = medicineGroup.filter(log => 
         new Date(log.time).getTime() >= twentyFourHoursAgo.getTime()
       );
       
@@ -85,10 +82,11 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
         doseAmount: latestLog.doseAmount,
         unitAbbr: latestLog.unitAbbr || latestLog.medicine.unitAbbr,
         time: latestLog.time,
-        nextDoseTime,
+        nextDoseTime: nextDoseTime || "",
         isSafe,
         minutesRemaining: isSafe ? 0 : minutesRemaining,
-        totalIn24Hours
+        totalIn24Hours,
+        doseMinTime
       });
     });
     
@@ -99,40 +97,27 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
   const fetchActiveDoses = useCallback(async () => {
     if (!babyId) return;
     
-    setIsLoading(true);
-    setError(null);
-    
     try {
-      // Get current date in YYYY-MM-DD format
-      const now = new Date();
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
+      setIsLoading(true);
       
-      const startDate = yesterday.toISOString().split('T')[0];
-      const endDate = now.toISOString().split('T')[0] + 'T23:59:59';
-      
-      // Fetch medicine logs for the past 24 hours
-      const response = await fetch(`/api/medicine-log?babyId=${babyId}&startDate=${startDate}&endDate=${endDate}`);
+      // Fetch medicine logs for this baby
+      const response = await fetch(`/api/medicine-log?babyId=${babyId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch medicine logs');
       }
       
       const data = await response.json();
+      const processedDoses = createActiveDoses(data);
       
-      if (data.success) {
-        const processedDoses = processActiveDoses(data.data);
-        setActiveDoses(processedDoses);
-      } else {
-        setError(data.error || 'Failed to load medicine logs');
-      }
-    } catch (err) {
-      console.error('Error fetching medicine logs:', err);
-      setError('Failed to load medicine logs. Please try again.');
+      setActiveDoses(processedDoses);
+    } catch (error) {
+      console.error('Error fetching active doses:', error);
+      setError('Failed to load active doses');
     } finally {
       setIsLoading(false);
     }
-  }, [babyId, processActiveDoses]);
+  }, [babyId, createActiveDoses]);
   
   // Set up interval to refresh countdown timers
   useEffect(() => {
@@ -150,9 +135,9 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
   }, [babyId, fetchActiveDoses]);
   
   // Refresh data when requested
-  useEffect(() => {
+  const handleRefresh = useCallback(() => {
     fetchActiveDoses();
-  }, [refreshData, fetchActiveDoses]);
+  }, [fetchActiveDoses]);
   
   // Format time remaining for display
   const formatTimeRemaining = (minutes: number): string => {
@@ -168,12 +153,13 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
   };
   
   // Determine status for StatusBubble
-  const getDoseStatus = (isSafe: boolean, minutesRemaining?: number): string => {
-    if (isSafe) return 'Safe';
-    if (!minutesRemaining) return 'Unknown';
+  const getDoseStatus = (isSafe: boolean, minutesRemaining?: number): 'sleeping' | 'awake' | 'feed' | 'diaper' => {
+    // StatusBubble expects specific status types, so we map our states to compatible ones
+    if (isSafe) return 'awake'; // Use 'awake' for safe status (green)
+    if (!minutesRemaining) return 'awake';
     
-    if (minutesRemaining <= 15) return 'Almost Safe';
-    return 'Waiting';
+    if (minutesRemaining <= 15) return 'feed'; // Use 'feed' for almost safe (yellow)
+    return 'sleeping'; // Use 'sleeping' for waiting (red/orange)
   };
   
   return (
@@ -245,8 +231,9 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
                 
                 <StatusBubble 
                   status={getDoseStatus(dose.isSafe, dose.minutesRemaining)}
-                  startTime={dose.isSafe ? undefined : dose.time}
-                  warningTime={dose.medicine?.doseMinTime}
+                  startTime={dose.isSafe ? undefined : new Date(dose.time).toISOString()}
+                  warningTime={dose.doseMinTime}
+                  durationInMinutes={dose.minutesRemaining || 0}
                   className="ml-2"
                 />
               </div>
