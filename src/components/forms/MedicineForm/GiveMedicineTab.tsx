@@ -4,18 +4,19 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '@/src/lib/utils';
 import { medicineFormStyles as styles } from './medicine-form.styles';
 import { GiveMedicineTabProps, MedicineWithContacts, MedicineLogFormData } from './medicine-form.types';
-import { PillBottle, Loader2, AlertCircle } from 'lucide-react';
+import { PillBottle, Loader2, AlertCircle, Check, ChevronDown } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Textarea } from '@/src/components/ui/textarea';
 import { DateTimePicker } from '@/src/components/ui/date-time-picker';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/src/components/ui/select';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator
+} from '@/src/components/ui/dropdown-menu';
 import { useTimezone } from '@/app/context/timezone';
 
 /**
@@ -316,22 +317,57 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
               Medicine
             </label>
             <div className={cn(styles.selectContainer, "medicine-form-select-container")}>
-              <Select
-                value={formData.medicineId}
-                onValueChange={handleMedicineChange}
-                disabled={isLoading || medicines.length === 0}
-              >
-                <SelectTrigger className={errors.medicineId ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Select a medicine" />
-                </SelectTrigger>
-                <SelectContent>
-                  {medicines.map((medicine) => (
-                    <SelectItem key={medicine.id} value={medicine.id}>
-                      {medicine.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <DropdownMenu>
+                <DropdownMenuTrigger 
+                  asChild 
+                  disabled={isLoading || medicines.length === 0}
+                >
+                  <Button 
+                    variant="outline" 
+                    className={cn(
+                      "w-full justify-between", 
+                      errors.medicineId ? 'border-red-500' : '',
+                      "h-10 px-3 py-2"
+                    )}
+                  >
+                    <span className="truncate">
+                      {formData.medicineId 
+                        ? medicines.find(m => m.id === formData.medicineId)?.name || "Select a medicine"
+                        : "Select a medicine"}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent 
+                  className="w-[var(--radix-dropdown-menu-trigger-width)]"
+                  align="start"
+                  sideOffset={4}
+                  alignOffset={0}
+                  avoidCollisions={true}
+                  collisionPadding={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  forceMount
+                >
+                  <DropdownMenuLabel>Medicines</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="max-h-[30vh] overflow-y-auto overscroll-contain">
+                    {medicines.map((medicine) => (
+                      <DropdownMenuItem
+                        key={medicine.id}
+                        onClick={() => handleMedicineChange(medicine.id)}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center">
+                          <PillBottle className="mr-2 h-4 w-4" />
+                          <span>{medicine.name}</span>
+                        </div>
+                        {formData.medicineId === medicine.id && (
+                          <Check className="h-4 w-4" />
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {errors.medicineId && (
                 <p className={cn(styles.formError, "medicine-form-error")}>
                   {errors.medicineId}
@@ -385,22 +421,54 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
                 Unit
               </label>
               <div className={cn(styles.selectContainer, "medicine-form-select-container")}>
-                <Select
-                  value={formData.unitAbbr || ''}
-                  onValueChange={handleUnitChange}
-                  disabled={isLoading || units.length === 0}
-                >
-                  <SelectTrigger className={errors.unitAbbr ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Select a unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {units.map((unit) => (
-                      <SelectItem key={unit.unitAbbr} value={unit.unitAbbr}>
-                        {unit.unitName} ({unit.unitAbbr})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger 
+                    asChild 
+                    disabled={isLoading || units.length === 0}
+                  >
+                    <Button 
+                      variant="outline" 
+                      className={cn(
+                        "w-full justify-between", 
+                        errors.unitAbbr ? 'border-red-500' : '',
+                        "h-10 px-3 py-2"
+                      )}
+                    >
+                      <span className="truncate">
+                        {formData.unitAbbr 
+                          ? `${units.find(u => u.unitAbbr === formData.unitAbbr)?.unitName || ""} (${formData.unitAbbr})` 
+                          : "Select a unit"}
+                      </span>
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent 
+                    className="w-[var(--radix-dropdown-menu-trigger-width)]"
+                    align="start"
+                    sideOffset={4}
+                    alignOffset={0}
+                    avoidCollisions={true}
+                    collisionPadding={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    forceMount
+                  >
+                    <DropdownMenuLabel>Units</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <div className="max-h-[30vh] overflow-y-auto overscroll-contain">
+                      {units.map((unit) => (
+                        <DropdownMenuItem
+                          key={unit.unitAbbr}
+                          onClick={() => handleUnitChange(unit.unitAbbr)}
+                          className="flex items-center justify-between"
+                        >
+                          <span>{unit.unitName} ({unit.unitAbbr})</span>
+                          {formData.unitAbbr === unit.unitAbbr && (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 {errors.unitAbbr && (
                   <p className={cn(styles.formError, "medicine-form-error")}>
                     {errors.unitAbbr}
