@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ActivityTile } from '@/src/components/ui/activity-tile';
 import { StatusBubble } from "@/src/components/ui/status-bubble";
-import { SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MeasurementResponse, MilestoneResponse, ActivitySettings } from '@/app/api/types';
+import { SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MeasurementResponse, MilestoneResponse, MedicineLogResponse, ActivitySettings } from '@/app/api/types';
 import { MoreVertical, ArrowDownUp } from 'lucide-react';
 import { useTheme } from '@/src/context/theme';
 import { cn } from '@/src/lib/utils';
@@ -36,6 +36,7 @@ interface ActivityTileGroupProps {
   onPumpClick: () => void;
   onMeasurementClick: () => void;
   onMilestoneClick: () => void;
+  onMedicineClick: () => void;
 }
 
 /**
@@ -45,7 +46,7 @@ interface ActivityTileGroupProps {
  * and displaying status bubbles with timing information.
  */
 // Activity type definition
-type ActivityType = 'sleep' | 'feed' | 'diaper' | 'note' | 'bath' | 'pump' | 'measurement' | 'milestone';
+type ActivityType = 'sleep' | 'feed' | 'diaper' | 'note' | 'bath' | 'pump' | 'measurement' | 'milestone' | 'medicine';
 
 export function ActivityTileGroup({
   selectedBaby,
@@ -62,14 +63,30 @@ export function ActivityTileGroup({
   onBathClick,
   onPumpClick,
   onMeasurementClick,
-  onMilestoneClick
+  onMilestoneClick,
+  onMedicineClick = () => {
+    // Default implementation if not provided
+    console.log('Medicine click handler not provided');
+    // Open the medicine form directly if available
+    const medicineForm = document.getElementById('medicine-form');
+    if (medicineForm) {
+      (medicineForm as HTMLElement).click();
+    }
+  }
 }: ActivityTileGroupProps) {
   const { theme } = useTheme();
+  
+  // Helper function to calculate duration in minutes between two times
+  const calculateDurationMinutes = (startTime: string, endTime: string): number => {
+    const start = new Date(startTime).getTime();
+    const end = new Date(endTime).getTime();
+    return Math.floor((end - start) / (1000 * 60));
+  };
   
   if (!selectedBaby?.id) return null;
 
   // Define all activity types
-  const allActivityTypes: ActivityType[] = ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone'];
+  const allActivityTypes: ActivityType[] = ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'];
   
   // State for visible activities and their order
   const [visibleActivities, setVisibleActivities] = useState<Set<ActivityType>>(
@@ -214,7 +231,7 @@ export function ActivityTileGroup({
   // Function to set default settings
   const setDefaultSettings = () => {
     // Define all activity types
-    const allActivityTypes: ActivityType[] = ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone'];
+    const allActivityTypes: ActivityType[] = ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'];
     
     // Set default order and make all activities visible by default
     setActivityOrder([...allActivityTypes]);
@@ -232,8 +249,8 @@ export function ActivityTileGroup({
   };
   
   // Refs to store the original settings for comparison
-  const originalOrderRef = React.useRef<ActivityType[]>(['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone']);
-  const originalVisibleRef = React.useRef<string[]>(['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone']);
+  const originalOrderRef = React.useRef<ActivityType[]>(['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine']);
+  const originalVisibleRef = React.useRef<string[]>(['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine']);
   
   // Track if settings have been modified since loading
   const [settingsModified, setSettingsModified] = useState(false);
@@ -353,7 +370,8 @@ export function ActivityTileGroup({
     bath: 'Bath',
     pump: 'Pump',
     measurement: 'Measurement',
-    milestone: 'Milestone'
+    milestone: 'Milestone',
+    medicine: 'Medicine'
   };
 
   // Function to render activity tile based on type
@@ -361,52 +379,55 @@ export function ActivityTileGroup({
     if (!visibleActivities.has(activity)) return null;
 
     switch (activity) {
-      case 'sleep':
-        return (
-          <div key="sleep" className="relative w-[82px] h-24 flex-shrink-0 snap-center">
-            <ActivityTile
-              activity={{
-                type: 'NAP', // Using a valid SleepType enum value
-                id: 'sleep-button',
-                babyId: selectedBaby.id,
-                startTime: sleepStartTime[selectedBaby.id] ? sleepStartTime[selectedBaby.id].toISOString() : new Date().toISOString(),
-                endTime: sleepingBabies.has(selectedBaby.id) ? null : new Date().toISOString(),
-                duration: sleepingBabies.has(selectedBaby.id) ? null : 0,
-                location: null,
-                quality: null,
-                caretakerId: null,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                deletedAt: null
-              } as unknown as SleepLogResponse}
-              title={selectedBaby?.id && sleepingBabies.has(selectedBaby.id) ? 'End Sleep' : 'Sleep'}
-              variant="sleep"
-              isButton={true}
-              onClick={() => {
-                updateUnlockTimer();
-                onSleepClick();
-              }}
-            />
-            {selectedBaby?.id && (
-              sleepingBabies.has(selectedBaby.id) ? (
+    case 'sleep':
+      return (
+        <div key="sleep" className="relative w-[82px] h-24 flex-shrink-0 snap-center">
+          <ActivityTile
+            activity={{
+              type: 'NAP', // Using a valid SleepType enum value
+              id: 'sleep-button',
+              babyId: selectedBaby.id,
+              startTime: sleepStartTime[selectedBaby.id] ? sleepStartTime[selectedBaby.id].toISOString() : new Date().toISOString(),
+              endTime: sleepingBabies.has(selectedBaby.id) ? null : new Date().toISOString(),
+              duration: sleepingBabies.has(selectedBaby.id) ? null : 0,
+              location: null,
+              quality: null,
+              caretakerId: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              deletedAt: null
+            } as unknown as SleepLogResponse}
+            title={selectedBaby?.id && sleepingBabies.has(selectedBaby.id) ? 'End Sleep' : 'Sleep'}
+            variant="sleep"
+            isButton={true}
+            onClick={() => {
+              updateUnlockTimer();
+              onSleepClick();
+            }}
+          />
+          {selectedBaby?.id && (
+            sleepingBabies.has(selectedBaby.id) ? (
+              <StatusBubble
+                status="sleeping"
+                className="overflow-visible z-40"
+                durationInMinutes={0} // Fallback value
+                startTime={sleepStartTime[selectedBaby.id]?.toISOString()}
+              />
+            ) : (
+              !sleepStartTime[selectedBaby.id] && lastSleepEndTime[selectedBaby.id] && (
                 <StatusBubble
-                  status="sleeping"
+                  status="awake"
                   className="overflow-visible z-40"
-                  durationInMinutes={0} // Fallback value
-                  startTime={sleepStartTime[selectedBaby.id]?.toISOString()}
+                  durationInMinutes={calculateDurationMinutes(
+                    lastSleepEndTime[selectedBaby.id].toISOString(),
+                    new Date().toISOString()
+                  )}
+                  startTime={lastSleepEndTime[selectedBaby.id].toISOString()}
+                  activityType="sleep" // Explicitly specify this is for sleep activities only
                 />
-              ) : (
-                !sleepStartTime[selectedBaby.id] && lastSleepEndTime[selectedBaby.id] && (
-                  <StatusBubble
-                    status="awake"
-                    className="overflow-visible z-40"
-                    durationInMinutes={0} // Fallback value
-                    startTime={lastSleepEndTime[selectedBaby.id].toISOString()}
-                    activityType="sleep" // Explicitly specify this is for sleep activities only
-                  />
-                )
               )
-            )}
+            )
+          )}
           </div>
         );
       case 'feed':
@@ -615,6 +636,41 @@ export function ActivityTileGroup({
               onClick={() => {
                 updateUnlockTimer();
                 onMilestoneClick();
+              }}
+            />
+          </div>
+        );
+      case 'medicine':
+        return (
+          <div key="medicine" className="relative w-[82px] h-24 flex-shrink-0 snap-center">
+            <ActivityTile
+              activity={{
+                id: 'medicine-button',
+                babyId: selectedBaby.id,
+                time: new Date().toISOString(),
+                doseAmount: 0,
+                medicineId: '',
+                medicine: {
+                  id: '',
+                  name: 'Medicine',
+                  typicalDoseSize: 0,
+                  unitAbbr: '',
+                  doseMinTime: '00:30',
+                  active: true
+                },
+                unitAbbr: '',
+                notes: '',
+                caretakerId: null,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                deletedAt: null
+              } as unknown as MedicineLogResponse}
+              title="Medicine"
+              variant="medicine"
+              isButton={true}
+              onClick={() => {
+                updateUnlockTimer();
+                onMedicineClick();
               }}
             />
           </div>

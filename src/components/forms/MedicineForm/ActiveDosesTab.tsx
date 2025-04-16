@@ -22,8 +22,14 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
   const [activeDoses, setActiveDoses] = useState<ActiveDose[]>([]);
   
   // Function to process medicine logs into active doses
-  const createActiveDoses = useCallback((logs: MedicineLogWithDetails[]): ActiveDose[] => {
+  const createActiveDoses = useCallback((logs: MedicineLogWithDetails[] | null): ActiveDose[] => {
     const doses: ActiveDose[] = [];
+    
+    // Return empty array if logs is null or not an array
+    if (!logs || !Array.isArray(logs) || logs.length === 0) {
+      return doses;
+    }
+    
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     
@@ -108,7 +114,9 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
       }
       
       const data = await response.json();
-      const processedDoses = createActiveDoses(data);
+      // Check if data is in the expected format
+      const logsData = data.data || data;
+      const processedDoses = createActiveDoses(Array.isArray(logsData) ? logsData : []);
       
       setActiveDoses(processedDoses);
     } catch (error) {

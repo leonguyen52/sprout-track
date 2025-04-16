@@ -20,8 +20,8 @@ async function getActivitySettings(req: NextRequest): Promise<NextResponse<ApiRe
     
     // Default settings to use if none are found
     const defaultSettings: ActivitySettings = {
-      order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone'],
-      visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone'],
+      order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'],
+      visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'],
       caretakerId: caretakerId || null,
     };
     

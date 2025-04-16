@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import './no-activities.css';
-import { SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MeasurementResponse, MilestoneResponse } from '@/app/api/types';
+import { SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MeasurementResponse, MilestoneResponse, MedicineLogResponse } from '@/app/api/types';
 import { Button } from "@/src/components/ui/button";
 import { Card } from "@/src/components/ui/card";
 import { StatusBubble } from "@/src/components/ui/status-bubble";
@@ -21,6 +21,7 @@ import BathForm from '@/src/components/forms/BathForm';
 import PumpForm from '@/src/components/forms/PumpForm';
 import MeasurementForm from '@/src/components/forms/MeasurementForm';
 import MilestoneForm from '@/src/components/forms/MilestoneForm';
+import MedicineForm from '@/src/components/forms/MedicineForm';
 
 function HomeContent(): React.ReactElement {
   const { selectedBaby, sleepingBabies, setSleepingBabies } = useBaby();
@@ -34,6 +35,7 @@ function HomeContent(): React.ReactElement {
   const [showPumpModal, setShowPumpModal] = useState(false);
   const [showMeasurementModal, setShowMeasurementModal] = useState(false);
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+  const [showMedicineModal, setShowMedicineModal] = useState(false);
   const [activities, setActivities] = useState<ActivityType[]>([]);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [localTime, setLocalTime] = useState<string>('');
@@ -290,6 +292,7 @@ function HomeContent(): React.ReactElement {
           onPumpClick={() => setShowPumpModal(true)}
           onMeasurementClick={() => setShowMeasurementModal(true)}
           onMilestoneClick={() => setShowMilestoneModal(true)}
+          onMedicineClick={() => setShowMedicineModal(true)}
         />
       )}
 
@@ -461,6 +464,21 @@ function HomeContent(): React.ReactElement {
           setShowMilestoneModal(false);
         }}
         babyId={selectedBaby?.id || ''}
+        initialTime={localTime}
+        onSuccess={() => {
+          if (selectedBaby?.id) {
+            refreshActivities(selectedBaby.id);
+          }
+        }}
+      />
+      
+      {/* Medicine Form */}
+      <MedicineForm
+        isOpen={showMedicineModal}
+        onClose={() => {
+          setShowMedicineModal(false);
+        }}
+        babyId={selectedBaby?.id}
         initialTime={localTime}
         onSuccess={() => {
           if (selectedBaby?.id) {
