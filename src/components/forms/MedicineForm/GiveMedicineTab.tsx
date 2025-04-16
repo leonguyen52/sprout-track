@@ -83,7 +83,7 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
         const medicinesData = await medicinesResponse.json();
         
         // Fetch units
-        const unitsResponse = await fetch('/api/unit');
+        const unitsResponse = await fetch('/api/units');
         
         if (!unitsResponse.ok) {
           throw new Error('Failed to fetch units');
