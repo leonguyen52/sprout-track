@@ -90,7 +90,7 @@ import './medicine-form.css';
               activeTab === 'active-doses' && "medicine-form-tab-button-active"
             )}
           >
-            Active Doses
+            Doses
           </Button>
           <Button
             variant="ghost"
@@ -114,7 +114,7 @@ import './medicine-form.css';
               activeTab === 'manage-medicines' && "medicine-form-tab-button-active"
             )}
           >
-            Manage Medicines
+            Medicines
           </Button>
         </div>
         
