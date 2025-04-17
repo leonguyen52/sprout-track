@@ -303,8 +303,7 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
           {activeDoses.map((dose) => (
             <div key={dose.id} className={cn(
               styles.doseCard, 
-              "medicine-form-dose-card",
-              !dose.hasRecentDoses && "border-l-4 border-l-amber-500"
+              "medicine-form-dose-card"
             )}>
               <div className={cn(styles.doseHeader, "medicine-form-dose-header")}>
                 <div className="flex items-center">
