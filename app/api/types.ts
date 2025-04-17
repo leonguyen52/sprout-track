@@ -246,6 +246,7 @@ export interface MedicineCreate {
   typicalDoseSize?: number;
   unitAbbr?: string;
   doseMinTime?: string;
+  notes?: string;
   active?: boolean;
   contactIds?: string[]; // IDs of contacts to associate with this medicine
 }

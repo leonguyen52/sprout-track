@@ -107,8 +107,8 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
           </Button>
         </div>
         
-        {/* Tab content */}
-        <div className="flex-1">
+        {/* Tab content - Added overflow-y-auto to enable scrolling */}
+        <div className="flex-1 overflow-y-auto">
           {activeTab === 'active-doses' && (
             <ActiveDosesTab
               babyId={babyId}

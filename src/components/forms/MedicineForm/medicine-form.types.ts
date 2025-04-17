@@ -137,6 +137,7 @@ export interface MedicineFormData {
   typicalDoseSize?: number;
   unitAbbr?: string;
   doseMinTime?: string;
+  notes?: string;
   active?: boolean;
   contactIds?: string[];
 }

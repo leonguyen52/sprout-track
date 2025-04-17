@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '@/src/lib/utils';
 import { medicineFormStyles as styles } from './medicine-form.styles';
 import { MedicineFormData } from './medicine-form.types';
-import { PillBottle, Loader2, AlertCircle, Trash2, Clock, User, Check } from 'lucide-react';
+import { PillBottle, Loader2, AlertCircle, Clock, User, Check, FileText } from 'lucide-react';
 import { FormPage, FormPageContent, FormPageFooter } from '@/src/components/ui/form-page';
 import { Input } from '@/src/components/ui/input';
 import { TimeInput } from '@/src/components/ui/time-input';
+import { Textarea } from '@/src/components/ui/textarea';
 import { Button } from '@/src/components/ui/button';
 import { Switch } from '@/src/components/ui/switch';
 import { Label } from '@/src/components/ui/label';
@@ -18,8 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/src/components/ui/select';
-import { Checkbox } from '@/src/components/ui/checkbox';
-import { Badge } from '@/src/components/ui/badge';
+import { Contact } from '@/src/components/CalendarEvent/calendar-event.types';
+import ContactSelector from './ContactSelector';
 
 interface MedicineFormProps {
   isOpen: boolean;
@@ -28,7 +29,6 @@ interface MedicineFormProps {
   units: {unitAbbr: string, unitName: string}[];
   contacts: {id: string, name: string, role: string}[];
   onSave: (formData: MedicineFormData) => Promise<void>;
-  onDelete?: (id: string) => Promise<void>;
 }
 
 /**
@@ -44,10 +44,23 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
   units,
   contacts,
   onSave,
-  onDelete,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Convert contacts to Contact type
+  const convertedContacts: Contact[] = contacts.map(c => ({
+    id: c.id,
+    name: c.name,
+    role: c.role,
+    phone: null,
+    email: null,
+    address: null,
+    notes: null
+  }));
+  
+  // State for contacts
+  const [localContacts, setLocalContacts] = useState<Contact[]>(convertedContacts);
   
   // Initialize form data
   const [formData, setFormData] = useState<MedicineFormData>(() => {
@@ -58,6 +71,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
         typicalDoseSize: medicine.typicalDoseSize,
         unitAbbr: medicine.unitAbbr || '',
         doseMinTime: medicine.doseMinTime || '',
+        notes: medicine.notes || '',
         active: medicine.active,
         contactIds: medicine.contacts?.map((c: any) => c.contact.id) || [],
       };
@@ -69,6 +83,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
       typicalDoseSize: undefined,
       unitAbbr: '',
       doseMinTime: '',
+      notes: '',
       active: true,
       contactIds: [],
     };
@@ -83,6 +98,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
         typicalDoseSize: medicine.typicalDoseSize,
         unitAbbr: medicine.unitAbbr || '',
         doseMinTime: medicine.doseMinTime || '',
+        notes: medicine.notes || '',
         active: medicine.active,
         contactIds: medicine.contacts?.map((c: any) => c.contact.id) || [],
       });
@@ -92,6 +108,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
         typicalDoseSize: undefined,
         unitAbbr: '',
         doseMinTime: '',
+        notes: '',
         active: true,
         contactIds: [],
       });
@@ -100,8 +117,23 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
     setErrors({});
   }, [medicine, isOpen]);
   
+  // Update local contacts when props change
+  useEffect(() => {
+    // Convert contacts to Contact type
+    const newContacts: Contact[] = contacts.map(c => ({
+      id: c.id,
+      name: c.name,
+      role: c.role,
+      phone: null,
+      email: null,
+      address: null,
+      notes: null
+    }));
+    setLocalContacts(newContacts);
+  }, [contacts]);
+  
   // Handle form field changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
@@ -141,19 +173,49 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
     setFormData(prev => ({ ...prev, active: checked }));
   };
   
-  // Handle contact selection
-  const handleContactToggle = (contactId: string, checked: boolean) => {
-    setFormData(prev => {
-      const currentContactIds = [...(prev.contactIds || [])];
-      
-      if (checked && !currentContactIds.includes(contactId)) {
-        return { ...prev, contactIds: [...currentContactIds, contactId] };
-      } else if (!checked && currentContactIds.includes(contactId)) {
-        return { ...prev, contactIds: currentContactIds.filter(id => id !== contactId) };
+  // Handle contact selection change
+  const handleContactsChange = (contactIds: string[]) => {
+    setFormData(prev => ({ ...prev, contactIds }));
+  };
+  
+  // Handle adding a new contact
+  const handleAddContact = (newContact: Contact) => {
+    // Add the new contact to our local contacts list
+    setLocalContacts(prev => {
+      // Check if the contact already exists
+      if (!prev.some(c => c.id === newContact.id)) {
+        return [...prev, newContact];
       }
-      
       return prev;
     });
+    
+    // Select the new contact
+    setFormData(prev => ({
+      ...prev,
+      contactIds: [...(prev.contactIds || []), newContact.id]
+    }));
+  };
+  
+  // Handle editing a contact
+  const handleEditContact = (updatedContact: Contact) => {
+    // Update the contact in our local contacts list
+    setLocalContacts(prev => 
+      prev.map(c => c.id === updatedContact.id ? updatedContact : c)
+    );
+  };
+  
+  // Handle deleting a contact
+  const handleDeleteContact = (contactId: string) => {
+    // Remove the contact from our local contacts list
+    setLocalContacts(prev => prev.filter(c => c.id !== contactId));
+    
+    // Remove the contact from the selected contacts if it's selected
+    if (formData.contactIds?.includes(contactId)) {
+      setFormData(prev => ({
+        ...prev,
+        contactIds: prev.contactIds?.filter(id => id !== contactId) || []
+      }));
+    }
   };
   
   // Validate form before submission
@@ -201,21 +263,6 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
     }
   };
   
-  // Handle medicine deletion
-  const handleDelete = async () => {
-    if (!medicine?.id || !onDelete) return;
-    
-    setIsLoading(true);
-    
-    try {
-      await onDelete(medicine.id);
-      onClose();
-    } catch (error) {
-      console.error('Error deleting medicine:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
   
   return (
     <FormPage
@@ -224,8 +271,8 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
       title={medicine ? `Edit ${medicine.name}` : 'Add New Medicine'}
       description={medicine ? 'Update medicine details' : 'Add a new medicine to track'}
     >
-      <form onSubmit={handleSubmit}>
-        <FormPageContent>
+      <FormPageContent>
+        <form id="medicine-form" onSubmit={handleSubmit}>
           <div className="space-y-4">
             {/* Medicine Name */}
             <div className={styles.formGroup}>
@@ -340,86 +387,67 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
               </Label>
             </div>
             
-            {/* Associated Contacts */}
-            {contacts.length > 0 && (
-              <div className={styles.formGroup}>
-                <Label htmlFor="contacts" className={styles.formLabel}>
-                  Associated Contacts
-                </Label>
-                <div className="space-y-2 mt-1 max-h-40 overflow-y-auto p-2 border rounded-md">
-                  {contacts.map((contact) => (
-                    <div key={contact.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`contact-${contact.id}`}
-                        checked={formData.contactIds?.includes(contact.id)}
-                        onCheckedChange={(checked) => 
-                          handleContactToggle(contact.id, checked as boolean)
-                        }
-                      />
-                      <Label
-                        htmlFor={`contact-${contact.id}`}
-                        className="text-sm font-medium leading-none flex items-center"
-                      >
-                        <User className="h-3 w-3 mr-1 text-gray-500" />
-                        {contact.name}
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          {contact.role}
-                        </Badge>
-                      </Label>
-                    </div>
-                  ))}
-                </div>
+            {/* Notes */}
+            <div className={styles.formGroup}>
+              <Label htmlFor="notes" className={styles.formLabel}>
+                Notes
+              </Label>
+              <div className="relative">
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  value={formData.notes || ''}
+                  onChange={handleChange}
+                  className="w-full min-h-[100px] pl-9"
+                  placeholder="Enter additional notes about this medicine"
+                />
+                <FileText className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
-            )}
-          </div>
-        </FormPageContent>
-        
-        <FormPageFooter>
-          <div className="flex justify-between w-full">
-            {/* Delete button (only shown when editing) */}
-            {medicine && onDelete && (
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={isLoading}
-              >
-                <Trash2 className="h-4 w-4 mr-1.5" />
-                Delete
-              </Button>
-            )}
+            </div>
             
-            {/* Right-aligned buttons */}
-            <div className="flex space-x-2 ml-auto">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
-              
-              <Button 
-                type="submit" 
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Check className="h-4 w-4 mr-1.5" />
-                    {medicine ? 'Update Medicine' : 'Save Medicine'}
-                  </>
-                )}
-              </Button>
+            {/* Associated Contacts */}
+            <div className={styles.formGroup}>
+              <Label htmlFor="contacts" className={styles.formLabel}>
+                Associated Contacts
+              </Label>
+              <ContactSelector
+                contacts={localContacts}
+                selectedContactIds={formData.contactIds || []}
+                onContactsChange={handleContactsChange}
+                onAddNewContact={handleAddContact}
+                onEditContact={handleEditContact}
+                onDeleteContact={handleDeleteContact}
+              />
             </div>
           </div>
-        </FormPageFooter>
-      </form>
+        </form>
+      </FormPageContent>
+      
+      <FormPageFooter>
+        <div className="flex justify-end w-full space-x-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          
+          <Button 
+            form="medicine-form"
+            type="submit" 
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                Saving...
+              </>
+            ) : (medicine ? 'Update' : 'Save')}
+          </Button>
+        </div>
+      </FormPageFooter>
     </FormPage>
   );
 };

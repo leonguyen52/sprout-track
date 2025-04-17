@@ -8,7 +8,7 @@ export const medicineFormStyles = {
   tabButtonActive: "text-teal-600 border-b-2 border-teal-600",
   
   // Content containers
-  tabContent: "py-2",
+  tabContent: "py-2 overflow-y-auto max-h-[calc(100vh-13rem)]",
   loadingContainer: "flex flex-col items-center justify-center py-12",
   errorContainer: "flex flex-col items-center justify-center py-8 text-center",
   

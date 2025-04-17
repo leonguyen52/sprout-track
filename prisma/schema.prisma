@@ -534,6 +534,7 @@ model Medicine {
   typicalDoseSize Float?
   unitAbbr        String?
   doseMinTime     String?          // Minimum time between doses (format: "HH:MM")
+  notes           String?          // Additional notes about the medicine
   active          Boolean          @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt

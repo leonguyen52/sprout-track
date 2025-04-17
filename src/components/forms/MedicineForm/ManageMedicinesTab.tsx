@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/src/lib/utils';
 import { medicineFormStyles as styles } from './medicine-form.styles';
 import { ManageMedicinesTabProps, MedicineWithContacts, MedicineFormData } from './medicine-form.types';
@@ -9,14 +9,16 @@ import {
   Loader2, 
   AlertCircle, 
   Edit, 
-  Trash2, 
   Plus, 
   ChevronRight, 
   User, 
-  Clock 
+  Clock,
+  EyeOff
 } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
-import { Badge } from '@/src/components/ui/badge';  
+import { Badge } from '@/src/components/ui/badge';
+import { Switch } from '@/src/components/ui/switch';
+import { Label } from '@/src/components/ui/label';
 import MedicineForm from './MedicineForm';
 
 /**
@@ -42,6 +44,14 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
   
   // Accordion state for expanded medicine details
   const [expandedMedicine, setExpandedMedicine] = useState<string | null>(null);
+  
+  // State for showing inactive medicines
+  const [showInactive, setShowInactive] = useState(false);
+  
+  // Filter medicines based on active status
+  const filteredMedicines = useMemo(() => {
+    return medicines.filter(medicine => showInactive || medicine.active);
+  }, [medicines, showInactive]);
   
   // Fetch medicines, units, and contacts
   useEffect(() => {
@@ -210,7 +220,7 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
 
   
   return (
-    <div className={styles.tabContent}>
+    <div className={cn(styles.tabContent)}>
       {/* Loading state for initial data fetch */}
       {isFetching && (
         <div className="flex flex-col items-center justify-center p-6">
@@ -230,15 +240,37 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
       {/* Medicines list */}
       {!isFetching && !error && (
         <>
+          {/* Show inactive medicines toggle */}
+          <div className="flex items-center space-x-2 mb-4">
+            <Switch
+              checked={showInactive}
+              onCheckedChange={setShowInactive}
+              id="show-inactive"
+            />
+            <Label htmlFor="show-inactive" className="text-sm font-medium cursor-pointer">
+              Show inactive medicines
+            </Label>
+            {showInactive && (
+              <Badge variant="outline" className="ml-auto flex items-center">
+                <EyeOff className="h-3 w-3 mr-1" />
+                <span>Showing inactive</span>
+              </Badge>
+            )}
+          </div>
+          
           <div className="space-y-4">
-            {medicines.length === 0 ? (
+            {filteredMedicines.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-6 text-center">
                 <PillBottle className="h-12 w-12 mb-2 text-gray-400" />
-                <p className="text-gray-500">No medicines added yet</p>
+                <p className="text-gray-500">
+                  {medicines.length === 0 
+                    ? "No medicines added yet" 
+                    : "No active medicines found. Toggle the switch to show inactive medicines."}
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
-                {medicines.map((medicine) => (
+                {filteredMedicines.map((medicine) => (
                   <div 
                     key={medicine.id} 
                     className="rounded-lg bg-gray-50 border border-gray-100 shadow-sm overflow-hidden"
@@ -293,7 +325,7 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
                           </div>
                         )}
                         
-                        <div className="flex space-x-2 mt-3">
+                        <div className="flex mt-3">
                           <Button
                             size="sm"
                             variant="outline"
@@ -304,18 +336,6 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
                           >
                             <Edit className="h-4 w-4 mr-1" />
                             Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-500 hover:text-red-600"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteMedicine(medicine.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Delete
                           </Button>
                         </div>
                       </div>
@@ -344,7 +364,6 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
             units={units}
             contacts={contacts}
             onSave={handleSaveMedicine}
-            onDelete={handleDeleteMedicine}
           />
         </>
       )}
