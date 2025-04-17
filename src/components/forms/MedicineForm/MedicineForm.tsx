@@ -7,7 +7,7 @@ import { MedicineFormData } from './medicine-form.types';
 import { PillBottle, Loader2, AlertCircle, Clock, User, Check, FileText } from 'lucide-react';
 import { FormPage, FormPageContent, FormPageFooter } from '@/src/components/ui/form-page';
 import { Input } from '@/src/components/ui/input';
-import { TimeInput } from '@/src/components/ui/time-input';
+import { ExtendedTimeInput } from '@/src/components/ui/extended-time-input';
 import { Textarea } from '@/src/components/ui/textarea';
 import { Button } from '@/src/components/ui/button';
 import { Switch } from '@/src/components/ui/switch';
@@ -357,18 +357,18 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
               </Label>
               <div className="relative">
                 <div className="relative">
-                  <TimeInput
+                  <ExtendedTimeInput
                     name="doseMinTime"
                     value={formData.doseMinTime}
                     onChange={handleChange}
                     className="w-full pl-9"
-                    errorMessage="Please enter a valid time in HH:MM format"
+                    errorMessage="Please enter a valid time in DD:HH:MM format"
                   />
                   <Clock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 z-10" />
                 </div>
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                Format: Hours:Minutes (e.g., 06:00 for 6 hours)
+                Format: Days:Hours:Minutes (e.g., 01:06:00 for 1 day and 6 hours)
               </div>
             </div>
             

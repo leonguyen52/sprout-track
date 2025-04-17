@@ -56,16 +56,16 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
       let isSafe = true;
       let nextDoseTime = "";
       let minutesRemaining = 0;
-      let doseMinTime = "00:30"; // Default to 30 minutes if not specified
+      let doseMinTime = "00:00:30"; // Default to 30 minutes if not specified
       
       if (medicine.doseMinTime) {
         doseMinTime = medicine.doseMinTime;
         
-        // Validate doseMinTime format (HH:MM)
-        const timeRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
+        // Validate doseMinTime format (DD:HH:MM)
+        const timeRegex = /^([0-9]{1,2}):([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
         if (timeRegex.test(medicine.doseMinTime)) {
-          const [hours, minutes] = medicine.doseMinTime.split(':').map(Number);
-          const minTimeMs = (hours * 60 + minutes) * 60 * 1000;
+          const [days, hours, minutes] = medicine.doseMinTime.split(':').map(Number);
+          const minTimeMs = ((days * 24 * 60) + (hours * 60) + minutes) * 60 * 1000;
           const lastDoseTime = new Date(latestLog.time).getTime();
           
           try {
@@ -88,8 +88,36 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
             isSafe = true; // Default to safe if there's an error
           }
         } else {
-          console.warn(`Invalid doseMinTime format for medicine ${medicine.name}: ${medicine.doseMinTime}`);
-          isSafe = true; // Default to safe if format is invalid
+          // Try the old HH:MM format for backward compatibility
+          const oldTimeRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
+          if (oldTimeRegex.test(medicine.doseMinTime)) {
+            const [hours, minutes] = medicine.doseMinTime.split(':').map(Number);
+            const minTimeMs = (hours * 60 + minutes) * 60 * 1000;
+            const lastDoseTime = new Date(latestLog.time).getTime();
+            
+            try {
+              const safeTime = new Date(lastDoseTime + minTimeMs);
+              
+              // Check if the date is valid before calling toISOString()
+              if (!isNaN(safeTime.getTime())) {
+                nextDoseTime = safeTime.toISOString();
+                isSafe = safeTime <= now;
+                
+                if (!isSafe) {
+                  minutesRemaining = calculateDurationMinutes(now.toISOString(), safeTime.toISOString());
+                }
+              } else {
+                console.warn(`Invalid date calculation for medicine ${medicine.name}`);
+                isSafe = true; // Default to safe if we can't calculate
+              }
+            } catch (error) {
+              console.error(`Error calculating next dose time for ${medicine.name}:`, error);
+              isSafe = true; // Default to safe if there's an error
+            }
+          } else {
+            console.warn(`Invalid doseMinTime format for medicine ${medicine.name}: ${medicine.doseMinTime}`);
+            isSafe = true; // Default to safe if format is invalid
+          }
         }
       }
       
@@ -170,10 +198,13 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
   const formatTimeRemaining = (minutes: number): string => {
     if (minutes <= 0) return 'Safe to administer';
     
-    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(minutes / (24 * 60));
+    const hours = Math.floor((minutes % (24 * 60)) / 60);
     const mins = Math.floor(minutes % 60);
     
-    if (hours > 0) {
+    if (days > 0) {
+      return `${days}d ${hours}h ${mins}m remaining`;
+    } else if (hours > 0) {
       return `${hours}h ${mins}m remaining`;
     }
     return `${mins}m remaining`;
