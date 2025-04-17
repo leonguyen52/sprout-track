@@ -55,6 +55,7 @@ const ExtendedTimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
         ...e,
         target: {
           ...e.target,
+          name: e.target.name, // Ensure the name is preserved
           value: formattedValue
         }
       };
@@ -63,12 +64,40 @@ const ExtendedTimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
       if (onChange) {
         onChange(syntheticEvent as React.ChangeEvent<HTMLInputElement>);
       }
+      
+      // Log the event for debugging
+      console.log('ExtendedTimeInput onChange:', {
+        name: e.target.name,
+        value: formattedValue
+      });
     };
     
     // Validate on blur
     const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
       const isTimeValid = validateTimeFormat(internalValue);
       setIsValid(isTimeValid);
+      
+      // If the value is valid but empty, set it to a default value
+      if (isTimeValid && internalValue === "") {
+        // Don't set a default value, just leave it empty
+      } else if (!isTimeValid) {
+        // If invalid, clear the value
+        setInternalValue("");
+        
+        // Create a synthetic event with the empty value
+        const syntheticEvent = {
+          ...e,
+          target: {
+            ...e.target,
+            value: ""
+          }
+        };
+        
+        // Call the original onChange handler if provided
+        if (onChange) {
+          onChange(syntheticEvent as React.ChangeEvent<HTMLInputElement>);
+        }
+      }
       
       // Call the original onBlur handler if provided
       if (onBlur) {
@@ -91,6 +120,13 @@ const ExtendedTimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
       return "";
     };
     
+    // Update internal value when external value changes
+    React.useEffect(() => {
+      if (value !== undefined && value !== null) {
+        setInternalValue(value as string);
+      }
+    }, [value]);
+    
     return (
       <div className={timeInputStyles.container}>
         <div className="relative">
@@ -102,6 +138,7 @@ const ExtendedTimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
               className,
               "time-input-dark"
             )}
+            name={props.name} // Explicitly set the name attribute
             value={internalValue}
             onChange={handleChange}
             onBlur={handleBlur}

@@ -135,6 +135,15 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
   // Handle form field changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
+    // Log the field change for debugging
+    console.log('MedicineForm handleChange:', { name, value });
+    
+    if (!name) {
+      console.error('Field name is undefined or empty:', e.target);
+      return;
+    }
+    
     setFormData(prev => ({ ...prev, [name]: value }));
     
     // Clear error for the field
@@ -235,6 +244,14 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
       newErrors.unitAbbr = 'Unit is required when dose size is specified';
     }
     
+    // Validate doseMinTime format if provided
+    if (formData.doseMinTime) {
+      const timeRegex = /^([0-9]{1,2}):([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
+      if (!timeRegex.test(formData.doseMinTime)) {
+        newErrors.doseMinTime = 'Please enter a valid time in DD:HH:MM format';
+      }
+    }
+    
     // Update errors state
     setErrors(newErrors);
     
@@ -252,6 +269,9 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
     }
     
     setIsLoading(true);
+    
+    // Log the form data being sent
+    console.log('Submitting medicine form data:', formData);
     
     try {
       await onSave(formData);
@@ -370,6 +390,12 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
               <div className="text-xs text-gray-500 mt-1">
                 Format: Days:Hours:Minutes (e.g., 01:06:00 for 1 day and 6 hours)
               </div>
+              {errors.doseMinTime && (
+                <div className="text-xs text-red-500 mt-1">
+                  <AlertCircle className="h-3 w-3 inline mr-1" />
+                  {errors.doseMinTime}
+                </div>
+              )}
             </div>
             
             {/* Active Status */}

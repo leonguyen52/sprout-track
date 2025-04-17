@@ -3,7 +3,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/src/lib/utils';
 import { medicineFormStyles as styles } from './medicine-form.styles';
-import { ActiveDosesTabProps, MedicineLogWithDetails, ActiveDose } from './medicine-form.types';
+import { ActiveDosesTabProps, MedicineLogWithDetails } from './medicine-form.types';
+
+// Enhanced ActiveDose interface
+interface ActiveDose {
+  id: string;
+  medicineName: string;
+  doseAmount: number;
+  unitAbbr?: string;
+  time: string;
+  nextDoseTime?: string;
+  isSafe: boolean;
+  minutesRemaining?: number;
+  totalIn24Hours: number;
+  doseMinTime: string;
+  hasRecentDoses: boolean; // Track if there are doses in the last 24 hours
+}
 import { PillBottle, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { useTimezone } from '@/app/context/timezone';
@@ -69,16 +84,30 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
           const lastDoseTime = new Date(latestLog.time).getTime();
           
           try {
+            // Log the parsed values for debugging
+            console.log(`Medicine: ${medicine.name}, Days: ${days}, Hours: ${hours}, Minutes: ${minutes}`);
+            console.log(`Min time in ms: ${minTimeMs}, which is ${minTimeMs / (1000 * 60 * 60 * 24)} days`);
+            
             const safeTime = new Date(lastDoseTime + minTimeMs);
+            
+            // Log the calculated times for debugging
+            console.log(`Last dose: ${new Date(lastDoseTime).toISOString()}`);
+            console.log(`Safe time: ${safeTime.toISOString()}`);
+            console.log(`Current time: ${now.toISOString()}`);
             
             // Check if the date is valid before calling toISOString()
             if (!isNaN(safeTime.getTime())) {
               nextDoseTime = safeTime.toISOString();
-              isSafe = safeTime <= now;
               
-              if (!isSafe) {
-                minutesRemaining = calculateDurationMinutes(now.toISOString(), safeTime.toISOString());
-              }
+              // Calculate minutes remaining regardless of whether it's safe or not
+              minutesRemaining = calculateDurationMinutes(now.toISOString(), safeTime.toISOString());
+              // Ensure minutes remaining is never negative
+              minutesRemaining = Math.max(0, minutesRemaining);
+              console.log(`Minutes remaining: ${minutesRemaining}`);
+              
+              // Compare timestamps to determine if it's safe
+              isSafe = safeTime.getTime() <= now.getTime();
+              console.log(`Is safe: ${isSafe}, safeTime <= now: ${safeTime <= now}, safeTime.getTime() <= now.getTime(): ${safeTime.getTime() <= now.getTime()}`);
             } else {
               console.warn(`Invalid date calculation for medicine ${medicine.name}`);
               isSafe = true; // Default to safe if we can't calculate
@@ -96,16 +125,30 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
             const lastDoseTime = new Date(latestLog.time).getTime();
             
             try {
+              // Log the parsed values for debugging
+              console.log(`Medicine: ${medicine.name}, Hours: ${hours}, Minutes: ${minutes}`);
+              console.log(`Min time in ms: ${minTimeMs}, which is ${minTimeMs / (1000 * 60 * 60)} hours`);
+              
               const safeTime = new Date(lastDoseTime + minTimeMs);
+              
+              // Log the calculated times for debugging
+              console.log(`Last dose: ${new Date(lastDoseTime).toISOString()}`);
+              console.log(`Safe time: ${safeTime.toISOString()}`);
+              console.log(`Current time: ${now.toISOString()}`);
               
               // Check if the date is valid before calling toISOString()
               if (!isNaN(safeTime.getTime())) {
                 nextDoseTime = safeTime.toISOString();
-                isSafe = safeTime <= now;
                 
-                if (!isSafe) {
-                  minutesRemaining = calculateDurationMinutes(now.toISOString(), safeTime.toISOString());
-                }
+                // Calculate minutes remaining regardless of whether it's safe or not
+                minutesRemaining = calculateDurationMinutes(now.toISOString(), safeTime.toISOString());
+                // Ensure minutes remaining is never negative
+                minutesRemaining = Math.max(0, minutesRemaining);
+                console.log(`Minutes remaining: ${minutesRemaining}`);
+                
+                // Compare timestamps to determine if it's safe
+                isSafe = safeTime.getTime() <= now.getTime();
+                console.log(`Is safe: ${isSafe}, safeTime <= now: ${safeTime <= now}, safeTime.getTime() <= now.getTime(): ${safeTime.getTime() <= now.getTime()}`);
               } else {
                 console.warn(`Invalid date calculation for medicine ${medicine.name}`);
                 isSafe = true; // Default to safe if we can't calculate
@@ -127,6 +170,7 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
       );
       
       const totalIn24Hours = logsIn24Hours.reduce((sum, log) => sum + log.doseAmount, 0);
+      const hasRecentDoses = logsIn24Hours.length > 0;
       
       // Add to active doses
       doses.push({
@@ -137,9 +181,10 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
         time: typeof latestLog.time === 'string' ? latestLog.time : new Date(latestLog.time).toISOString(),
         nextDoseTime: nextDoseTime || "",
         isSafe,
-        minutesRemaining: isSafe ? 0 : minutesRemaining,
+        minutesRemaining, // Always include the minutes remaining, even if it's safe
         totalIn24Hours,
-        doseMinTime
+        doseMinTime,
+        hasRecentDoses
       });
     });
     
@@ -153,8 +198,14 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
     try {
       setIsLoading(true);
       
-      // Fetch medicine logs for this baby
-      const response = await fetch(`/api/medicine-log?babyId=${babyId}`);
+      // Calculate date 60 days ago for filtering
+      const sixtyDaysAgo = new Date();
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+      
+      // Fetch medicine logs for this baby from the last 60 days
+      const response = await fetch(
+        `/api/medicine-log?babyId=${babyId}&startDate=${sixtyDaysAgo.toISOString()}`
+      );
       
       if (!response.ok) {
         throw new Error('Failed to fetch medicine logs');
@@ -195,8 +246,9 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
   }, [fetchActiveDoses]);
   
   // Format time remaining for display
-  const formatTimeRemaining = (minutes: number): string => {
-    if (minutes <= 0) return 'Safe to administer';
+  const formatTimeRemaining = (minutes: number, isSafe: boolean): string => {
+    // Only show "Safe to administer" if it's safe AND there's no time remaining
+    if (isSafe && minutes <= 0) return 'Safe to administer';
     
     const days = Math.floor(minutes / (24 * 60));
     const hours = Math.floor((minutes % (24 * 60)) / 60);
@@ -241,7 +293,7 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
       {!isLoading && !error && activeDoses.length === 0 && (
         <div className={cn(styles.emptyState, "medicine-form-empty-state")}>
           <PillBottle className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-          <p>No medicine doses in the last 24 hours</p>
+          <p>No medicine doses in the last 60 days</p>
         </div>
       )}
       
@@ -249,7 +301,11 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
       {!isLoading && !error && activeDoses.length > 0 && (
         <div className={cn(styles.activeDosesContainer, "medicine-form-active-doses-container")}>
           {activeDoses.map((dose) => (
-            <div key={dose.id} className={cn(styles.doseCard, "medicine-form-dose-card")}>
+            <div key={dose.id} className={cn(
+              styles.doseCard, 
+              "medicine-form-dose-card",
+              !dose.hasRecentDoses && "border-l-4 border-l-amber-500"
+            )}>
               <div className={cn(styles.doseHeader, "medicine-form-dose-header")}>
                 <div className="flex items-center">
                   <div className={cn(styles.iconContainer, "medicine-form-icon-container")}>
@@ -264,9 +320,11 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
                 </span>
               </div>
               
-              <p className={cn(styles.doseTime, "medicine-form-dose-time")}>
-                Last dose: {formatDate(dose.time)}
-              </p>
+              {dose.hasRecentDoses && (
+                <p className={cn(styles.doseTime, "medicine-form-dose-time")}>
+                  Last dose: {formatDate(dose.time)}
+                </p>
+              )}
               
               <div className={cn(styles.doseInfo, "medicine-form-dose-info mt-3")}>
                 <div className="flex items-center">
@@ -275,13 +333,24 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
                     dose.isSafe ? styles.countdownSafe : styles.countdownWarning,
                     dose.isSafe ? "medicine-form-countdown-safe" : "medicine-form-countdown-warning"
                   )}>
-                    {formatTimeRemaining(dose.minutesRemaining || 0)}
+                    {formatTimeRemaining(dose.minutesRemaining || 0, dose.isSafe)}
                   </span>
                 </div>
+                {/* Next dose time removed as it's redundant with the countdown */}
               </div>
               
               <div className={cn(styles.totalDose, "medicine-form-total-dose mt-2")}>
-                Total in last 24h: {dose.totalIn24Hours} {dose.unitAbbr}
+                {dose.hasRecentDoses ? (
+                  <>Total in last 24h: {dose.totalIn24Hours} {dose.unitAbbr}</>
+                ) : (
+                  <>Last Dose: {new Date(dose.time).toLocaleDateString('en-US', { 
+                    month: 'long', 
+                    day: 'numeric', 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    hour12: true 
+                  })} - {dose.doseAmount} {dose.unitAbbr}</>
+                )}
               </div>
             </div>
           ))}
