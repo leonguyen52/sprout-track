@@ -2,19 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { ActivityTile } from '@/src/components/ui/activity-tile';
 import { StatusBubble } from "@/src/components/ui/status-bubble";
 import { SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MeasurementResponse, MilestoneResponse, MedicineLogResponse, ActivitySettings } from '@/app/api/types';
-import { MoreVertical, ArrowDownUp } from 'lucide-react';
+import { ArrowDownUp } from 'lucide-react';
 import { useTheme } from '@/src/context/theme';
-import { cn } from '@/src/lib/utils';
 import './activity-tile-group.css';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
 } from '@/src/components/ui/dropdown-menu';
-import { dropdownMenuStyles as styles } from '@/src/components/ui/dropdown-menu/dropdown-menu.styles';
 
 interface ActivityTileGroupProps {
   selectedBaby: {

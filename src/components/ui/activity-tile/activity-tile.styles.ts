@@ -57,8 +57,8 @@ export const activityTileStyles = {
     },
     // Default icon paths for each variant
     defaultIcons: {
-      sleep: '/sleep-128.png',
-      feed: '/feed-128.png',
+      sleep: '/crib-128.png',
+      feed: '/bottle-128.png',
       diaper: '/diaper-128.png',
       note: '/note-128.png',
       bath: '/bath-128.png',
