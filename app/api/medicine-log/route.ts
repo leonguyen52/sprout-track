@@ -167,7 +167,15 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
       const medicineLog = await prisma.medicineLog.findUnique({
         where: { id },
         include: {
-          medicine: true,
+          medicine: {
+            include: {
+              contacts: {
+                include: {
+                  contact: true
+                }
+              }
+            }
+          },
           baby: true,
           caretaker: true,
           unit: true,
@@ -203,7 +211,15 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const medicineLogs = await prisma.medicineLog.findMany({
       where,
       include: {
-        medicine: true,
+        medicine: {
+          include: {
+            contacts: {
+              include: {
+                contact: true
+              }
+            }
+          }
+        },
         baby: true,
         caretaker: true,
         unit: true,

@@ -1,9 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '@/src/lib/utils';
 import { medicineFormStyles as styles } from './medicine-form.styles';
 import { ActiveDosesTabProps, MedicineLogWithDetails } from './medicine-form.types';
+
+// Contact interface
+interface Contact {
+  id: string;
+  name: string;
+  role: string;
+  phone?: string;
+  email?: string;
+}
 
 // Enhanced ActiveDose interface
 interface ActiveDose {
@@ -18,8 +27,9 @@ interface ActiveDose {
   totalIn24Hours: number;
   doseMinTime: string;
   hasRecentDoses: boolean; // Track if there are doses in the last 24 hours
+  contacts?: Contact[]; // Add contacts to the ActiveDose interface
 }
-import { PillBottle, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { PillBottle, Clock, AlertCircle, Loader2, ChevronDown, Phone, Mail } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { useTimezone } from '@/app/context/timezone';
 
@@ -34,6 +44,15 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeDoses, setActiveDoses] = useState<ActiveDose[]>([]);
+  const [expandedContacts, setExpandedContacts] = useState<Record<string, boolean>>({});
+  
+  // Toggle contact visibility for a specific dose
+  const toggleContacts = useCallback((doseId: string) => {
+    setExpandedContacts(prev => ({
+      ...prev,
+      [doseId]: !prev[doseId]
+    }));
+  }, []);
   
   // Function to process medicine logs into active doses
   const createActiveDoses = useCallback((logs: MedicineLogWithDetails[] | null): ActiveDose[] => {
@@ -172,6 +191,27 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
       const totalIn24Hours = logsIn24Hours.reduce((sum, log) => sum + log.doseAmount, 0);
       const hasRecentDoses = logsIn24Hours.length > 0;
       
+      // Extract contacts from medicine if available
+      const contacts = medicine.contacts?.map(c => {
+        // Create a contact object with the available fields
+        const contact: Contact = {
+          id: c.contact.id,
+          name: c.contact.name,
+          role: c.contact.role
+        };
+        
+        // Add optional fields if they exist in the API response
+        if ('phone' in c.contact) {
+          contact.phone = (c.contact as any).phone;
+        }
+        
+        if ('email' in c.contact) {
+          contact.email = (c.contact as any).email;
+        }
+        
+        return contact;
+      }) || [];
+      
       // Add to active doses
       doses.push({
         id: latestLog.id,
@@ -184,7 +224,8 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
         minutesRemaining, // Always include the minutes remaining, even if it's safe
         totalIn24Hours,
         doseMinTime,
-        hasRecentDoses
+        hasRecentDoses,
+        contacts: contacts.length > 0 ? contacts : undefined
       });
     });
     
@@ -351,6 +392,67 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
                   })} - {dose.doseAmount} {dose.unitAbbr}</>
                 )}
               </div>
+              
+              {/* Contacts Section */}
+              {dose.contacts && dose.contacts.length > 0 && (
+                <div className="mt-3 border-t border-gray-100 pt-2 dark:border-gray-700">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-between py-2 px-0 text-sm font-medium text-gray-600 hover:text-teal-600 dark:text-gray-300 dark:hover:text-teal-400"
+                    onClick={() => toggleContacts(dose.id)}
+                  >
+                    <span className="flex items-center gap-1">
+                      <span className="font-medium">Contact Information</span>
+                      <span className="ml-1 rounded-full bg-teal-100 px-2 py-0.5 text-xs text-teal-800 dark:bg-teal-900 dark:text-teal-200">
+                        {dose.contacts.length}
+                      </span>
+                    </span>
+                    <ChevronDown className={cn(
+                      "h-4 w-4 text-gray-500 transition-transform duration-200 dark:text-gray-400",
+                      expandedContacts[dose.id] && "rotate-180"
+                    )} />
+                  </Button>
+                  
+                  {/* Collapsible content */}
+                  {expandedContacts[dose.id] && (
+                    <div className="space-y-3 pt-1 pb-2">
+                      {dose.contacts.map(contact => (
+                        <div key={contact.id} className="rounded-md bg-gray-50 p-2 dark:bg-gray-800">
+                          <div className="font-medium text-gray-900 dark:text-gray-100">{contact.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{contact.role}</div>
+                          
+                          <div className="mt-1 flex flex-row gap-4 text-xs">
+                            {contact.phone && (
+                              <div className="flex items-center">
+                                <Phone className="mr-1 h-3 w-3 text-gray-500 dark:text-gray-400" />
+                                <a 
+                                  href={`tel:${contact.phone.replace(/\D/g, '')}`}
+                                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+                                >
+                                  {contact.phone}
+                                </a>
+                              </div>
+                            )}
+                            
+                            {contact.email && (
+                              <div className="flex items-center">
+                                <Mail className="mr-1 h-3 w-3 text-gray-500 dark:text-gray-400" />
+                                <a 
+                                  href={`mailto:${contact.email}`}
+                                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+                                >
+                                  {contact.email}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
