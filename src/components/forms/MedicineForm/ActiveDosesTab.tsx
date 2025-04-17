@@ -60,16 +60,36 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
       
       if (medicine.doseMinTime) {
         doseMinTime = medicine.doseMinTime;
-        const [hours, minutes] = medicine.doseMinTime.split(':').map(Number);
-        const minTimeMs = (hours * 60 + minutes) * 60 * 1000;
-        const lastDoseTime = new Date(latestLog.time).getTime();
-        const safeTime = new Date(lastDoseTime + minTimeMs);
         
-        nextDoseTime = safeTime.toISOString();
-        isSafe = safeTime <= now;
-        
-        if (!isSafe) {
-          minutesRemaining = calculateDurationMinutes(now.toISOString(), safeTime.toISOString());
+        // Validate doseMinTime format (HH:MM)
+        const timeRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
+        if (timeRegex.test(medicine.doseMinTime)) {
+          const [hours, minutes] = medicine.doseMinTime.split(':').map(Number);
+          const minTimeMs = (hours * 60 + minutes) * 60 * 1000;
+          const lastDoseTime = new Date(latestLog.time).getTime();
+          
+          try {
+            const safeTime = new Date(lastDoseTime + minTimeMs);
+            
+            // Check if the date is valid before calling toISOString()
+            if (!isNaN(safeTime.getTime())) {
+              nextDoseTime = safeTime.toISOString();
+              isSafe = safeTime <= now;
+              
+              if (!isSafe) {
+                minutesRemaining = calculateDurationMinutes(now.toISOString(), safeTime.toISOString());
+              }
+            } else {
+              console.warn(`Invalid date calculation for medicine ${medicine.name}`);
+              isSafe = true; // Default to safe if we can't calculate
+            }
+          } catch (error) {
+            console.error(`Error calculating next dose time for ${medicine.name}:`, error);
+            isSafe = true; // Default to safe if there's an error
+          }
+        } else {
+          console.warn(`Invalid doseMinTime format for medicine ${medicine.name}: ${medicine.doseMinTime}`);
+          isSafe = true; // Default to safe if format is invalid
         }
       }
       
