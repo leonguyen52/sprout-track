@@ -40,7 +40,7 @@ export const medicineFormStyles = {
   
   // Medicine form
   medicineForm: "space-y-4",
-  formRow: "flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0",
+  formRow: "flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0 mb-4",
   formCol: "flex-1",
   contactsSection: "mt-6",
   contactsHeader: "text-sm font-medium text-gray-700 mb-2",

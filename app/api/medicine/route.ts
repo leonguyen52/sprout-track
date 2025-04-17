@@ -10,11 +10,30 @@ import { formatForResponse } from '../utils/timezone';
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
     const body: MedicineCreate = await req.json();
-    const { contactIds, ...medicineData } = body;
+    const { 
+      contactIds, 
+      unitAbbr, 
+      name, 
+      typicalDoseSize, 
+      doseMinTime, 
+      notes, 
+      active 
+    } = body;
+
+    // Prepare data for creation, explicitly listing fields to avoid undefined keys
+    const medicineCreateData = {
+      name,
+      typicalDoseSize,
+      doseMinTime,
+      notes,
+      active,
+      // Connect to the unit if unitAbbr is provided
+      ...(unitAbbr ? { unit: { connect: { unitAbbr } } } : {})
+    };
 
     // Create the medicine
     const medicine = await prisma.medicine.create({
-      data: medicineData,
+      data: medicineCreateData,
     });
 
     // Associate with contacts if provided
@@ -29,7 +48,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
       });
     }
 
-    // Get the medicine with contacts
+    // Get the medicine with contacts and unit
     const medicineWithContacts = await prisma.medicine.findUnique({
       where: { id: medicine.id },
       include: {
@@ -38,6 +57,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
             contact: true,
           },
         },
+        unit: true,
       },
     });
 
@@ -45,9 +65,10 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
       throw new Error('Failed to retrieve created medicine');
     }
 
-    // Format dates for response
+    // Format dates for response and ensure unitAbbr is included
     const response: MedicineResponse = {
       ...medicineWithContacts,
+      unitAbbr: medicineWithContacts.unit?.unitAbbr || null, // Ensure unitAbbr is included in response
       createdAt: formatForResponse(medicineWithContacts.createdAt) || '',
       updatedAt: formatForResponse(medicineWithContacts.updatedAt) || '',
       deletedAt: formatForResponse(medicineWithContacts.deletedAt),
@@ -75,7 +96,16 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
     const body: MedicineUpdate = await req.json();
-    const { id, contactIds, ...updateData } = body;
+    const { 
+      id, 
+      contactIds, 
+      unitAbbr, 
+      name, 
+      typicalDoseSize, 
+      doseMinTime, 
+      notes, 
+      active 
+    } = body;
 
     // Check if medicine exists
     const existingMedicine = await prisma.medicine.findUnique({
@@ -92,10 +122,23 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
+    // Prepare data for update, explicitly listing fields to avoid undefined keys
+    const medicineUpdateData = {
+      name,
+      typicalDoseSize,
+      doseMinTime,
+      notes,
+      active,
+      // Connect to the unit if unitAbbr is provided, or disconnect if it's empty
+      unit: unitAbbr 
+        ? { connect: { unitAbbr } } 
+        : { disconnect: true }
+    };
+
     // Update the medicine
     const medicine = await prisma.medicine.update({
       where: { id },
-      data: updateData,
+      data: medicineUpdateData,
     });
 
     // Update contact associations if provided
@@ -118,7 +161,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       }
     }
 
-    // Get the updated medicine with contacts
+    // Get the updated medicine with contacts and unit
     const medicineWithContacts = await prisma.medicine.findUnique({
       where: { id },
       include: {
@@ -127,6 +170,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
             contact: true,
           },
         },
+        unit: true,
       },
     });
 
@@ -134,9 +178,10 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       throw new Error('Failed to retrieve updated medicine');
     }
 
-    // Format dates for response
+    // Format dates for response and ensure unitAbbr is included
     const response: MedicineResponse = {
       ...medicineWithContacts,
+      unitAbbr: medicineWithContacts.unit?.unitAbbr || null, // Ensure unitAbbr is included in response
       createdAt: formatForResponse(medicineWithContacts.createdAt) || '',
       updatedAt: formatForResponse(medicineWithContacts.updatedAt) || '',
       deletedAt: formatForResponse(medicineWithContacts.deletedAt),
@@ -206,9 +251,10 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
         );
       }
 
-      // Format dates for response
+      // Format dates for response and ensure unitAbbr is included
       const response: MedicineResponse = {
         ...medicine,
+        unitAbbr: medicine.unit?.unitAbbr || null, // Ensure unitAbbr is included in response
         createdAt: formatForResponse(medicine.createdAt) || '',
         updatedAt: formatForResponse(medicine.updatedAt) || '',
         deletedAt: formatForResponse(medicine.deletedAt),
@@ -241,9 +287,10 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
       const medicines = medicinesForContact.map(cm => cm.medicine);
 
-      // Format dates for response
+      // Format dates for response and ensure unitAbbr is included
       const response = medicines.map(medicine => ({
         ...medicine,
+        unitAbbr: medicine.unit?.unitAbbr || null, // Ensure unitAbbr is included in response
         createdAt: formatForResponse(medicine.createdAt) || '',
         updatedAt: formatForResponse(medicine.updatedAt) || '',
         deletedAt: formatForResponse(medicine.deletedAt),
@@ -269,9 +316,10 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
       orderBy: { name: 'asc' },
     });
 
-    // Format dates for response
+    // Format dates for response and ensure unitAbbr is included
     const response = medicines.map(medicine => ({
       ...medicine,
+      unitAbbr: medicine.unit?.unitAbbr || null, // Ensure unitAbbr is included in response
       createdAt: formatForResponse(medicine.createdAt) || '',
       updatedAt: formatForResponse(medicine.updatedAt) || '',
       deletedAt: formatForResponse(medicine.deletedAt),

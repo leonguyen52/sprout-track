@@ -363,24 +363,27 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
             <label className={cn(styles.formLabel, "medicine-form-label")}>
               Time
             </label>
-            <DateTimePicker
-              value={selectedDateTime}
-              onChange={handleDateTimeChange}
-              disabled={isLoading}
-            />
-            {errors.time && (
-              <p className={cn(styles.formError, "medicine-form-error")}>
-                {errors.time}
-              </p>
-            )}
+            <div className={cn(styles.selectContainer, "medicine-form-select-container")}>
+              <DateTimePicker
+                value={selectedDateTime}
+                onChange={handleDateTimeChange}
+                disabled={isLoading}
+              />
+              {errors.time && (
+                <p className={cn(styles.formError, "medicine-form-error")}>
+                  {errors.time}
+                </p>
+              )}
+            </div>
           </div>
           
           {/* Dose amount and unit */}
           <div className={cn(styles.formRow, "medicine-form-form-row")}>
-            <div className={cn(styles.formCol, "medicine-form-form-col")}>
-              <label className={cn(styles.formLabel, "medicine-form-label")}>
-                Dose Amount
-              </label>
+          <div className={cn(styles.formCol, "medicine-form-form-col")}>
+            <label className={cn(styles.formLabel, "medicine-form-label")}>
+              Dose Amount
+            </label>
+            <div className={cn(styles.selectContainer, "medicine-form-select-container")}>
               <Input
                 type="number"
                 name="doseAmount"
@@ -397,6 +400,7 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
                 </p>
               )}
             </div>
+          </div>
             
             <div className={cn(styles.formCol, "medicine-form-form-col")}>
               <label className={cn(styles.formLabel, "medicine-form-label")}>
@@ -465,14 +469,16 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
             <label className={cn(styles.formLabel, "medicine-form-label")}>
               Notes (optional)
             </label>
-            <Textarea
-              name="notes"
-              value={formData.notes || ''}
-              onChange={handleChange}
-              disabled={isLoading}
-              placeholder="Add any additional notes here"
-              className="resize-none"
-            />
+            <div className={cn(styles.selectContainer, "medicine-form-select-container")}>
+              <Textarea
+                name="notes"
+                value={formData.notes || ''}
+                onChange={handleChange}
+                disabled={isLoading}
+                placeholder="Add any additional notes here"
+                className="resize-none"
+              />
+            </div>
           </div>
           
           {/* Form submission is handled by the parent component's footer */}
