@@ -30,7 +30,7 @@ import './medicine-form.css';
  * />
  * ```
  */
-const MedicineForm: React.FC<MedicineFormProps> = ({
+  const MedicineForm: React.FC<MedicineFormProps> = ({
   isOpen,
   onClose,
   babyId,
@@ -46,6 +46,17 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
   const refreshData = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
+  
+  // Handle success from GiveMedicineTab - close the form and call onSuccess if provided
+  const handleGiveMedicineSuccess = useCallback(() => {
+    // Close the form
+    onClose();
+    
+    // Call the original onSuccess if provided
+    if (onSuccess) {
+      onSuccess();
+    }
+  }, [onClose, onSuccess]);
   
   // Set the active tab when form opens
   useEffect(() => {
@@ -120,7 +131,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
             <GiveMedicineTab
               babyId={babyId}
               initialTime={initialTime}
-              onSuccess={onSuccess}
+              onSuccess={handleGiveMedicineSuccess}
               refreshData={refreshData}
               setIsSubmitting={setIsSubmitting}
               activity={activity}

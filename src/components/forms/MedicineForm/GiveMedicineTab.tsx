@@ -54,13 +54,24 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   });
   
   // Form data state
-  const [formData, setFormData] = useState<MedicineLogFormData>({
-    babyId: babyId || '',
-    medicineId: activity && 'medicineId' in activity ? activity.medicineId : '',
-    time: initialTime,
-    doseAmount: activity && 'doseAmount' in activity ? activity.doseAmount : 0,
-    unitAbbr: activity && 'unitAbbr' in activity ? activity.unitAbbr : '',
-    notes: activity && 'notes' in activity ? activity.notes : '',
+  const [formData, setFormData] = useState<MedicineLogFormData>(() => {
+    // If we have an initial time, ensure it's properly formatted with timezone utility
+    let formattedTime = initialTime;
+    if (initialTime) {
+      const initialDate = new Date(initialTime);
+      if (!isNaN(initialDate.getTime())) {
+        formattedTime = toUTCString(initialDate) || initialDate.toISOString();
+      }
+    }
+    
+    return {
+      babyId: babyId || '',
+      medicineId: activity && 'medicineId' in activity ? activity.medicineId : '',
+      time: formattedTime,
+      doseAmount: activity && 'doseAmount' in activity ? activity.doseAmount : 0,
+      unitAbbr: activity && 'unitAbbr' in activity ? activity.unitAbbr : '',
+      notes: activity && 'notes' in activity ? activity.notes : '',
+    };
   });
   
   // Form validation errors
@@ -127,8 +138,9 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   const handleDateTimeChange = (date: Date) => {
     setSelectedDateTime(date);
     
-    // Format the date as ISO string for storage in formData
-    const formattedTime = date.toISOString();
+    // Use the timezone utility to properly format the time
+    // This ensures the local time is preserved when converted to UTC in the API
+    const formattedTime = toUTCString(date) || date.toISOString();
     setFormData(prev => ({ ...prev, time: formattedTime }));
     
     // Clear error for time field
@@ -249,10 +261,12 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
       }
       
       // Reset form
+      const now = new Date();
+      const formattedTime = toUTCString(now) || now.toISOString();
       setFormData({
         babyId: babyId || '',
         medicineId: '',
-        time: new Date().toISOString(),
+        time: formattedTime,
         doseAmount: 0,
         unitAbbr: '',
         notes: '',
