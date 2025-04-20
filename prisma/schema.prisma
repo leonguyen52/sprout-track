@@ -184,6 +184,7 @@ model Unit {
   id          String        @id @default(uuid())
   unitAbbr    String        @unique
   unitName    String
+  activityTypes String?     // Comma-separated list of activity types: height, weight, temp, medicine
   feedLogs    FeedLog[]
   pumpLogs    PumpLog[]
   medicines   Medicine[]    // Relation to Medicine model

@@ -268,6 +268,6 @@ export interface MedicineLogCreate {
   medicineId: string;
   time: string;
   doseAmount: number;
-  unitAbbr?: string;
+  unitAbbr?: string | null;
   notes?: string;
 }

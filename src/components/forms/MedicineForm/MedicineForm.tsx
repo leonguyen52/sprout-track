@@ -155,15 +155,21 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
   // Handle number input changes
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const numValue = parseFloat(value);
     
-    if (!isNaN(numValue)) {
-      setFormData(prev => ({ ...prev, [name]: numValue }));
+    if (value === '') {
+      // Allow empty value (completely deleted input)
+      setFormData(prev => ({ ...prev, [name]: undefined }));
+    } else {
+      const numValue = parseFloat(value);
       
-      // Clear error for the field
-      if (errors[name]) {
-        setErrors(prev => ({ ...prev, [name]: '' }));
+      if (!isNaN(numValue)) {
+        setFormData(prev => ({ ...prev, [name]: numValue }));
       }
+    }
+    
+    // Clear error for the field
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
   
@@ -184,7 +190,9 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
   
   // Handle contact selection change
   const handleContactsChange = (contactIds: string[]) => {
-    setFormData(prev => ({ ...prev, contactIds }));
+    // Filter out duplicate contact IDs
+    const uniqueContactIds = Array.from(new Set(contactIds));
+    setFormData(prev => ({ ...prev, contactIds: uniqueContactIds }));
   };
   
   // Handle adding a new contact
@@ -198,11 +206,18 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
       return prev;
     });
     
-    // Select the new contact
-    setFormData(prev => ({
-      ...prev,
-      contactIds: [...(prev.contactIds || []), newContact.id]
-    }));
+    // Select the new contact if it's not already selected
+    setFormData(prev => {
+      const currentContactIds = prev.contactIds || [];
+      // Only add the contact if it's not already in the array
+      if (!currentContactIds.includes(newContact.id)) {
+        return {
+          ...prev,
+          contactIds: [...currentContactIds, newContact.id]
+        };
+      }
+      return prev;
+    });
   };
   
   // Handle editing a contact
@@ -236,11 +251,8 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
       newErrors.name = 'Name is required';
     }
     
-    if (formData.typicalDoseSize !== undefined && formData.typicalDoseSize <= 0) {
-      newErrors.typicalDoseSize = 'Dose size must be greater than 0';
-    }
-    
-    if (formData.typicalDoseSize && !formData.unitAbbr) {
+    // Allow dose size to be blank or 0
+    if (formData.typicalDoseSize && formData.typicalDoseSize > 0 && !formData.unitAbbr) {
       newErrors.unitAbbr = 'Unit is required when dose size is specified';
     }
     
@@ -270,11 +282,20 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
     
     setIsLoading(true);
     
+    // Create a copy of the form data to ensure all fields are included
+    const dataToSubmit = {
+      ...formData,
+      // Explicitly include typicalDoseSize even if it's undefined
+      typicalDoseSize: formData.typicalDoseSize,
+      // Ensure contactIds has no duplicates
+      contactIds: formData.contactIds ? Array.from(new Set(formData.contactIds)) : []
+    };
+    
     // Log the form data being sent
-    console.log('Submitting medicine form data:', formData);
+    console.log('Submitting medicine form data:', dataToSubmit);
     
     try {
-      await onSave(formData);
+      await onSave(dataToSubmit);
       onClose();
     } catch (error) {
       console.error('Error saving medicine:', error);
@@ -332,7 +353,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
                   onChange={handleNumberChange}
                   min="0"
                   step="0.1"
-                  placeholder="Enter typical dose"
+                  placeholder="Enter typical dose (optional)"
                 />
                 {errors.typicalDoseSize && (
                   <div className="text-xs text-red-500 mt-1">
