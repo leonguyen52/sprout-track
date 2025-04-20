@@ -96,14 +96,26 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
         
         const medicinesData = await medicinesResponse.json();
         
-        // Fetch units
-        const unitsResponse = await fetch('/api/units');
-        
-        if (!unitsResponse.ok) {
+        // Fetch units for medicine
+        let unitsData;
+        try {
+          const unitsResponse = await fetch('/api/units?activityType=medicine');
+          
+          if (!unitsResponse.ok) {
+            console.error('Error fetching medicine units with filter, falling back to all units');
+            // Fallback to fetching all units if the filtered request fails
+            const fallbackResponse = await fetch('/api/units');
+            if (!fallbackResponse.ok) {
+              throw new Error('Failed to load units');
+            }
+            unitsData = await fallbackResponse.json();
+          } else {
+            unitsData = await unitsResponse.json();
+          }
+        } catch (error) {
+          console.error('Error fetching units:', error);
           throw new Error('Failed to load units');
         }
-        
-        const unitsData = await unitsResponse.json();
         
         // Update state with fetched data
         if (medicinesData.success) {
@@ -184,15 +196,21 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   // Handle number input changes
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const numValue = parseFloat(value);
     
-    if (!isNaN(numValue)) {
-      setFormData(prev => ({ ...prev, [name]: numValue }));
+    if (value === '') {
+      // Allow empty value (completely deleted input)
+      setFormData(prev => ({ ...prev, [name]: 0 }));
+    } else {
+      const numValue = parseFloat(value);
       
-      // Clear error for the field
-      if (errors[name]) {
-        setErrors(prev => ({ ...prev, [name]: '' }));
+      if (!isNaN(numValue)) {
+        setFormData(prev => ({ ...prev, [name]: numValue }));
       }
+    }
+    
+    // Clear error for the field
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
   
@@ -219,8 +237,14 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
       newErrors.time = 'Please select a time';
     }
     
-    if (formData.doseAmount <= 0) {
-      newErrors.doseAmount = 'Please enter a valid dose amount';
+    // Allow dose amount to be 0 or greater
+    if (formData.doseAmount < 0) {
+      newErrors.doseAmount = 'Dose amount cannot be negative';
+    }
+    
+    // Unit is only required if dose amount is greater than 0
+    if (formData.doseAmount > 0 && !formData.unitAbbr) {
+      newErrors.unitAbbr = 'Please select a unit for the dose';
     }
     
     // Update errors state
@@ -248,12 +272,21 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
       const url = isEdit ? `/api/medicine-log?id=${activity.id}` : '/api/medicine-log';
       const method = isEdit ? 'PUT' : 'POST';
       
+      // Create a copy of the form data to ensure consistency
+      const dataToSubmit = { ...formData };
+      
+      // If dose amount is 0, set the unit to an empty string
+      // The API will handle this and convert it to null in the database
+      if (dataToSubmit.doseAmount === 0) {
+        dataToSubmit.unitAbbr = '';
+      }
+      
       const response = await fetch(url, {
         method: method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSubmit),
       });
       
       if (!response.ok) {

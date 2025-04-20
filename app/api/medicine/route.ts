@@ -38,7 +38,10 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
     // Associate with contacts if provided
     if (contactIds && contactIds.length > 0) {
-      const contactMedicineData = contactIds.map(contactId => ({
+      // Filter out duplicate contact IDs
+      const uniqueContactIds = Array.from(new Set(contactIds));
+      
+      const contactMedicineData = uniqueContactIds.map(contactId => ({
         contactId,
         medicineId: medicine.id,
       }));
@@ -150,7 +153,10 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
       // Create new associations
       if (contactIds.length > 0) {
-        const contactMedicineData = contactIds.map(contactId => ({
+        // Filter out duplicate contact IDs
+        const uniqueContactIds = Array.from(new Set(contactIds));
+        
+        const contactMedicineData = uniqueContactIds.map(contactId => ({
           contactId,
           medicineId: id,
         }));

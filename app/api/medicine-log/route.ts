@@ -14,12 +14,21 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     // Convert time to UTC for storage
     const timeUTC = toUTC(body.time);
     
+    // Prepare data for creation
+    const data = {
+      ...body,
+      time: timeUTC,
+      caretakerId: authContext.caretakerId,
+    };
+    
+    // If unitAbbr is an empty string, set it to null
+    // This is necessary for the foreign key constraint
+    if (data.unitAbbr === '') {
+      data.unitAbbr = null;
+    }
+    
     const medicineLog = await prisma.medicineLog.create({
-      data: {
-        ...body,
-        time: timeUTC,
-        caretakerId: authContext.caretakerId,
-      },
+      data,
     });
 
     // Format dates for response
@@ -87,6 +96,12 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
     // Convert time to UTC if provided
     if (body.time) {
       updateData.time = toUTC(body.time);
+    }
+    
+    // If unitAbbr is an empty string, set it to null
+    // This is necessary for the foreign key constraint
+    if (updateData.unitAbbr === '') {
+      updateData.unitAbbr = null;
     }
 
     // Update the log

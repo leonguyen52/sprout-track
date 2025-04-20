@@ -69,14 +69,26 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
         
         const medicinesData = await medicinesResponse.json();
         
-        // Fetch units
-        const unitsResponse = await fetch('/api/units');
-        
-        if (!unitsResponse.ok) {
+        // Fetch units for medicine
+        let unitsData;
+        try {
+          const unitsResponse = await fetch('/api/units?activityType=medicine');
+          
+          if (!unitsResponse.ok) {
+            console.error('Error fetching medicine units with filter, falling back to all units');
+            // Fallback to fetching all units if the filtered request fails
+            const fallbackResponse = await fetch('/api/units');
+            if (!fallbackResponse.ok) {
+              throw new Error('Failed to fetch units');
+            }
+            unitsData = await fallbackResponse.json();
+          } else {
+            unitsData = await unitsResponse.json();
+          }
+        } catch (error) {
+          console.error('Error fetching units:', error);
           throw new Error('Failed to fetch units');
         }
-        
-        const unitsData = await unitsResponse.json();
         
         // Fetch contacts
         const contactsResponse = await fetch('/api/contact');
