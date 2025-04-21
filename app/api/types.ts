@@ -1,4 +1,4 @@
-import { Baby, SleepLog, FeedLog, DiaperLog, MoodLog, Note, Caretaker, Settings as PrismaSettings, Gender, SleepType, SleepQuality, FeedType, BreastSide, DiaperType, Mood, PumpLog, Milestone, MilestoneCategory, Measurement, MeasurementType } from '@prisma/client';
+import { Baby, SleepLog, FeedLog, DiaperLog, MoodLog, Note, Caretaker, Settings as PrismaSettings, Gender, SleepType, SleepQuality, FeedType, BreastSide, DiaperType, Mood, PumpLog, Milestone, MilestoneCategory, Measurement, MeasurementType, Medicine, MedicineLog } from '@prisma/client';
 
 // Settings types
 export interface Settings extends PrismaSettings {
@@ -231,5 +231,43 @@ export interface MeasurementCreate {
   type: MeasurementType;
   value: number;
   unit: string;
+  notes?: string;
+}
+
+// Medicine types
+export type MedicineResponse = Omit<Medicine, 'createdAt' | 'updatedAt' | 'deletedAt'> & {
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
+export interface MedicineCreate {
+  name: string;
+  typicalDoseSize?: number;
+  unitAbbr?: string;
+  doseMinTime?: string;
+  notes?: string;
+  active?: boolean;
+  contactIds?: string[]; // IDs of contacts to associate with this medicine
+}
+
+export interface MedicineUpdate extends Partial<MedicineCreate> {
+  id: string;
+}
+
+// Medicine log types
+export type MedicineLogResponse = Omit<MedicineLog, 'time' | 'createdAt' | 'updatedAt' | 'deletedAt'> & {
+  time: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
+export interface MedicineLogCreate {
+  babyId: string;
+  medicineId: string;
+  time: string;
+  doseAmount: number;
+  unitAbbr?: string | null;
   notes?: string;
 }

@@ -1,5 +1,6 @@
 import { Settings } from '@prisma/client';
 import { CardHeader } from '@/src/components/ui/card';
+import { Button } from '@/src/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
 import SleepForm from '@/src/components/forms/SleepForm';
 import FeedForm from '@/src/components/forms/FeedForm';
@@ -9,6 +10,7 @@ import BathForm from '@/src/components/forms/BathForm';
 import PumpForm from '@/src/components/forms/PumpForm';
 import MilestoneForm from '@/src/components/forms/MilestoneForm';
 import MeasurementForm from '@/src/components/forms/MeasurementForm';
+import MedicineForm from '@/src/components/forms/MedicineForm';
 import DailyStats from '@/src/components/DailyStats';
 import { ActivityType, FilterType, TimelineProps } from './types';
 import TimelineFilter from './TimelineFilter';
@@ -21,7 +23,7 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>(null);
-  const [editModalType, setEditModalType] = useState<'sleep' | 'feed' | 'diaper' | 'note' | 'bath' | 'pump' | 'milestone' | 'measurement' | null>(null);
+  const [editModalType, setEditModalType] = useState<'sleep' | 'feed' | 'diaper' | 'medicine' | 'note' | 'bath' | 'pump' | 'milestone' | 'measurement' | null>(null);
   // Pagination removed as it breaks up view by day
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
@@ -166,6 +168,8 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
               return 'amount' in activity;
             case 'diaper':
               return 'condition' in activity;
+            case 'medicine':
+              return 'doseAmount' in activity && 'medicineId' in activity;
             case 'note':
               return 'content' in activity;
             case 'bath':
@@ -210,7 +214,7 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
     }
   };
 
-  const handleEdit = (activity: ActivityType, type: 'sleep' | 'feed' | 'diaper' | 'note' | 'bath' | 'pump' | 'milestone' | 'measurement') => {
+  const handleEdit = (activity: ActivityType, type: 'sleep' | 'feed' | 'diaper' | 'medicine' | 'note' | 'bath' | 'pump' | 'milestone' | 'measurement') => {
     setSelectedActivity(activity);
     setEditModalType(type);
   };
@@ -384,6 +388,23 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
               onActivityDeleted?.();
             }}
           />
+          {editModalType === 'medicine' && (
+            <MedicineForm
+              isOpen={true}
+              onClose={() => {
+                setEditModalType(null);
+                setSelectedActivity(null);
+              }}
+              babyId={selectedActivity.babyId}
+              initialTime={'time' in selectedActivity && selectedActivity.time ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
+              onSuccess={() => {
+                setEditModalType(null);
+                setSelectedActivity(null);
+                onActivityDeleted?.();
+              }}
+              activity={'doseAmount' in selectedActivity && 'medicineId' in selectedActivity ? selectedActivity : undefined}
+            />
+          )}
         </>
       )}
     </div>

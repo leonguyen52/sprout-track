@@ -12,6 +12,7 @@ import {
   LampWallDown,
   Trophy,
   Ruler,
+  PillBottle,
 } from 'lucide-react';
 import { diaper, bottleBaby } from '@lucide/lab';
 import { FilterType, FullLogFilterProps } from './full-log-timeline.types';
@@ -58,6 +59,7 @@ const FullLogFilter: React.FC<FullLogFilterProps> = ({
     { type: 'pump', icon: <LampWallDown className="h-4 w-4" />, label: 'Pump' },
     { type: 'milestone', icon: <Trophy className="h-4 w-4" />, label: 'Milestone' },
     { type: 'measurement', icon: <Ruler className="h-4 w-4" />, label: 'Measurement' },
+    { type: 'medicine', icon: <PillBottle className="h-4 w-4" />, label: 'Medicine' },
   ] as const;
 
   // Format date range for display

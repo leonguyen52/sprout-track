@@ -20,6 +20,7 @@ export const activityTileStyles = {
       pump: "",
       measurement: "",
       milestone: "",
+      medicine: "",
       default: ""
     }
   },
@@ -35,6 +36,7 @@ export const activityTileStyles = {
       pump: "",
       measurement: "",
       milestone: "",
+      medicine: "",
       default: ""
     }
   },
@@ -49,20 +51,22 @@ export const activityTileStyles = {
       bath: "text-orange-600",
       pump: "text-purple-600",
       measurement: "text-indigo-600",
+      medicine: "text-red-600",
       milestone: "text-pink-600",
       default: "text-gray-800"
     },
     // Default icon paths for each variant
     defaultIcons: {
-      sleep: "/crib-128.png",
-      feed: "/bottle-128.png",
-      diaper: "/diaper-128.png",
-      note: "/note-128.png",
-      bath: "/bath-128.png",
-      pump: "/pump-128.png",
-      measurement: "/measurement-128.png",
-      milestone: "/milestone-128.png",
-      default: "/config-128.png"
+      sleep: '/crib-128.png',
+      feed: '/bottle-128.png',
+      diaper: '/diaper-128.png',
+      note: '/note-128.png',
+      bath: '/bath-128.png',
+      pump: '/pump-128.png',
+      measurement: '/measurement-128.png',
+      milestone: '/milestone-128.png',
+      medicine: '/med-128.png',
+      default: '/default-128.png'
     }
   },
   

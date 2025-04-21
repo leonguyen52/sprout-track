@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
-import { ApiResponse, SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MilestoneResponse, MeasurementResponse } from '../types';
+import { ApiResponse, SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MilestoneResponse, MeasurementResponse, MedicineLogResponse, MedicineResponse } from '../types';
 import { withAuth } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
 
 // Extended activity types with caretaker information
-type ActivityTypeWithCaretaker = (SleepLogResponse | FeedLogResponse | DiaperLogResponse | NoteResponse | BathLogResponse | PumpLogResponse | MilestoneResponse | MeasurementResponse) & { 
+type ActivityTypeWithCaretaker = (
+  SleepLogResponse | FeedLogResponse | DiaperLogResponse | NoteResponse | BathLogResponse | PumpLogResponse | MilestoneResponse | MeasurementResponse | MedicineLogResponse
+) & {
   caretakerId?: string | null;
   caretakerName?: string;
+  medicine?: MedicineResponse;
 };
 
 type ActivityType = ActivityTypeWithCaretaker;
@@ -127,7 +130,7 @@ async function handleGet(req: NextRequest) {
     const endDateUTC = effectiveEndDate ? toUTC(effectiveEndDate) : undefined;
     
     // Get recent activities from each type with caretaker information
-    const [sleepLogs, feedLogs, diaperLogs, noteLogs, bathLogs, pumpLogs, milestoneLogs, measurementLogs] = await Promise.all([
+    const [sleepLogs, feedLogs, diaperLogs, noteLogs, bathLogs, pumpLogs, milestoneLogs, measurementLogs, medicineLogs] = await Promise.all([
       prisma.sleepLog.findMany({
         where: {
           babyId,
@@ -272,6 +275,23 @@ async function handleGet(req: NextRequest) {
         },
         orderBy: { date: 'desc' },
         ...(useLimit && limit ? { take: limit } : {})
+      }),
+      prisma.medicineLog.findMany({
+        where: {
+          babyId,
+          ...(startDateUTC && endDateUTC ? {
+            time: {
+              gte: startDateUTC,
+              lte: endDateUTC
+            }
+          } : {})
+        },
+        include: {
+          caretaker: true,
+          medicine: true
+        },
+        orderBy: { time: 'desc' },
+        ...(useLimit && limit ? { take: limit } : {})
       })
     ]);
     
@@ -386,6 +406,27 @@ async function handleGet(req: NextRequest) {
         };
       });
       
+    // Format medicine logs
+    const formattedMedicineLogs: ActivityTypeWithCaretaker[] = medicineLogs
+      .map(log => {
+        const { caretaker, medicine, ...logWithoutCaretaker } = log;
+        return {
+          ...logWithoutCaretaker,
+          time: formatForResponse(log.time) || '',
+          createdAt: formatForResponse(log.createdAt) || '',
+          updatedAt: formatForResponse(log.updatedAt) || '',
+          deletedAt: formatForResponse(log.deletedAt),
+          caretakerId: log.caretakerId,
+          caretakerName: caretaker ? caretaker.name : undefined,
+          medicine: medicine ? {
+            ...medicine,
+            createdAt: formatForResponse(medicine.createdAt) || '',
+            updatedAt: formatForResponse(medicine.updatedAt) || '',
+            deletedAt: formatForResponse(medicine.deletedAt)
+          } : undefined
+        };
+      });
+
     // Format milestone logs
     const formattedMilestoneLogs: ActivityTypeWithCaretaker[] = milestoneLogs
       .map(log => {
@@ -431,7 +472,8 @@ async function handleGet(req: NextRequest) {
       ...formattedBathLogs,
       ...formattedPumpLogs,
       ...formattedMilestoneLogs,
-      ...formattedMeasurementLogs
+      ...formattedMeasurementLogs,
+      ...formattedMedicineLogs
     ]
     .sort((a, b) => getActivityTime(b) - getActivityTime(a));
     

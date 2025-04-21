@@ -71,6 +71,15 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Seed the database with any new data
+echo "Seeding the database with any new settings and units..."
+npm run prisma:seed
+if [ $? -ne 0 ]; then
+    echo "Error: Database seeding failed!"
+    "$SCRIPT_DIR/service.sh" start
+    exit 1
+fi
+
 # Build the application
 echo "Building the application..."
 npm run build

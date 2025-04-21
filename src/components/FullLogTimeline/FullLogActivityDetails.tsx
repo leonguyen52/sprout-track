@@ -7,7 +7,7 @@ import {
   FormPageFooter
 } from '@/src/components/ui/form-page';
 import { FullLogActivityDetailsProps } from './full-log-timeline.types';
-import { getActivityDetails } from '@/src/components/Timeline/utils';
+import { getActivityDetails, formatTime } from '@/src/components/Timeline/utils';
 import { useTheme } from '@/src/context/theme';
 
 /**
@@ -27,6 +27,24 @@ const FullLogActivityDetails: React.FC<FullLogActivityDetailsProps> = ({
   
   if (!activity) return null;
 
+  // Special medicine details rendering
+  let medicineDetails: { label: string; value: string }[] | null = null;
+  if ('doseAmount' in activity && 'medicineId' in activity) {
+    let medName = 'Medicine';
+    if ('medicine' in activity && activity.medicine && typeof activity.medicine === 'object' && 'name' in activity.medicine) {
+      medName = (activity.medicine as { name?: string }).name || medName;
+    }
+    const dose = activity.doseAmount ? `${activity.doseAmount} ${activity.unitAbbr || ''}`.trim() : '';
+    const medTime = activity.time ? formatTime(activity.time, settings, true) : '';
+    let notes = activity.notes ? activity.notes : '';
+    if (notes.length > 50) notes = notes.substring(0, 50) + '...';
+    medicineDetails = [
+      { label: 'Medicine', value: medName },
+      { label: 'Amount', value: dose },
+      { label: 'Time', value: medTime },
+      ...(notes ? [{ label: 'Notes', value: notes }] : [])
+    ];
+  }
   const activityDetails = getActivityDetails(activity, settings);
   
   const handleEdit = () => {
@@ -42,6 +60,7 @@ const FullLogActivityDetails: React.FC<FullLogActivityDetailsProps> = ({
       else if ('soapUsed' in activity) onEdit(activity, 'bath');
       else if ('title' in activity && 'category' in activity) onEdit(activity, 'milestone');
       else if ('value' in activity && 'unit' in activity) onEdit(activity, 'measurement');
+      else if ('doseAmount' in activity && 'medicineId' in activity) onEdit(activity, 'medicine');
     }
   };
 
@@ -53,12 +72,21 @@ const FullLogActivityDetails: React.FC<FullLogActivityDetailsProps> = ({
     >
       <FormPageContent>
         <div className="space-y-4 p-4">
-          {activityDetails.details.map((detail, index) => (
-            <div key={index} className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-500 full-log-timeline-details-label">{detail.label}:</span>
-              <span className="text-sm text-gray-900 full-log-timeline-details-value">{detail.value}</span>
-            </div>
-          ))}
+          {medicineDetails ? (
+            medicineDetails.map((detail, index) => (
+              <div key={index} className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-500 full-log-timeline-details-label">{detail.label}:</span>
+                <span className="text-sm text-gray-900 full-log-timeline-details-value">{detail.value}</span>
+              </div>
+            ))
+          ) : (
+            activityDetails.details.map((detail, index) => (
+              <div key={index} className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-500 full-log-timeline-details-label">{detail.label}:</span>
+                <span className="text-sm text-gray-900 full-log-timeline-details-value">{detail.value}</span>
+              </div>
+            ))
+          )}
         </div>
       </FormPageContent>
       <FormPageFooter>

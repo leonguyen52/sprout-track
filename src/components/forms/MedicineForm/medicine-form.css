@@ -1,0 +1,124 @@
+/* Dark mode styles for the MedicineForm component */
+
+/* Tab navigation */
+.dark .medicine-form-tab-container {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .medicine-form-tab-button {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .medicine-form-tab-button:hover {
+  color: #4fd1c5;
+}
+
+.dark .medicine-form-tab-button-active {
+  color: #4fd1c5;
+  border-color: #4fd1c5;
+}
+
+/* Active doses tab */
+.dark .medicine-form-dose-card {
+  background-color: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .medicine-form-dose-name {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark .medicine-form-dose-amount,
+.dark .medicine-form-dose-info,
+.dark .medicine-form-total-dose {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .medicine-form-dose-time {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dark .medicine-form-empty-state {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Form elements */
+.dark .medicine-form-label {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Medicine items */
+.dark .medicine-form-medicine-item {
+  background-color: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .medicine-form-medicine-item-active {
+  background-color: rgba(45, 212, 191, 0.1);
+  border-color: rgba(45, 212, 191, 0.3);
+}
+
+.dark .medicine-form-medicine-item-inactive {
+  background-color: rgba(30, 41, 59, 0.4);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .medicine-form-contact-item {
+  background-color: rgba(30, 41, 59, 0.6);
+}
+
+/* Icon containers */
+.dark .medicine-form-icon-container {
+  background-color: rgba(45, 212, 191, 0.2);
+  color: #4fd1c5;
+}
+
+/* Status colors */
+.dark .medicine-form-countdown-safe {
+  color: #10b981;
+}
+
+.dark .medicine-form-countdown-warning {
+  color: #f59e0b;
+}
+
+.dark .medicine-form-countdown-danger {
+  color: #ef4444;
+}
+
+/* Manage Medicines Tab Dark Mode */
+.dark .bg-gray-50 {
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+.dark .border-gray-100 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .text-gray-800 {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark .text-gray-500 {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dark .text-gray-600 {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .text-gray-400 {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dark .border-gray-100 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .bg-teal-100 {
+  background-color: rgba(45, 212, 191, 0.2);
+}
+
+.dark .text-teal-600 {
+  color: #4fd1c5;
+}
