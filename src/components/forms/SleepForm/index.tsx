@@ -30,6 +30,7 @@ interface SleepFormProps {
   initialTime: string;
   activity?: SleepLogResponse;
   onSuccess?: () => void;
+  familyId?: string; // Add familyId prop for multi-family support
 }
 
 export default function SleepForm({
@@ -41,6 +42,7 @@ export default function SleepForm({
   initialTime,
   activity,
   onSuccess,
+  familyId,
 }: SleepFormProps) {
   const { formatDate, calculateDurationMinutes, toUTCString } = useTimezone();
   const [startDateTime, setStartDateTime] = useState<Date>(() => {
@@ -241,14 +243,15 @@ export default function SleepForm({
       
       if (activity) {
         // Editing mode - update existing record
-        const payload = {
-          startTime: utcStartTime,
-          endTime: utcEndTime,
-          duration,
-          type: formData.type,
-          location: formData.location || null,
-          quality: formData.quality || null,
-        };
+      const payload = {
+        startTime: utcStartTime,
+        endTime: utcEndTime,
+        duration,
+        type: formData.type,
+        location: formData.location || null,
+        quality: formData.quality || null,
+        familyId: familyId || undefined, // Include familyId in the payload
+      };
 
         // Get auth token from localStorage
         const authToken = localStorage.getItem('authToken');
@@ -300,6 +303,7 @@ export default function SleepForm({
           type: formData.type,
           location: formData.location || null,
           quality: null,
+          familyId: familyId || undefined, // Include familyId in the payload
         };
 
         // Get auth token from localStorage

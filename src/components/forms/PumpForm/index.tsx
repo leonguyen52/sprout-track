@@ -32,6 +32,7 @@ interface PumpFormProps {
   initialTime: string;
   activity?: PumpLogResponse;
   onSuccess?: () => void;
+  familyId?: string; // Add familyId prop for multi-family support
 }
 
 export default function PumpForm({
@@ -41,6 +42,7 @@ export default function PumpForm({
   initialTime,
   activity,
   onSuccess,
+  familyId,
 }: PumpFormProps) {
   const { formatDate, toUTCString } = useTimezone();
   const [selectedStartDateTime, setSelectedStartDateTime] = useState<Date>(() => {
@@ -280,6 +282,7 @@ export default function PumpForm({
         totalAmount: formData.totalAmount ? parseFloat(formData.totalAmount) : undefined,
         unitAbbr: formData.unitAbbr || 'OZ',
         notes: formData.notes || undefined,
+        familyId: familyId || undefined, // Include familyId in the payload
       };
       
       // Determine if we're creating a new record or updating an existing one

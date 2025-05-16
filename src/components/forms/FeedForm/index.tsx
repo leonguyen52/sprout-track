@@ -28,6 +28,7 @@ interface FeedFormProps {
   initialTime: string;
   activity?: FeedLogResponse;
   onSuccess?: () => void;
+  familyId?: string; // Add familyId prop for multi-family support
 }
 
 export default function FeedForm({
@@ -37,6 +38,7 @@ export default function FeedForm({
   initialTime,
   activity,
   onSuccess,
+  familyId,
 }: FeedFormProps) {
   const { formatDate, toUTCString } = useTimezone();
   const { theme } = useTheme();
@@ -393,22 +395,23 @@ export default function FeedForm({
     console.log('Original time (local):', formData.time);
     console.log('Converted time (UTC):', utcTimeString);
     
-    const payload = {
-      babyId,
-      time: utcTimeString, // Send the UTC ISO string instead of local time
-      type: formData.type,
-      ...(formData.type === 'BREAST' && side && { 
-        side,
-        ...(startTime && { startTime: toUTCString(startTime) }),
-        ...(endTime && { endTime: toUTCString(endTime) }),
-        feedDuration: duration
-      }),
-      ...((formData.type === 'BOTTLE' || formData.type === 'SOLIDS') && formData.amount && { 
-        amount: parseFloat(formData.amount),
-        unitAbbr: formData.unit
-      }),
-      ...(formData.type === 'SOLIDS' && formData.food && { food: formData.food })
-    };
+      const payload = {
+        babyId,
+        time: utcTimeString, // Send the UTC ISO string instead of local time
+        type: formData.type,
+        ...(formData.type === 'BREAST' && side && { 
+          side,
+          ...(startTime && { startTime: toUTCString(startTime) }),
+          ...(endTime && { endTime: toUTCString(endTime) }),
+          feedDuration: duration
+        }),
+        ...((formData.type === 'BOTTLE' || formData.type === 'SOLIDS') && formData.amount && { 
+          amount: parseFloat(formData.amount),
+          unitAbbr: formData.unit
+        }),
+        ...(formData.type === 'SOLIDS' && formData.food && { food: formData.food }),
+        familyId: familyId || undefined, // Include familyId in the payload
+      };
 
     // Get auth token from localStorage
     const authToken = localStorage.getItem('authToken');
