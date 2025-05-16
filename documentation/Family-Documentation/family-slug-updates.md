@@ -13,6 +13,12 @@ We've implemented the following components to support multi-family functionality
 - Created `app/api/family/by-slug/[slug]/route.ts` to fetch family data by slug
 - Created `app/api/family/public-list/route.ts` to list all families without authentication
 - Updated API routes to use raw SQL queries for Family table access
+- Updated all API endpoints to filter data by family ID:
+  - Activity logs (sleep, feed, diaper, bath, pump, etc.)
+  - Baby information and activities
+  - Timeline and activity summaries
+  - Settings and configuration
+  - Medicine and contacts
 
 ### 3. Context Provider
 - Created `src/context/family.tsx` to provide family data throughout the application
@@ -38,11 +44,10 @@ We've implemented the following components to support multi-family functionality
 
 ## Current Issues
 
-We're experiencing some issues with the implementation:
+We're still experiencing some issues with the implementation:
 
 1. **Layout Nesting**: The app is experiencing layout nesting issues where both the original layout and the slug-based layout are being applied simultaneously.
-2. **Infinite Loop**: The application is getting into an infinite loop of API calls.
-3. **API Updates**: Some API endpoints may still need to be updated to properly handle family IDs.
+2. **Infinite Loop**: Despite updating all API endpoints to filter by family ID, we're still experiencing infinite loops of API calls. This suggests there might be issues with the layout structure or component rendering.
 
 ## Next Steps
 
@@ -53,10 +58,23 @@ To resolve these issues and complete the implementation, we need to:
 - [@app/(app)/[slug]/layout.tsx](app/(app)/[slug]/layout.tsx) - Ensure this layout is used exclusively for slug routes
 
 ### 2. Update API Endpoints
-- [@app/api/baby/route.ts](app/api/baby/route.ts) - Update to filter by family ID
-- [@app/api/timeline/route.ts](app/api/timeline/route.ts) - Update to filter by family ID
-- [@app/api/settings/route.ts](app/api/settings/route.ts) - Update to filter by family ID
-- Update all other API endpoints to include family filtering
+- ✅ [@app/api/baby/route.ts](app/api/baby/route.ts) - Updated to filter by family ID
+- ✅ [@app/api/timeline/route.ts](app/api/timeline/route.ts) - Updated to filter by family ID
+- ✅ [@app/api/settings/route.ts](app/api/settings/route.ts) - Updated to filter by family ID
+- ✅ Updated all other API endpoints to include family filtering:
+  - `/app/api/activity-settings/route.ts`
+  - `/app/api/bath-log/route.ts`
+  - `/app/api/medicine-log/route.ts`
+  - `/app/api/sleep-log/route.ts`
+  - `/app/api/mood-log/route.ts`
+  - `/app/api/feed-log/route.ts`
+  - `/app/api/note/route.ts`
+  - `/app/api/baby-last-activities/route.ts`
+  - `/app/api/contact/route.ts`
+  - `/app/api/measurement-log/route.ts`
+  - `/app/api/pump-log/route.ts`
+  - `/app/api/baby-upcoming-events/route.ts`
+  - `/app/api/medicine/route.ts`
 
 ### 3. Update Components
 - [@src/components/forms/SleepForm.tsx](src/components/forms/SleepForm.tsx) - Add familyId prop
@@ -77,9 +95,27 @@ To resolve these issues and complete the implementation, we need to:
 ## Implementation Strategy
 
 1. First, fix the layout nesting issues to prevent infinite loops
-2. Update API endpoints to properly filter by family ID
+   - This appears to be the most critical issue now that API endpoints have been updated
+   - Focus on ensuring that only one layout is applied at a time
+2. ✅ Update API endpoints to properly filter by family ID (completed)
 3. Update components to pass family ID to API calls
 4. Test thoroughly with multiple families
+
+## Debugging the Infinite Loop Issue
+
+Since we've updated all API endpoints to filter by family ID but are still experiencing infinite loops, we should focus on:
+
+1. **Layout Structure**: Examine how layouts are nested and ensure they don't conflict
+   - Check if both `app/(app)/layout.tsx` and `app/(app)/[slug]/layout.tsx` are being applied simultaneously
+   - Ensure that the original layout is completely disabled when using slug routes
+
+2. **Component Rendering**: Look for components that might be triggering unnecessary re-renders
+   - Check for components that fetch data on mount and might be re-mounting repeatedly
+   - Look for circular dependencies in context providers or hooks
+
+3. **Network Requests**: Monitor network requests to identify which API calls are looping
+   - Use browser developer tools to track network activity
+   - Look for patterns in the repeated API calls
 
 ## Resources
 
