@@ -4,15 +4,20 @@ import { ApiResponse, MoodLogCreate, MoodLogResponse } from '../types';
 import { Mood } from '@prisma/client';
 import { toUTC, formatForResponse } from '../utils/timezone';
 import { withAuth } from '../utils/auth'; 
+import { getFamilyIdFromRequest } from '../utils/family';
 
 async function handlePost(req: NextRequest) {
   try {
     const body: MoodLogCreate = await req.json();
     
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
+    
     const moodLog = await prisma.moodLog.create({
       data: {
         ...body,
         time: toUTC(body.time),
+        ...(familyId && { familyId }), // Include family ID if available
       },
     });
 
@@ -147,6 +152,9 @@ async function handleGet(req: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const moodParam = searchParams.get('mood');
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     const queryParams = {
       deletedAt: null,
@@ -158,11 +166,15 @@ async function handleGet(req: NextRequest) {
           lte: endDate ? toUTC(endDate) : undefined,
         },
       }),
+      ...(familyId && { familyId }), // Filter by family ID if available
     };
 
     if (id) {
       const moodLog = await prisma.moodLog.findFirst({
-        where: { ...queryParams, id },
+        where: { 
+          ...queryParams, 
+          id,
+        },
       });
 
       if (!moodLog) {

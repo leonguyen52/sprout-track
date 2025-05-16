@@ -3,6 +3,7 @@ import prisma from '../db';
 import { ApiResponse, NoteCreate, NoteResponse } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
@@ -10,11 +11,16 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     
     // Convert time to UTC for storage
     const timeUTC = toUTC(body.time);
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
+    
     const note = await prisma.note.create({
       data: {
         ...body,
         time: timeUTC,
         caretakerId: authContext.caretakerId,
+        ...(familyId && { familyId }), // Include family ID if available
       },
     });
 
@@ -116,6 +122,9 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const categories = searchParams.get('categories');
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     // If categories flag is present, return unique categories
     if (categories === 'true') {
@@ -123,7 +132,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
         where: {
           category: {
             not: null
-          }
+          },
+          ...(familyId && { familyId }), // Filter by family ID if available
         },
         distinct: ['category'],
         select: {
@@ -149,11 +159,15 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
           lte: toUTC(endDate),
         },
       }),
+      ...(familyId && { familyId }), // Filter by family ID if available
     };
 
     if (id) {
       const note = await prisma.note.findUnique({
-        where: { id },
+        where: { 
+          id,
+          ...(familyId && { familyId }), // Filter by family ID if available
+        },
       });
 
       if (!note) {

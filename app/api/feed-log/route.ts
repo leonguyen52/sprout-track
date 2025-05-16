@@ -4,6 +4,7 @@ import { ApiResponse, FeedLogCreate, FeedLogResponse } from '../types';
 import { FeedType } from '@prisma/client';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
@@ -11,6 +12,9 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     
     // Convert all dates to UTC for storage
     const timeUTC = toUTC(body.time);
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
     
     // Process startTime, endTime, and feedDuration if provided
     const data = {
@@ -21,6 +25,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
       ...(body.endTime && { endTime: toUTC(body.endTime) }),
       // Ensure feedDuration is properly included
       ...(body.feedDuration !== undefined && { feedDuration: body.feedDuration }),
+      ...(familyId && { familyId }), // Include family ID if available
     };
     
     const feedLog = await prisma.feedLog.create({
@@ -131,6 +136,9 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const typeParam = searchParams.get('type');
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     const queryParams = {
       ...(babyId && { babyId }),
@@ -141,11 +149,15 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
           lte: toUTC(endDate),
         },
       }),
+      ...(familyId && { familyId }), // Filter by family ID if available
     };
 
     if (id) {
       const feedLog = await prisma.feedLog.findUnique({
-        where: { id },
+        where: { 
+          id,
+          ...(familyId && { familyId }), // Filter by family ID if available
+        },
       });
 
       if (!feedLog) {

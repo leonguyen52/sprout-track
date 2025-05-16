@@ -3,6 +3,7 @@ import prisma from '../db';
 import { ApiResponse, SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MilestoneResponse, MeasurementResponse, MedicineLogResponse, MedicineResponse } from '../types';
 import { withAuth } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 // Extended activity types with caretaker information
 type ActivityTypeWithCaretaker = (
@@ -52,6 +53,10 @@ async function handleGet(req: NextRequest) {
     
     const url = new URL(req.url);
     const { searchParams } = url;
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
+    console.log(`Family ID from request headers: ${familyId || 'null'}`);
     
     // Log all search parameters for debugging
     console.log("All search parameters:");
@@ -156,7 +161,8 @@ async function handleGet(req: NextRequest) {
                 endTime: { gte: endDateUTC }
               }
             ]
-          } : {})
+          } : {}),
+          ...(familyId && { familyId }), // Filter by family ID if available
         },
         include: {
           caretaker: true
@@ -172,7 +178,8 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          ...(familyId && { familyId }), // Filter by family ID if available
         },
         include: {
           caretaker: true
@@ -188,7 +195,8 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          ...(familyId && { familyId }), // Filter by family ID if available
         },
         include: {
           caretaker: true
@@ -204,7 +212,8 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          ...(familyId && { familyId }), // Filter by family ID if available
         },
         include: {
           caretaker: true
@@ -220,7 +229,8 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          ...(familyId && { familyId }), // Filter by family ID if available
         },
         include: {
           caretaker: true
@@ -236,7 +246,8 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          ...(familyId && { familyId }), // Filter by family ID if available
         },
         include: {
           caretaker: true
@@ -252,7 +263,8 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          ...(familyId && { familyId }), // Filter by family ID if available
         },
         include: {
           caretaker: true
@@ -268,7 +280,8 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          ...(familyId && { familyId }), // Filter by family ID if available
         },
         include: {
           caretaker: true
@@ -284,7 +297,8 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          ...(familyId && { familyId }), // Filter by family ID if available
         },
         include: {
           caretaker: true,
