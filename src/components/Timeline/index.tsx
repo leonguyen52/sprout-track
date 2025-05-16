@@ -47,8 +47,16 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
       // Add a timestamp to prevent caching
       const timestamp = new Date().getTime();
       
+      // Get family ID from URL if available
+      const urlPath = window.location.pathname;
+      const familySlugMatch = urlPath.match(/^\/([^\/]+)\//);
+      const familySlug = familySlugMatch ? familySlugMatch[1] : null;
+      
       // Make the API call with the date parameter
-      const url = `/api/timeline?babyId=${babyId}&date=${encodeURIComponent(formattedDate)}&_t=${timestamp}`;
+      let url = `/api/timeline?babyId=${babyId}&date=${encodeURIComponent(formattedDate)}&_t=${timestamp}`;
+      
+      // The middleware will automatically add the family ID to the request headers
+      // based on the family slug in the URL, so we don't need to add it explicitly
       console.log(`API URL: ${url}`);
       
       const response = await fetch(url, {
@@ -143,18 +151,23 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
   }, [activities.length, selectedDate, lastFetchedDate]); // Run when these dependencies change
   
   // This effect will run when the activities prop changes (e.g., when a new activity is added)
+  // We need to be careful to avoid infinite loops here
   useEffect(() => {
     // Only refresh if we have a selected date and activities
     if (selectedDate && activities.length > 0) {
       const babyId = activities[0].babyId;
-      if (babyId) {
+      
+      // Check if we need to refresh - only do this if the lastFetchedDate doesn't match
+      // the current selected date to avoid unnecessary refetches
+      if (babyId && lastFetchedDate !== selectedDate.toDateString()) {
         // Refresh data for the currently selected date
         setIsLoadingActivities(true);
         fetchActivitiesForDate(babyId, selectedDate)
           .finally(() => setIsLoadingActivities(false));
+        setLastFetchedDate(selectedDate.toDateString());
       }
     }
-  }, [activities]); // Run when activities prop changes
+  }, [activities, selectedDate, lastFetchedDate]); // Include all dependencies
 
   const sortedActivities = useMemo(() => {
     // Only use dateFilteredActivities, never fall back to activities from props

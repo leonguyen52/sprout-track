@@ -211,6 +211,8 @@ function AppContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Fetch data only once on mount
     fetchData();
     
     // Check screen width initially
@@ -233,7 +235,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       window.removeEventListener('touchstart', updateUnlockTimer);
       window.removeEventListener('resize', checkScreenWidth);
     };
-  }, [checkScreenWidth, fetchData]);
+  }, [checkScreenWidth]); // Remove fetchData from dependencies to prevent infinite loop
   
   // Add continuous authentication check and redirect
   useEffect(() => {
