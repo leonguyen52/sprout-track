@@ -3,6 +3,7 @@ import prisma from '../db';
 import { ApiResponse } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { formatForResponse } from '../utils/timezone';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 // Type for contact response
 interface ContactResponse {
@@ -33,10 +34,14 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const role = searchParams.get('role');
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     // Build where clause
     const where: any = {
       deletedAt: null,
+      ...(familyId && { familyId }), // Filter by family ID if available
     };
 
     // Add filters
@@ -51,7 +56,10 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     // If ID is provided, fetch a single contact
     if (id) {
       const contact = await prisma.contact.findUnique({
-        where: { id },
+        where: { 
+          id,
+          ...(familyId && { familyId }), // Filter by family ID if available
+        },
       });
 
       if (!contact || contact.deletedAt) {
@@ -114,6 +122,9 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
     const body: ContactCreate = await req.json();
     
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
+    
     // Validate required fields
     if (!body.name || !body.role) {
       return NextResponse.json<ApiResponse<ContactResponse>>(
@@ -134,6 +145,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         email: body.email || null,
         address: body.address || null,
         notes: body.notes || null,
+        ...(familyId && { familyId }), // Include family ID if available
       },
     });
     

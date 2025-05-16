@@ -3,6 +3,7 @@ import prisma from '../db';
 import { ApiResponse, MedicineCreate, MedicineResponse, MedicineUpdate } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { formatForResponse } from '../utils/timezone';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 /**
  * Handle POST request to create a new medicine
@@ -19,6 +20,9 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
       notes, 
       active 
     } = body;
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     // Prepare data for creation, explicitly listing fields to avoid undefined keys
     const medicineCreateData = {
@@ -28,7 +32,9 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
       notes,
       active,
       // Connect to the unit if unitAbbr is provided
-      ...(unitAbbr ? { unit: { connect: { unitAbbr } } } : {})
+      ...(unitAbbr ? { unit: { connect: { unitAbbr } } } : {}),
+      // Include family ID if available
+      ...(familyId && { familyId })
     };
 
     // Create the medicine
@@ -218,10 +224,14 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const id = searchParams.get('id');
     const active = searchParams.get('active');
     const contactId = searchParams.get('contactId');
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     // Build where clause
     const where: any = {
       deletedAt: null,
+      ...(familyId && { familyId }), // Filter by family ID if available
     };
 
     // Add filters
@@ -236,7 +246,10 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     // If ID is provided, fetch a single medicine
     if (id) {
       const medicine = await prisma.medicine.findUnique({
-        where: { id },
+        where: { 
+          id,
+          ...(familyId && { familyId }), // Filter by family ID if available
+        },
         include: {
           contacts: {
             include: {
@@ -280,6 +293,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
           medicine: {
             deletedAt: null,
             ...(active !== null ? { active: active === 'true' } : {}),
+            ...(familyId && { familyId }), // Filter by family ID if available
           },
         },
         include: {

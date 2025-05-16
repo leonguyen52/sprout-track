@@ -3,11 +3,23 @@ import prisma from '../db';
 import { ApiResponse } from '../types';
 import { Settings } from '@prisma/client';
 import { withAuth } from '../utils/auth';
+import { getFamilyIdFromRequest } from '../utils/family';
 
-async function handleGet() {
+async function handleGet(req: NextRequest) {
   try {
-    // Get the first settings record or create default
-    let settings = await prisma.settings.findFirst();
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
+    
+    // Get the settings record for the family or create default
+    let settings;
+    
+    if (familyId) {
+      settings = await prisma.settings.findFirst({
+        where: { familyId } as any // Type cast to avoid TypeScript error
+      });
+    } else {
+      settings = await prisma.settings.findFirst();
+    }
     
     if (!settings) {
       settings = await prisma.settings.create({
@@ -18,6 +30,7 @@ async function handleGet() {
           defaultHeightUnit: 'IN',
           defaultWeightUnit: 'LB',
           defaultTempUnit: 'F',
+          ...(familyId && { familyId }), // Include family ID if available
         },
       });
     }
@@ -42,6 +55,9 @@ async function handlePost(req: NextRequest) {
   try {
     const body = await req.json();
     
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
+    
     // Cast to any to avoid TypeScript errors with the new fields
     const data: any = {
       familyName: body.familyName,
@@ -53,6 +69,7 @@ async function handlePost(req: NextRequest) {
       defaultTempUnit: body.defaultTempUnit,
       enableDebugTimer: body.enableDebugTimer || false,
       enableDebugTimezone: body.enableDebugTimezone || false,
+      ...(familyId && { familyId }), // Include family ID if available
     };
     
     const settings = await prisma.settings.create({
@@ -79,8 +96,19 @@ async function handlePut(req: NextRequest) {
   try {
     const body = await req.json();
     
-    // Get the first settings record
-    const existingSettings = await prisma.settings.findFirst();
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
+    
+    // Get the settings record for the family
+    let existingSettings;
+    
+    if (familyId) {
+      existingSettings = await prisma.settings.findFirst({
+        where: { familyId } as any // Type cast to avoid TypeScript error
+      });
+    } else {
+      existingSettings = await prisma.settings.findFirst();
+    }
     
     if (!existingSettings) {
       return NextResponse.json<ApiResponse<Settings>>(

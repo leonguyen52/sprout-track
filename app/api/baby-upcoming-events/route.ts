@@ -3,12 +3,16 @@ import prisma from '../db';
 import { ApiResponse } from '../types';
 import { withAuth } from '../utils/auth';
 import { formatForResponse } from '../utils/timezone';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 async function handleGet(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const babyId = searchParams.get('babyId');
     const limit = Number(searchParams.get('limit')) || 5;
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
     
     if (!babyId) {
       return NextResponse.json<ApiResponse<any>>({
@@ -31,7 +35,8 @@ async function handleGet(req: NextRequest) {
         startTime: {
           gte: now
         },
-        deletedAt: null
+        deletedAt: null,
+        ...(familyId && { familyId }), // Filter by family ID if available
       },
       include: {
         babies: {

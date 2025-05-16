@@ -3,6 +3,7 @@ import prisma from '../db';
 import { ApiResponse, PumpLogCreate, PumpLogResponse } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse, calculateDurationMinutes } from '../utils/timezone';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
@@ -11,6 +12,9 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     // Convert times to UTC for storage
     const startTimeUTC = toUTC(body.startTime);
     const endTimeUTC = body.endTime ? toUTC(body.endTime) : undefined;
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
     
     // Calculate duration if not provided but start and end times are available
     let duration = body.duration;
@@ -36,6 +40,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         unitAbbr: body.unitAbbr,
         notes: body.notes,
         caretakerId: authContext.caretakerId,
+        ...(familyId && { familyId }), // Include family ID if available
       },
     });
 
@@ -172,9 +177,13 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const babyId = searchParams.get('babyId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     const queryParams: any = {
       ...(babyId && { babyId }),
+      ...(familyId && { familyId }), // Filter by family ID if available
     };
     
     // Add date range filter if both start and end dates are provided
@@ -188,7 +197,10 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     // If ID is provided, fetch a single pump log
     if (id) {
       const pumpLog = await prisma.pumpLog.findUnique({
-        where: { id },
+        where: { 
+          id,
+          ...(familyId && { familyId }), // Filter by family ID if available
+        },
       });
 
       if (!pumpLog) {
