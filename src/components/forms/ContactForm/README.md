@@ -11,6 +11,7 @@ A comprehensive form component for creating and editing contacts in the Baby Tra
 - Responsive design for mobile and desktop
 - Dark mode support
 - Accessible UI with proper semantic structure
+- Multi-family support with family ID association
 
 ## Usage
 
@@ -18,12 +19,14 @@ A comprehensive form component for creating and editing contacts in the Baby Tra
 import { useState } from 'react';
 import { ContactForm } from '@/src/components/forms/ContactForm';
 import { Contact } from '@/src/components/CalendarEvent/calendar-event.types';
+import { useFamily } from '@/src/context/family'; // Import family context
 
 function ContactsPage() {
   const [showContactForm, setShowContactForm] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | undefined>(undefined);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { family } = useFamily(); // Get current family from context
   
   const handleSaveContact = async (contactData) => {
     setIsLoading(true);
@@ -91,6 +94,7 @@ function ContactsPage() {
         onSave={handleSaveContact}
         onDelete={handleDeleteContact}
         isLoading={isLoading}
+        familyId={family?.id} // Pass the current family ID
       />
       
       {/* Contact list */}
@@ -129,6 +133,7 @@ Main component for creating and editing contacts.
 | `onSave` | `(contact: ContactFormData) => void` | Handler for when the form is submitted | Required |
 | `onDelete` | `(contactId: string) => void` | Handler for when a contact is deleted | `undefined` |
 | `isLoading` | `boolean` | Whether the form is in a loading state | `false` |
+| `familyId` | `string` | The ID of the family this contact belongs to (for multi-family support) | `undefined` |
 
 ### ContactFormData
 
@@ -168,6 +173,18 @@ The component follows a modular structure:
 - `contact-form.styles.ts` - Style definitions using Tailwind CSS
 - `contact-form.types.ts` - TypeScript type definitions
 - `README.md` - Documentation
+
+### Multi-Family Support
+
+The component supports multi-family functionality by:
+- Accepting a `familyId` prop to associate the contact with a specific family
+- Including the family ID in the API request payload
+- The API endpoint also extracts the family ID from request headers as a fallback
+
+When using this component in a multi-family context, you should:
+1. Import and use the family context to get the current family ID
+2. Pass the family ID to the ContactForm component
+3. The component will handle sending this ID to the API
 
 ## Accessibility
 

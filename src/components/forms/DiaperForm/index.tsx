@@ -27,6 +27,7 @@ interface DiaperFormProps {
   initialTime: string;
   activity?: DiaperLogResponse;
   onSuccess?: () => void;
+  familyId?: string; // Add familyId prop for multi-family support
 }
 
 export default function DiaperForm({
@@ -36,6 +37,7 @@ export default function DiaperForm({
   initialTime,
   activity,
   onSuccess,
+  familyId,
 }: DiaperFormProps) {
   const { formatDate, toUTCString } = useTimezone();
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
@@ -150,6 +152,7 @@ export default function DiaperForm({
         type: formData.type,
         condition: formData.condition || null,
         color: formData.color || null,
+        familyId: familyId || undefined, // Include familyId in the payload
       };
 
       // Get auth token from localStorage

@@ -19,6 +19,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
   onSave,
   onDelete,
   isLoading: externalIsLoading = false,
+  familyId,
 }) => {
   // Local loading state
   const [isLoading, setIsLoading] = useState(externalIsLoading);
@@ -150,6 +151,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
         role: formData.role,
         phone: formData.phone || undefined,
         email: formData.email || undefined,
+        familyId: familyId || undefined, // Include familyId in the payload
       };
       
       // Send request to API

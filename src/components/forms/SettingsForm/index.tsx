@@ -31,6 +31,7 @@ interface SettingsFormProps {
   onBabySelect?: (babyId: string) => void;
   onBabyStatusChange?: () => void;
   selectedBabyId?: string;
+  familyId?: string; // Add familyId prop for multi-family support
 }
 
 export default function SettingsForm({ 
@@ -39,6 +40,7 @@ export default function SettingsForm({
   onBabySelect,
   onBabyStatusChange,
   selectedBabyId,
+  familyId,
 }: SettingsFormProps) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [babies, setBabies] = useState<Baby[]>([]);
@@ -119,7 +121,11 @@ export default function SettingsForm({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...settings, ...updates }),
+        body: JSON.stringify({ 
+          ...settings, 
+          ...updates,
+          familyId: familyId || undefined, // Include familyId in the payload
+        }),
       });
 
       if (response.ok) {
@@ -596,6 +602,7 @@ export default function SettingsForm({
         onClose={handleBabyFormClose}
         isEditing={isEditing}
         baby={selectedBaby}
+        familyId={familyId}
         onBabyChange={async () => {
           await fetchData(); // Refresh local babies list
           onBabyStatusChange?.(); // Refresh parent's babies list
@@ -614,6 +621,7 @@ export default function SettingsForm({
         isOpen={showContactForm}
         onClose={handleContactFormClose}
         contact={selectedContact || undefined}
+        familyId={familyId}
         onSave={() => fetchData()}
         onDelete={() => fetchData()}
       />
