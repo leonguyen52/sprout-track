@@ -1,5 +1,30 @@
 import { Baby, SleepLog, FeedLog, DiaperLog, MoodLog, Note, Caretaker, Settings as PrismaSettings, Gender, SleepType, SleepQuality, FeedType, BreastSide, DiaperType, Mood, PumpLog, Milestone, MilestoneCategory, Measurement, MeasurementType, Medicine, MedicineLog } from '@prisma/client';
 
+// Family types
+export interface Family {
+  id: string;
+  slug: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isActive: boolean;
+}
+
+export type FamilyResponse = Omit<Family, 'createdAt' | 'updatedAt'> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface FamilyCreate {
+  name: string;
+  slug: string;
+  isActive?: boolean;
+}
+
+export interface FamilyUpdate extends Partial<FamilyCreate> {
+  id: string;
+}
+
 // Settings types
 export interface Settings extends PrismaSettings {
   // No need to redefine properties that are already in PrismaSettings

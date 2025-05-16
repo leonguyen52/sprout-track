@@ -1,18 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import LoginSecurity from '@/src/components/LoginSecurity';
 import { useTheme } from '@/src/context/theme';
+import { useFamily } from '@/src/context/family';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
 import { FamilyResponse } from '@/app/api/types';
 
 export default function LoginPage() {
   const router = useRouter();
+  const params = useParams();
   const { theme } = useTheme();
+  const { family, setFamily } = useFamily();
   const [families, setFamilies] = useState<FamilyResponse[]>([]);
-  const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const familySlug = params?.slug as string;
 
   // Load families for the dropdown
   useEffect(() => {
@@ -25,9 +28,12 @@ export default function LoginPage() {
           if (data.success && Array.isArray(data.data)) {
             setFamilies(data.data);
             
-            // If only one family exists, auto-select it
-            if (data.data.length === 1) {
-              setSelectedFamily(data.data[0].slug);
+            // If we have a slug in the URL, find the matching family
+            if (familySlug) {
+              const matchingFamily = data.data.find((f: FamilyResponse) => f.slug === familySlug);
+              if (matchingFamily) {
+                setFamily(matchingFamily);
+              }
             }
           }
         }
@@ -39,13 +45,13 @@ export default function LoginPage() {
     };
 
     loadFamilies();
-  }, []);
+  }, [familySlug, setFamily]);
 
   // Handle successful authentication
   const handleUnlock = (caretakerId?: string) => {
     // Redirect to main app after successful authentication
-    if (selectedFamily) {
-      router.push(`/${selectedFamily}/log-entry`);
+    if (familySlug) {
+      router.push(`/${familySlug}/log-entry`);
     } else {
       router.push('/log-entry');
     }
@@ -59,17 +65,20 @@ export default function LoginPage() {
     // If user is authenticated, redirect to main app
     // The app layout will handle checking for session expiration
     if (authToken && unlockTime) {
-      if (selectedFamily) {
-        router.push(`/${selectedFamily}/log-entry`);
+      if (familySlug) {
+        router.push(`/${familySlug}/log-entry`);
       } else {
         router.push('/log-entry');
       }
     }
-  }, [router, selectedFamily]);
+  }, [router, familySlug]);
 
   // Handle family selection change
   const handleFamilyChange = (value: string) => {
-    setSelectedFamily(value);
+    const selectedFamily = families.find(f => f.slug === value);
+    if (selectedFamily) {
+      router.push(`/${selectedFamily.slug}/login`);
+    }
   };
 
   return (
@@ -78,7 +87,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md mx-auto mb-4 p-4">
           <label className="block text-sm font-medium mb-2">Select Family</label>
           <Select
-            value={selectedFamily || ''}
+            value={familySlug || ''}
             onValueChange={handleFamilyChange}
             disabled={loading}
           >
