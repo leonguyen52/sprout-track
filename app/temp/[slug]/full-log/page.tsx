@@ -1,13 +1,19 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { useBaby } from '../../context/baby';
-import { useTimezone } from '../../context/timezone';
+import { useBaby } from '../../../context/baby';
+import { useTimezone } from '../../../context/timezone';
+import { useFamily } from '@/src/context/family';
+import { useParams } from 'next/navigation';
 import FullLogTimeline from '@/src/components/FullLogTimeline';
 
 function FullLogPage() {
   const { selectedBaby } = useBaby();
   const { userTimezone } = useTimezone();
+  const { family } = useFamily();
+  const params = useParams();
+  const familySlug = params?.slug as string;
+  
   const [activities, setActivities] = useState([]);
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
@@ -29,9 +35,15 @@ function FullLogPage() {
       const adjustedEndDate = new Date(endDate);
       adjustedEndDate.setHours(23, 59, 59, 999);
 
-      const response = await fetch(
-        `/api/timeline?babyId=${selectedBaby.id}&startDate=${adjustedStartDate.toISOString()}&endDate=${adjustedEndDate.toISOString()}&timezone=${encodeURIComponent(userTimezone)}`
-      );
+      // Build the URL with query parameters
+      let url = `/api/timeline?babyId=${selectedBaby.id}&startDate=${adjustedStartDate.toISOString()}&endDate=${adjustedEndDate.toISOString()}&timezone=${encodeURIComponent(userTimezone)}`;
+      
+      // Add family ID if available
+      if (family?.id) {
+        url += `&familyId=${family.id}`;
+      }
+
+      const response = await fetch(url);
       const data = await response.json();
       if (data.success) {
         setActivities(data.data);
@@ -41,7 +53,7 @@ function FullLogPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedBaby?.id, startDate, endDate, userTimezone]);
+  }, [selectedBaby?.id, startDate, endDate, userTimezone, family]);
 
   // Initial load
   React.useEffect(() => {

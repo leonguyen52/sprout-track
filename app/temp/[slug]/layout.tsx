@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname, useParams } from 'next/navigation';
-import { BabyProvider, useBaby } from '../context/baby';
-import { TimezoneProvider } from '../context/timezone';
+import { BabyProvider, useBaby } from '../../context/baby';
+import { TimezoneProvider } from '../../context/timezone';
 import { ThemeProvider } from '@/src/context/theme';
 import { FamilyProvider, useFamily } from '@/src/context/family';
 import Image from 'next/image';
-import '../globals.css';
+import '../../globals.css';
 import SettingsForm from '@/src/components/forms/SettingsForm';
 import { DebugSessionTimer } from '@/src/components/debugSessionTimer';
 import { TimezoneDebug } from '@/src/components/debugTimezone';
@@ -94,8 +94,13 @@ function AppContent({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Fetch babies
-      const babiesResponse = await fetch('/api/baby');
+      // Fetch babies - filter by family ID if available
+      let babiesUrl = '/api/baby';
+      if (family?.id) {
+        babiesUrl += `?familyId=${family.id}`;
+      }
+      
+      const babiesResponse = await fetch(babiesUrl);
       if (babiesResponse.ok) {
         const babiesData = await babiesResponse.json();
         if (babiesData.success) {
@@ -144,9 +149,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
       });
       window.dispatchEvent(caretakerChangedEvent);
     }
-    
-    // The caretaker name and role will be extracted from the JWT token
-    // in the checkUnlockStatus effect
   };
   
   const handleLogout = async () => {
@@ -231,7 +233,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       window.removeEventListener('touchstart', updateUnlockTimer);
       window.removeEventListener('resize', checkScreenWidth);
     };
-  }, [checkScreenWidth]);
+  }, [checkScreenWidth, fetchData]);
   
   // Add continuous authentication check and redirect
   useEffect(() => {
@@ -244,7 +246,11 @@ function AppContent({ children }: { children: React.ReactNode }) {
       
       // If not authenticated, redirect to login
       if (!authToken || !unlockTime) {
-        router.push('/login');
+        if (familySlug) {
+          router.push(`/${familySlug}/login`);
+        } else {
+          router.push('/login');
+        }
         return;
       }
       
@@ -287,7 +293,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
     return () => {
       clearInterval(authCheckInterval);
     };
-  }, [mounted, router, handleLogout]);
+  }, [mounted, router, handleLogout, familySlug]);
 
   // Check unlock status based on JWT token and extract user info
   useEffect(() => {
@@ -329,6 +335,23 @@ function AppContent({ children }: { children: React.ReactNode }) {
 
   if (!mounted) return null;
 
+  // Helper function to add family slug to paths
+  const withFamilySlug = (path: string) => {
+    if (!familySlug) return path;
+    
+    // If path starts with /, remove it
+    if (path.startsWith('/')) {
+      path = path.substring(1);
+    }
+    
+    // If path already includes the family slug, return as is
+    if (path.startsWith(`${familySlug}/`)) {
+      return `/${path}`;
+    }
+    
+    return `/${familySlug}/${path}`;
+  };
+
   return (
     <>
       {(isUnlocked || process.env.NODE_ENV === 'development') && (
@@ -341,7 +364,8 @@ function AppContent({ children }: { children: React.ReactNode }) {
               onClose={() => {}}
               currentPath={window.location.pathname}
               onNavigate={(path) => {
-                window.location.href = path;
+                // Add family slug to navigation paths
+                router.push(withFamilySlug(path));
               }}
               onSettingsClick={() => {
                 setSettingsOpen(true);
@@ -422,7 +446,8 @@ function AppContent({ children }: { children: React.ReactNode }) {
               onClose={() => setSideNavOpen(false)}
               currentPath={window.location.pathname}
               onNavigate={(path) => {
-                window.location.href = path;
+                // Add family slug to navigation paths
+                router.push(withFamilySlug(path));
                 setSideNavOpen(false);
               }}
               onSettingsClick={() => {
@@ -469,7 +494,15 @@ export default function AppLayout({
 }: {
   children: React.ReactNode
 }) {
-  // We're going to completely disable this layout for now
-  // and only use the slug-based layout
-  return children;
+  return (
+    <FamilyProvider>
+      <BabyProvider>
+        <TimezoneProvider>
+          <ThemeProvider>
+            <AppContent>{children}</AppContent>
+          </ThemeProvider>
+        </TimezoneProvider>
+      </BabyProvider>
+    </FamilyProvider>
+  );
 }

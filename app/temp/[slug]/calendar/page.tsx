@@ -1,13 +1,18 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useBaby } from '../../context/baby';
-import { useTimezone } from '../../context/timezone';
+import { useBaby } from '../../../context/baby';
+import { useTimezone } from '../../../context/timezone';
+import { useFamily } from '@/src/context/family';
+import { useParams } from 'next/navigation';
 import { Calendar } from '@/src/components/Calendar';
 
 function CalendarPage() {
   const { selectedBaby } = useBaby();
   const { userTimezone } = useTimezone();
+  const { family } = useFamily();
+  const params = useParams();
+  const familySlug = params?.slug as string;
 
   // Update unlock timer on any activity
   const updateUnlockTimer = () => {
@@ -39,7 +44,9 @@ function CalendarPage() {
       {selectedBaby ? (
         <Calendar 
           selectedBabyId={selectedBaby.id} 
-          userTimezone={userTimezone} 
+          userTimezone={userTimezone}
+          // Note: If the Calendar component needs to be updated to support familyId,
+          // we would need to modify the Calendar component itself
         />
       ) : (
         <div className="text-center py-12">

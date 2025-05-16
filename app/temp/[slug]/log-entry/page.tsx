@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef, Suspense, useCallback } from 'react';
-import './no-activities.css';
+import '../../../(app)/log-entry/no-activities.css';
 import { SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MeasurementResponse, MilestoneResponse, MedicineLogResponse } from '@/app/api/types';
 import { Button } from "@/src/components/ui/button";
 import { Card } from "@/src/components/ui/card";
@@ -9,8 +9,9 @@ import { StatusBubble } from "@/src/components/ui/status-bubble";
 import { Baby as BabyIcon } from 'lucide-react';
 import Timeline from '@/src/components/Timeline';
 import SettingsModal from '@/src/components/modals/SettingsModal';
-import { useBaby } from '../../context/baby';
-import { useTimezone } from '../../context/timezone';
+import { useBaby } from '../../../context/baby';
+import { useTimezone } from '../../../context/timezone';
+import { useFamily } from '@/src/context/family';
 import { ActivityType } from '@/src/components/ui/activity-tile';
 import { ActivityTileGroup } from '@/src/components/ActivityTileGroup';
 import SleepForm from '@/src/components/forms/SleepForm';
@@ -22,10 +23,14 @@ import PumpForm from '@/src/components/forms/PumpForm';
 import MeasurementForm from '@/src/components/forms/MeasurementForm';
 import MilestoneForm from '@/src/components/forms/MilestoneForm';
 import MedicineForm from '@/src/components/forms/MedicineForm';
+import { useParams } from 'next/navigation';
 
 function HomeContent(): React.ReactElement {
   const { selectedBaby, sleepingBabies, setSleepingBabies } = useBaby();
   const { userTimezone } = useTimezone();
+  const { family } = useFamily();
+  const params = useParams();
+  const familySlug = params?.slug as string;
   
   const [showSleepModal, setShowSleepModal] = useState(false);
   const [showFeedModal, setShowFeedModal] = useState(false);
@@ -64,7 +69,13 @@ function HomeContent(): React.ReactElement {
       // Add a timestamp to prevent caching
       const timestamp = new Date().getTime();
       
-      const response = await fetch(`/api/timeline?babyId=${babyId}&limit=200&_t=${timestamp}&timezone=${encodeURIComponent(userTimezone)}`, {
+      // Add family ID to the request if available
+      let url = `/api/timeline?babyId=${babyId}&limit=200&_t=${timestamp}&timezone=${encodeURIComponent(userTimezone)}`;
+      if (family?.id) {
+        url += `&familyId=${family.id}`;
+      }
+      
+      const response = await fetch(url, {
         cache: 'no-store',
         headers: {
           'Pragma': 'no-cache',
@@ -103,7 +114,7 @@ function HomeContent(): React.ReactElement {
     } catch (error) {
       console.error('Error checking sleep status:', error);
     }
-  }, [userTimezone]);
+  }, [userTimezone, family]);
   
   const refreshActivities = useCallback(async (babyId: string | undefined, dateFilter?: Date) => {
     if (!babyId) return;
@@ -114,14 +125,20 @@ function HomeContent(): React.ReactElement {
       
       // If a date filter is provided, use it in the API call
       let url = `/api/timeline?babyId=${babyId}&limit=200&_t=${timestamp}&timezone=${encodeURIComponent(userTimezone)}`;
+      
+      // Add family ID to the request if available
+      if (family?.id) {
+        url += `&familyId=${family.id}`;
+      }
+      
       if (dateFilter) {
         // Update the selected date
         setSelectedTimelineDate(dateFilter);
-        url = `/api/timeline?babyId=${babyId}&date=${encodeURIComponent(dateFilter.toISOString())}&_t=${timestamp}&timezone=${encodeURIComponent(userTimezone)}`;
+        url += `&date=${encodeURIComponent(dateFilter.toISOString())}`;
         console.log(`Refreshing activities with date filter: ${dateFilter.toISOString()}`);
       } else if (selectedTimelineDate) {
         // If we have a previously selected date, use it
-        url = `/api/timeline?babyId=${babyId}&date=${encodeURIComponent(selectedTimelineDate.toISOString())}&_t=${timestamp}&timezone=${encodeURIComponent(userTimezone)}`;
+        url += `&date=${encodeURIComponent(selectedTimelineDate.toISOString())}`;
         console.log(`Refreshing activities with previous date filter: ${selectedTimelineDate.toISOString()}`);
       } else {
         console.log(`Refreshing activities without date filter`);
@@ -188,7 +205,7 @@ function HomeContent(): React.ReactElement {
     } catch (error) {
       console.error('Error refreshing activities:', error);
     }
-  }, [userTimezone, selectedTimelineDate]);
+  }, [userTimezone, selectedTimelineDate, family]);
 
   // Update unlock timer on any activity
   const updateUnlockTimer = () => {
@@ -242,22 +259,22 @@ function HomeContent(): React.ReactElement {
     const { ongoingSleep, lastEndedSleep } = sleepData;
     
     if (ongoingSleep) {
-      setSleepingBabies(prev => {
+      setSleepingBabies((prev: Set<string>) => {
         const newSet = new Set(prev);
         newSet.add(selectedBaby.id);
         return newSet;
       });
-      setSleepStartTime(prev => ({
+      setSleepStartTime((prev: Record<string, Date>) => ({
         ...prev,
         [selectedBaby.id]: new Date(ongoingSleep.startTime)
       }));
     } else {
-      setSleepingBabies(prev => {
+      setSleepingBabies((prev: Set<string>) => {
         const newSet = new Set(prev);
         newSet.delete(selectedBaby.id);
         return newSet;
       });
-      setSleepStartTime(prev => {
+      setSleepStartTime((prev: Record<string, Date>) => {
         const newState = { ...prev };
         delete newState[selectedBaby.id];
         return newState;

@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
   }
   
   // Check if we're accessing a non-slug app route directly (e.g., /log-entry instead of /[slug]/log-entry)
-  // These are the old routes that should be redirected to slug routes
+  // Always redirect these routes to their slug-based equivalents
   const appRoutes = ['log-entry', 'full-log', 'calendar'];
   if (appRoutes.includes(potentialSlug)) {
     // Count families to see if we have just one
