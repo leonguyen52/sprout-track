@@ -31,6 +31,7 @@ interface NoteFormProps {
   initialTime: string;
   activity?: NoteResponse;
   onSuccess?: () => void;
+  familyId?: string; // Add familyId prop for multi-family support
 }
 
 export default function NoteForm({
@@ -40,6 +41,7 @@ export default function NoteForm({
   initialTime,
   activity,
   onSuccess,
+  familyId,
 }: NoteFormProps) {
   const { formatDate, toUTCString } = useTimezone();
   const { theme } = useTheme();
@@ -212,6 +214,7 @@ export default function NoteForm({
         time: utcTimeString, // Send the UTC ISO string instead of local time
         content: formData.content,
         category: formData.category || null,
+        familyId: familyId || undefined, // Include familyId in the payload
       };
 
       // Get auth token from localStorage
