@@ -3,6 +3,7 @@ import prisma from '../db';
 import { ApiResponse, MedicineLogCreate, MedicineLogResponse } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 /**
  * Handle POST request to create a new medicine log entry
@@ -14,11 +15,15 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     // Convert time to UTC for storage
     const timeUTC = toUTC(body.time);
     
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
+    
     // Prepare data for creation
     const data = {
       ...body,
       time: timeUTC,
       caretakerId: authContext.caretakerId,
+      ...(familyId && { familyId }), // Include family ID if available
     };
     
     // If unitAbbr is an empty string, set it to null
@@ -147,9 +152,17 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit') || '10', 10) : undefined;
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     // Build where clause
     const where: any = {};
+    
+    // Add family ID filter if available
+    if (familyId) {
+      where.familyId = familyId;
+    }
 
     // Add filters
     if (id) {
@@ -180,7 +193,10 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     // If ID is provided, fetch a single log
     if (id) {
       const medicineLog = await prisma.medicineLog.findUnique({
-        where: { id },
+        where: { 
+          id,
+          ...(familyId && { familyId }), // Filter by family ID if available
+        },
         include: {
           medicine: {
             include: {

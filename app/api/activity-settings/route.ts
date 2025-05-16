@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
 import { ApiResponse, ActivitySettings } from '../types';
 import { withAuth } from '../utils/auth';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 /**
  * GET /api/activity-settings
@@ -19,7 +20,10 @@ async function getActivitySettings(req: NextRequest): Promise<NextResponse<ApiRe
     const url = new URL(req.url);
     const caretakerId = url.searchParams.get('caretakerId');
     
-    console.log(`GET /api/activity-settings - caretakerId: ${caretakerId || 'null'}`);
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
+    
+    console.log(`GET /api/activity-settings - caretakerId: ${caretakerId || 'null'}, familyId: ${familyId || 'null'}`);
     
     // Default settings to use if none are found
     const defaultSettings: ActivitySettings = {
@@ -30,7 +34,10 @@ async function getActivitySettings(req: NextRequest): Promise<NextResponse<ApiRe
     
     // Get settings from database
     const settings = await prisma.settings.findFirst({
-      where: { id: { not: '' } }, // Get any settings record
+      where: { 
+        id: { not: '' },
+        ...(familyId && { familyId }) // Filter by family ID if available
+      },
       orderBy: { updatedAt: 'desc' },
     });
 
@@ -288,8 +295,11 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
   try {
     const body = await req.json();
     const { order, visible, caretakerId } = body as ActivitySettings;
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
-    console.log(`POST /api/activity-settings - caretakerId: ${caretakerId || 'null'}`);
+    console.log(`POST /api/activity-settings - caretakerId: ${caretakerId || 'null'}, familyId: ${familyId || 'null'}`);
 
     // Validate input
     if (!order || !Array.isArray(order) || !visible || !Array.isArray(visible)) {
@@ -332,7 +342,10 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
 
     // Get current settings
     let currentSettings = await prisma.settings.findFirst({
-      where: { id: { not: '' } },
+      where: { 
+        id: { not: '' },
+        ...(familyId && { familyId }) // Filter by family ID if available
+      },
       orderBy: { updatedAt: 'desc' },
     });
 
@@ -353,7 +366,8 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
               order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'],
               visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine']
             }
-          })
+          }),
+          ...(familyId && { familyId }) // Include family ID if available
         }
       });
     }
