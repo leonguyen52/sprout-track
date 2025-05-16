@@ -3,10 +3,14 @@ import prisma from '../db';
 import { ApiResponse, CaretakerCreate, CaretakerUpdate, CaretakerResponse } from '../types';
 import { withAdminAuth } from '../utils/auth';
 import { formatForResponse } from '../utils/timezone';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 async function postHandler(req: NextRequest) {
   try {
     const body: CaretakerCreate = await req.json();
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     // Check if loginId is already in use
     const existingCaretaker = await prisma.caretaker.findFirst({
@@ -14,6 +18,7 @@ async function postHandler(req: NextRequest) {
         // Using type assertion to handle new field that TypeScript doesn't know about yet
         loginId: body.loginId,
         deletedAt: null,
+        ...(familyId && { familyId }), // Filter by family ID if available
       } as any,
     });
 
@@ -28,7 +33,10 @@ async function postHandler(req: NextRequest) {
     }
 
     const caretaker = await prisma.caretaker.create({
-      data: body,
+      data: {
+        ...body,
+        ...(familyId && { familyId }), // Include family ID if available
+      },
     });
 
     // Format response with ISO strings
@@ -165,12 +173,16 @@ async function getHandler(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     if (id) {
       const caretaker = await prisma.caretaker.findUnique({
         where: { 
           id,
           deletedAt: null,
+          ...(familyId && { familyId }), // Filter by family ID if available
         },
       });
 
@@ -205,6 +217,7 @@ async function getHandler(req: NextRequest) {
       where: {
         deletedAt: null,
         ...(includeInactive ? {} : { inactive: false }),
+        ...(familyId && { familyId }), // Filter by family ID if available
       },
       orderBy: {
         name: 'asc',

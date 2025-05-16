@@ -4,15 +4,20 @@ import { ApiResponse, BabyCreate, BabyUpdate, BabyResponse } from '../types';
 import { Gender } from '@prisma/client';
 import { toUTC, formatForResponse } from '../utils/timezone';
 import { withAuth, withAuthContext, AuthResult } from '../utils/auth';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 async function handlePost(req: NextRequest) {
   try {
     const body: BabyCreate = await req.json();
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     const baby = await prisma.baby.create({
       data: {
         ...body,
         birthDate: toUTC(body.birthDate),
+        ...(familyId && { familyId }), // Include family ID if available
       },
     });
 
@@ -133,12 +138,16 @@ async function handleGet(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     if (id) {
       const baby = await prisma.baby.findUnique({
         where: { 
           id,
           deletedAt: null,
+          ...(familyId && { familyId }), // Filter by family ID if available
         },
       });
 
@@ -170,6 +179,7 @@ async function handleGet(req: NextRequest) {
     const babies = await prisma.baby.findMany({
       where: {
         deletedAt: null,
+        ...(familyId && { familyId }), // Filter by family ID if available
       },
       orderBy: {
         createdAt: 'desc',

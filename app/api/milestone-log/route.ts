@@ -3,6 +3,7 @@ import prisma from '../db';
 import { ApiResponse, MilestoneCreate, MilestoneResponse } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
@@ -10,11 +11,16 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     
     // Convert date to UTC for storage
     const dateUTC = toUTC(body.date);
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
+    
     const milestone = await prisma.milestone.create({
       data: {
         ...body,
         date: dateUTC,
         caretakerId: authContext.caretakerId,
+        ...(familyId && { familyId }), // Include family ID if available
       },
     });
 
@@ -116,6 +122,9 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const category = searchParams.get('category');
+    
+    // Get family ID from request headers
+    const familyId = getFamilyIdFromRequest(req);
 
     const queryParams: any = {
       ...(babyId && { babyId }),
@@ -126,11 +135,15 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
           lte: toUTC(endDate),
         },
       }),
+      ...(familyId && { familyId }), // Filter by family ID if available
     };
 
     if (id) {
       const milestone = await prisma.milestone.findUnique({
-        where: { id },
+        where: { 
+          id,
+          ...(familyId && { familyId }), // Filter by family ID if available
+        },
       });
 
       if (!milestone) {
