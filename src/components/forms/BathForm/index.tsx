@@ -21,6 +21,7 @@ interface BathFormProps {
   initialTime: string;
   activity?: BathLogResponse;
   onSuccess?: () => void;
+  familyId?: string; // Add familyId prop for multi-family support
 }
 
 export default function BathForm({
@@ -30,6 +31,7 @@ export default function BathForm({
   initialTime,
   activity,
   onSuccess,
+  familyId,
 }: BathFormProps) {
   const { formatDate, toUTCString } = useTimezone();
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
@@ -130,6 +132,7 @@ export default function BathForm({
         soapUsed: formData.soapUsed,
         shampooUsed: formData.shampooUsed,
         notes: formData.notes || null,
+        familyId: familyId || undefined, // Include familyId in the payload
       };
       
       // Determine if we're creating a new record or updating an existing one
