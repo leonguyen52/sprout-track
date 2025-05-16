@@ -71,6 +71,15 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Run the family update script for multi-family support
+echo "Running family data update for multi-family support..."
+"$SCRIPT_DIR/family-update.sh"
+if [ $? -ne 0 ]; then
+    echo "Error: Family data update failed!"
+    "$SCRIPT_DIR/service.sh" start
+    exit 1
+fi
+
 # Seed the database with any new data
 echo "Seeding the database with any new settings and units..."
 npm run prisma:seed
