@@ -24,6 +24,7 @@ interface BabyFormProps {
   isEditing: boolean;
   baby: Baby | null;
   onBabyChange?: () => void;
+  familyId?: string; // Add familyId prop
 }
 
 const defaultFormData = {
@@ -34,6 +35,7 @@ const defaultFormData = {
   inactive: false,
   feedWarningTime: '03:00',
   diaperWarningTime: '02:00',
+  familyId: '',
 };
 
 export default function BabyForm({
@@ -42,6 +44,7 @@ export default function BabyForm({
   isEditing,
   baby,
   onBabyChange,
+  familyId,
 }: BabyFormProps) {
   const [formData, setFormData] = useState(defaultFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,9 +64,13 @@ export default function BabyForm({
         inactive: baby.inactive || false,
         feedWarningTime: baby.feedWarningTime || '03:00',
         diaperWarningTime: baby.diaperWarningTime || '02:00',
+        familyId: (baby as any).familyId || familyId || '',
       });
     } else if (!isOpen) {
-      setFormData(defaultFormData);
+      setFormData({
+        ...defaultFormData,
+        familyId: familyId || '',
+      });
     }
   }, [baby, isOpen]);
 
@@ -83,6 +90,7 @@ export default function BabyForm({
           id: baby?.id,
           birthDate: new Date(formData.birthDate),
           gender: formData.gender as Gender,
+          familyId: formData.familyId || familyId || undefined,
         }),
       });
 

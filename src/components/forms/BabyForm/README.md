@@ -6,11 +6,13 @@ A form component for creating and editing baby profiles in the Baby Tracker appl
 
 ```tsx
 import BabyForm from '@/src/components/forms/BabyForm';
+import { useFamily } from '@/src/context/family'; // Import family context
 
 // In your component
 const [showBabyForm, setShowBabyForm] = useState(false);
 const [selectedBaby, setSelectedBaby] = useState<Baby | null>(null);
 const [isEditing, setIsEditing] = useState(false);
+const { family } = useFamily(); // Get current family from context
 
 // To open the form for creating a new baby
 const handleAddBaby = () => {
@@ -32,6 +34,7 @@ const handleEditBaby = (baby: Baby) => {
   onClose={() => setShowBabyForm(false)}
   isEditing={isEditing}
   baby={selectedBaby}
+  familyId={family?.id} // Pass the current family ID
   onBabyChange={() => {
     // Handle data refresh after baby is created or updated
     fetchData();
@@ -48,6 +51,7 @@ const handleEditBaby = (baby: Baby) => {
 | `isEditing` | boolean | Yes | Determines if the form is in edit mode or create mode |
 | `baby` | Baby \| null | Yes | The baby object to edit (null when creating a new baby) |
 | `onBabyChange` | () => void | No | Callback function called after a baby is successfully created or updated |
+| `familyId` | string | No | The ID of the family this baby belongs to (for multi-family support) |
 
 ## Features
 
@@ -57,6 +61,7 @@ const handleEditBaby = (baby: Baby) => {
 - Mark babies as inactive (when editing)
 - Form validation for required fields
 - Responsive layout for mobile and desktop
+- Multi-family support with family ID association
 
 ## Implementation Details
 
@@ -67,6 +72,18 @@ The BabyForm component uses the FormPage component from the UI library to create
 - A footer with action buttons
 
 The component handles form submission by making API calls to the `/api/baby` endpoint with the appropriate HTTP method (POST for creating, PUT for updating).
+
+### Multi-Family Support
+
+The component supports multi-family functionality by:
+- Accepting a `familyId` prop to associate the baby with a specific family
+- Including the family ID in the API request payload
+- The API endpoint also extracts the family ID from request headers as a fallback
+
+When using this component in a multi-family context, you should:
+1. Import and use the family context to get the current family ID
+2. Pass the family ID to the BabyForm component
+3. The component will handle sending this ID to the API
 
 ## Styling
 
