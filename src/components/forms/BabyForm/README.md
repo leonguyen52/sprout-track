@@ -73,17 +73,29 @@ The BabyForm component uses the FormPage component from the UI library to create
 
 The component handles form submission by making API calls to the `/api/baby` endpoint with the appropriate HTTP method (POST for creating, PUT for updating).
 
-### Multi-Family Support
+## Multi-Family Support
 
 The component supports multi-family functionality by:
 - Accepting a `familyId` prop to associate the baby with a specific family
 - Including the family ID in the API request payload
-- The API endpoint also extracts the family ID from request headers as a fallback
+- Storing the family ID in the form data
+- Handling both new baby creation and updates with the correct family association
 
-When using this component in a multi-family context, you should:
-1. Import and use the family context to get the current family ID
-2. Pass the family ID to the BabyForm component
-3. The component will handle sending this ID to the API
+When using this component in a multi-family context:
+```tsx
+import { useFamily } from '@/src/context/family';
+
+function BabyManagement() {
+  const { family } = useFamily(); // Get current family from context
+  
+  return (
+    <BabyForm
+      // Other props...
+      familyId={family?.id} // Pass the current family ID
+    />
+  );
+}
+```
 
 ## Styling
 

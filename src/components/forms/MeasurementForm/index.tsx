@@ -22,6 +22,7 @@ interface MeasurementFormProps {
   initialTime: string;
   activity?: MeasurementResponse;
   onSuccess?: () => void;
+  familyId?: string; // Add familyId prop for multi-family support
 }
 
 // Define a type for the measurement data
@@ -47,6 +48,7 @@ export default function MeasurementForm({
   initialTime,
   activity,
   onSuccess,
+  familyId,
 }: MeasurementFormProps) {
   const { formatDate, toUTCString } = useTimezone();
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
@@ -254,6 +256,7 @@ export default function MeasurementForm({
           value: parseFloat(formData.height.value),
           unit: formData.height.unit,
           notes: formData.notes || undefined,
+          familyId: familyId || undefined, // Include familyId in the payload
         });
       }
       
@@ -266,6 +269,7 @@ export default function MeasurementForm({
           value: parseFloat(formData.weight.value),
           unit: formData.weight.unit,
           notes: formData.notes || undefined,
+          familyId: familyId || undefined, // Include familyId in the payload
         });
       }
       
@@ -278,6 +282,7 @@ export default function MeasurementForm({
           value: parseFloat(formData.headCircumference.value),
           unit: formData.headCircumference.unit,
           notes: formData.notes || undefined,
+          familyId: familyId || undefined, // Include familyId in the payload
         });
       }
       
@@ -290,6 +295,7 @@ export default function MeasurementForm({
           value: parseFloat(formData.temperature.value),
           unit: formData.temperature.unit,
           notes: formData.notes || undefined,
+          familyId: familyId || undefined, // Include familyId in the payload
         });
       }
       

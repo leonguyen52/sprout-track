@@ -38,6 +38,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
   caretakers,
   contacts,
   isLoading = false,
+  familyId,
 }) => {
   // Helper function to get initial form data
   const getInitialFormData = (
@@ -397,7 +398,11 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
     e.preventDefault();
     
     if (validateForm()) {
-      onSave(formData);
+      // Include familyId in the form data when submitting
+      onSave({
+        ...formData,
+        familyId: familyId || undefined,
+      });
     }
   };
   
@@ -843,30 +848,35 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                 onClick={async () => {
                   if (!event.id) return;
                   
-                  try {
-                    // Delete the event
-                    const response = await fetch(`/api/calendar-event?id=${event.id}`, {
-                      method: 'DELETE',
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                      // Close the form
-                      onClose();
-                      
-                      // Call onSave with a special flag to indicate deletion
-                      // This will trigger a refresh in the parent components
-                      onSave({
-                        ...event,
-                        _deleted: true // Special flag to indicate deletion
-                      });
-                    } else {
-                      console.error('Error deleting event:', data.error);
-                    }
-                  } catch (error) {
-                    console.error('Error deleting event:', error);
-                  }
+      try {
+        // Delete the event
+        const response = await fetch(`/api/calendar-event?id=${event.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ familyId }), // Include familyId in the request body
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Close the form
+          onClose();
+          
+          // Call onSave with a special flag to indicate deletion
+          // This will trigger a refresh in the parent components
+          onSave({
+            ...event,
+            _deleted: true, // Special flag to indicate deletion
+            familyId, // Include familyId in the event data
+          });
+        } else {
+          console.error('Error deleting event:', data.error);
+        }
+      } catch (error) {
+        console.error('Error deleting event:', error);
+      }
                 }}
                 disabled={isLoading}
               >

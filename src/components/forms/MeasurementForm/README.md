@@ -11,6 +11,7 @@ A form component for recording and editing baby measurements such as height, wei
 - Form validation for required fields
 - Loading state during API calls
 - Consistent styling with other form components
+- Multi-family support with family ID association
 
 ## Usage
 
@@ -50,6 +51,7 @@ function ParentComponent() {
 | `initialTime` | `string` | Initial time value for the form (ISO format) | Required |
 | `activity` | `MeasurementResponse` | Existing measurement data (for edit mode) | `undefined` |
 | `onSuccess` | `() => void` | Optional callback function called after successful submission | `undefined` |
+| `familyId` | `string` | The ID of the family this measurement belongs to (for multi-family support) | `undefined` |
 
 ## Measurement Types
 

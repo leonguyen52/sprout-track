@@ -257,6 +257,7 @@ export interface MeasurementCreate {
   value: number;
   unit: string;
   notes?: string;
+  familyId?: string; // Add familyId for multi-family support
 }
 
 // Medicine types

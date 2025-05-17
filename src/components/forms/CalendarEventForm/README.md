@@ -15,6 +15,7 @@ A comprehensive form component for creating and editing calendar events in the B
 - Responsive design for mobile and desktop
 - Dark mode support
 - Accessible UI with proper semantic structure
+- Multi-family support with family ID association
 
 ## Usage
 
@@ -89,6 +90,7 @@ Main component for creating and editing calendar events.
 | `caretakers` | `Caretaker[]` | Available caretakers to select | Required |
 | `contacts` | `Contact[]` | Available contacts to select | Required |
 | `isLoading` | `boolean` | Whether the form is in a loading state | `false` |
+| `familyId` | `string` | The ID of the family this event belongs to (for multi-family support) | `undefined` |
 
 ### CalendarEventFormData
 
@@ -196,6 +198,34 @@ The component follows a modular structure:
 - `calendar-event-form.styles.ts` - Style definitions using Tailwind CSS
 - `calendar-event-form.types.ts` - TypeScript type definitions
 - `calendar-event-form.css` - Additional CSS for dark mode and animations
+
+### Multi-Family Support
+
+The component supports multi-family functionality by:
+- Accepting a `familyId` prop to associate the calendar event with a specific family
+- Including the family ID in the API request payload for create, update, and delete operations
+- Adding the family ID to the CalendarEventFormData interface
+
+When using this component in a multi-family context, you should:
+1. Import and use the family context to get the current family ID
+2. Pass the family ID to the CalendarEventForm component
+3. The component will handle sending this ID to the API
+
+```tsx
+import { useFamily } from '@/src/context/family';
+import { CalendarEventForm } from '@/src/components/forms/CalendarEventForm';
+
+function CalendarPage() {
+  const { family } = useFamily(); // Get current family from context
+  
+  return (
+    <CalendarEventForm
+      // Other props...
+      familyId={family?.id} // Pass the current family ID
+    />
+  );
+}
+```
 
 ## Accessibility
 
