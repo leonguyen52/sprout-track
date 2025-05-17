@@ -15,6 +15,7 @@ interface ContactSelectorProps {
   onAddNewContact?: (contact: Contact) => void;
   onEditContact?: (contact: Contact) => void;
   onDeleteContact?: (contactId: string) => void;
+  familyId?: string; // Add familyId prop for multi-family support
 }
 
 /**
@@ -30,6 +31,7 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
   onAddNewContact,
   onEditContact,
   onDeleteContact,
+  familyId,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showContactForm, setShowContactForm] = useState(false);
@@ -40,7 +42,8 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
   const fetchContacts = useCallback(async () => {
     try {
       // Fetch contacts from API
-      const response = await fetch('/api/contact');
+      const url = `/api/contact${familyId ? `?familyId=${familyId}` : ''}`;
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error('Failed to fetch contacts');
@@ -62,7 +65,7 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
     } catch (error) {
       console.error('Error fetching contacts:', error);
     }
-  }, [contacts, onAddNewContact]);
+  }, [contacts, onAddNewContact, familyId]);
   
   // Fetch contacts on component mount
   useEffect(() => {

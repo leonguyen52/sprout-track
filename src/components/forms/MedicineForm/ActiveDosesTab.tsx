@@ -39,7 +39,7 @@ import { useTimezone } from '@/app/context/timezone';
  * Displays active medicine doses for a baby with countdown timers
  * showing when the next dose is safe to administer.
  */
-const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) => {
+const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData, familyId }) => {
   const { formatDate, calculateDurationMinutes } = useTimezone();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -244,9 +244,8 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
       sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
       
       // Fetch medicine logs for this baby from the last 60 days
-      const response = await fetch(
-        `/api/medicine-log?babyId=${babyId}&startDate=${sixtyDaysAgo.toISOString()}`
-      );
+      const url = `/api/medicine-log?babyId=${babyId}&startDate=${sixtyDaysAgo.toISOString()}${familyId ? `&familyId=${familyId}` : ''}`;
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error('Failed to fetch medicine logs');
@@ -264,7 +263,7 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
     } finally {
       setIsLoading(false);
     }
-  }, [babyId, createActiveDoses]);
+  }, [babyId, familyId, createActiveDoses]);
   
   // Set up interval to refresh countdown timers
   useEffect(() => {
@@ -279,7 +278,7 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
     }, 60000); // 1 minute
     
     return () => clearInterval(timer);
-  }, [babyId, fetchActiveDoses]);
+  }, [babyId, familyId, fetchActiveDoses]);
   
   // Refresh data when requested
   const handleRefresh = useCallback(() => {

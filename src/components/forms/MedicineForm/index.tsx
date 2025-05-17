@@ -37,6 +37,7 @@ import './medicine-form.css';
   initialTime,
   onSuccess,
   activity,
+  familyId,
 }) => {
   const [activeTab, setActiveTab] = useState<MedicineFormTab>('active-doses');
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
@@ -124,6 +125,7 @@ import './medicine-form.css';
             <ActiveDosesTab
               babyId={babyId}
               refreshData={refreshData}
+              familyId={familyId}
             />
           )}
           
@@ -135,12 +137,14 @@ import './medicine-form.css';
               refreshData={refreshData}
               setIsSubmitting={setIsSubmitting}
               activity={activity}
+              familyId={familyId}
             />
           )}
           
           {activeTab === 'manage-medicines' && (
             <ManageMedicinesTab
               refreshData={refreshData}
+              familyId={familyId}
             />
           )}
         </div>

@@ -30,7 +30,8 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   onSuccess,
   refreshData,
   setIsSubmitting,
-  activity
+  activity,
+  familyId
 }) => {
   const { formatDate, toUTCString } = useTimezone();
   const [isLoading, setIsLoading] = useState(false);
@@ -71,6 +72,7 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
       doseAmount: activity && 'doseAmount' in activity ? activity.doseAmount : 0,
       unitAbbr: activity && 'unitAbbr' in activity ? activity.unitAbbr : '',
       notes: activity && 'notes' in activity ? activity.notes : '',
+      familyId: familyId || undefined,
     };
   });
   
@@ -303,6 +305,7 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
         doseAmount: 0,
         unitAbbr: '',
         notes: '',
+        familyId: familyId || undefined,
       });
       
       // Refresh data

@@ -27,7 +27,7 @@ import MedicineForm from './MedicineForm';
  * Interface for managing medicines and their associations with contacts
  * Uses an accordion-style list with expandable details and a form-page component for adding/editing
  */
-const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) => {
+const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData, familyId }) => {
   // Loading and error states
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
@@ -61,7 +61,8 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
       
       try {
         // Fetch all medicines
-        const medicinesResponse = await fetch('/api/medicine');
+        const medicinesUrl = `/api/medicine${familyId ? `?familyId=${familyId}` : ''}`;
+        const medicinesResponse = await fetch(medicinesUrl);
         
         if (!medicinesResponse.ok) {
           throw new Error('Failed to fetch medicines');
@@ -91,7 +92,8 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
         }
         
         // Fetch contacts
-        const contactsResponse = await fetch('/api/contact');
+        const contactsUrl = `/api/contact${familyId ? `?familyId=${familyId}` : ''}`;
+        const contactsResponse = await fetch(contactsUrl);
         
         if (!contactsResponse.ok) {
           throw new Error('Failed to fetch contacts');
@@ -126,7 +128,7 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
     };
     
     fetchData();
-  }, []);
+  }, [familyId]);
   
   // Handle medicine edit button click
   const handleEditMedicine = (medicine: MedicineWithContacts) => {
@@ -155,12 +157,18 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
       const method = isEditing ? 'PUT' : 'POST';
       const url = '/api/medicine' + (isEditing ? `?id=${formData.id}` : '');
       
+      // Include familyId in the request if available
+      const dataToSubmit = {
+        ...formData,
+        familyId: familyId || undefined
+      };
+      
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSubmit),
       });
       
       const data = await response.json();
@@ -376,6 +384,7 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
             units={units}
             contacts={contacts}
             onSave={handleSaveMedicine}
+            familyId={familyId}
           />
         </>
       )}

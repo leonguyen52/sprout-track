@@ -29,6 +29,7 @@ interface MedicineFormProps {
   units: {unitAbbr: string, unitName: string}[];
   contacts: {id: string, name: string, role: string}[];
   onSave: (formData: MedicineFormData) => Promise<void>;
+  familyId?: string; // Add familyId prop for multi-family support
 }
 
 /**
@@ -44,6 +45,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
   units,
   contacts,
   onSave,
+  familyId,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -288,7 +290,9 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
       // Explicitly include typicalDoseSize even if it's undefined
       typicalDoseSize: formData.typicalDoseSize,
       // Ensure contactIds has no duplicates
-      contactIds: formData.contactIds ? Array.from(new Set(formData.contactIds)) : []
+      contactIds: formData.contactIds ? Array.from(new Set(formData.contactIds)) : [],
+      // Include familyId if available
+      familyId: familyId || undefined
     };
     
     // Log the form data being sent
@@ -464,6 +468,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
                 onAddNewContact={handleAddContact}
                 onEditContact={handleEditContact}
                 onDeleteContact={handleDeleteContact}
+                familyId={familyId}
               />
             </div>
           </div>
