@@ -9,17 +9,16 @@ async function postHandler(req: NextRequest) {
   try {
     const body: CaretakerCreate = await req.json();
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request headers (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || (body as any).familyId;
 
-    // Check if loginId is already in use
+    // Check if loginId is already in use within the same family
     const existingCaretaker = await prisma.caretaker.findFirst({
       where: {
-        // Using type assertion to handle new field that TypeScript doesn't know about yet
         loginId: body.loginId,
         deletedAt: null,
         ...(familyId && { familyId }), // Filter by family ID if available
-      } as any,
+      },
     });
 
     if (existingCaretaker) {
@@ -35,7 +34,7 @@ async function postHandler(req: NextRequest) {
     const caretaker = await prisma.caretaker.create({
       data: {
         ...body,
-        ...(familyId && { familyId }), // Include family ID if available
+        familyId: familyId || null, // Include family ID if available
       },
     });
 
@@ -68,6 +67,10 @@ async function putHandler(req: NextRequest) {
     const body: CaretakerUpdate = await req.json();
     const { id, ...updateData } = body;
 
+    // Get family ID from request headers (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || (body as any).familyId;
+
+    // Check if caretaker exists and belongs to the family
     const existingCaretaker = await prisma.caretaker.findUnique({
       where: { id },
     });
@@ -82,15 +85,26 @@ async function putHandler(req: NextRequest) {
       );
     }
 
-    // If loginId is being updated, check if it's already in use by another caretaker
+    // Check family access
+    if (familyId && existingCaretaker.familyId !== familyId) {
+      return NextResponse.json<ApiResponse<CaretakerResponse>>(
+        {
+          success: false,
+          error: 'Caretaker not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // If loginId is being updated, check if it's already in use by another caretaker in the same family
     if (updateData.loginId) {
       const duplicateLoginId = await prisma.caretaker.findFirst({
         where: {
-          // Using type assertion to handle new field that TypeScript doesn't know about yet
           loginId: updateData.loginId,
           id: { not: id },
           deletedAt: null,
-        } as any,
+          ...(familyId && { familyId }), // Filter by family ID if available
+        },
       });
 
       if (duplicateLoginId) {
@@ -106,7 +120,11 @@ async function putHandler(req: NextRequest) {
 
     const caretaker = await prisma.caretaker.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...updateData,
+        // Preserve existing familyId if not provided in update
+        familyId: (updateData as any).familyId || existingCaretaker.familyId,
+      },
     });
 
     // Format response with ISO strings
@@ -148,6 +166,35 @@ async function deleteHandler(req: NextRequest) {
       );
     }
 
+    // Get family ID from request headers
+    const familyId = await getFamilyIdFromRequest(req);
+
+    // Check if caretaker exists and belongs to the family
+    const existingCaretaker = await prisma.caretaker.findUnique({
+      where: { id },
+    });
+
+    if (!existingCaretaker) {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Caretaker not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check family access
+    if (familyId && existingCaretaker.familyId !== familyId) {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Caretaker not found',
+        },
+        { status: 404 }
+      );
+    }
+
     // Soft delete by setting deletedAt
     await prisma.caretaker.update({
       where: { id },
@@ -174,11 +221,11 @@ async function getHandler(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request headers or query params
+    const familyId = await getFamilyIdFromRequest(req) || searchParams.get('familyId');
 
     if (id) {
-      const caretaker = await prisma.caretaker.findUnique({
+      const caretaker = await prisma.caretaker.findFirst({
         where: { 
           id,
           deletedAt: null,

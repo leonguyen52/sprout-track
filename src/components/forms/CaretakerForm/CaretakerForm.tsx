@@ -17,6 +17,7 @@ import {
   FormPageFooter 
 } from '@/src/components/ui/form-page';
 import { caretakerFormStyles } from './caretaker-form.styles';
+import { useFamily } from '@/src/context/family';
 
 // Extended type to include the loginId field
 interface Caretaker extends PrismaCaretaker {
@@ -48,8 +49,9 @@ export default function CaretakerForm({
   isEditing,
   caretaker,
   onCaretakerChange,
-  familyId, //NEEDS FINISHING
+  familyId,
 }: CaretakerFormProps) {
+  const { family } = useFamily();
   const [formData, setFormData] = useState(defaultFormData);
   const [confirmPin, setConfirmPin] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,23 +68,36 @@ export default function CaretakerForm({
         role: caretaker.role || 'USER',
         inactive: (caretaker as any).inactive || false,
         securityPin: caretaker.securityPin,
-        familyId: familyId || '',
+        familyId: familyId || family?.id || '',
       });
       setConfirmPin(caretaker.securityPin);
       setIsFirstCaretaker(false);
+    } else if (isOpen && !caretaker) {
+      // New caretaker - set family ID from context or prop
+      setFormData({
+        ...defaultFormData,
+        familyId: familyId || family?.id || '',
+      });
     } else if (!isOpen) {
       setFormData(defaultFormData);
       setConfirmPin('');
       setError('');
     }
-  }, [caretaker, familyId, isOpen]);
+  }, [caretaker, familyId, family?.id, isOpen]);
 
   // Check if this is the first caretaker in the system
   useEffect(() => {
     if (!isEditing && isOpen) {
       const checkFirstCaretaker = async () => {
         try {
-          const response = await fetch('/api/caretaker');
+          // Build URL with family ID for proper filtering
+          const urlParams = new URLSearchParams();
+          const currentFamilyId = familyId || family?.id;
+          if (currentFamilyId) {
+            urlParams.append('familyId', currentFamilyId);
+          }
+          
+          const response = await fetch(`/api/caretaker?${urlParams.toString()}`);
           if (response.ok) {
             const data = await response.json();
             const isFirst = !data.data || data.data.length === 0;
@@ -100,7 +115,7 @@ export default function CaretakerForm({
       
       checkFirstCaretaker();
     }
-  }, [isEditing, familyId, isOpen]);
+  }, [isEditing, familyId, family?.id, isOpen]);
 
   const validatePIN = () => {
     if (formData.securityPin.length < 6) {
@@ -146,6 +161,9 @@ export default function CaretakerForm({
       setIsSubmitting(true);
       setError('');
       
+      // Use family context with fallback to prop
+      const finalFamilyId = familyId || family?.id;
+      
       const response = await fetch('/api/caretaker', {
         method: isEditing ? 'PUT' : 'POST',
         headers: {
@@ -154,7 +172,7 @@ export default function CaretakerForm({
         body: JSON.stringify({
           ...formData,
           id: caretaker?.id,
-          familyId: formData.familyId || familyId || undefined,
+          familyId: finalFamilyId || undefined,
         }),
       });
 
