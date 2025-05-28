@@ -4,6 +4,7 @@ import { ApiResponse } from '../types';
 import { CalendarEventType, RecurrencePattern } from '@prisma/client';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
+import { getFamilyIdFromRequest } from '../utils/family';
 
 // Type for calendar event response
 interface CalendarEventResponse {
@@ -25,6 +26,7 @@ interface CalendarEventResponse {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  familyId: string | null;
   babies: Array<{
     id: string;
     firstName: string;
@@ -64,6 +66,7 @@ interface CalendarEventCreate {
   babyIds: string[];
   caretakerIds: string[];
   contactIds: string[];
+  familyId?: string;
 }
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
@@ -78,10 +81,18 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const typeParam = searchParams.get('type');
     const recurringParam = searchParams.get('recurring');
 
+    // Get family ID from request
+    const familyId = await getFamilyIdFromRequest(req);
+
     // Build where clause
     const where: any = {
       deletedAt: null,
     };
+
+    // Add family filter if available
+    if (familyId) {
+      where.familyId = familyId;
+    }
 
     // Add filters
     if (id) {
@@ -163,6 +174,17 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
       });
 
       if (!event || event.deletedAt) {
+        return NextResponse.json<ApiResponse<CalendarEventResponse>>(
+          {
+            success: false,
+            error: 'Calendar event not found',
+          },
+          { status: 404 }
+        );
+      }
+
+      // Check family access
+      if (familyId && event.familyId !== familyId) {
         return NextResponse.json<ApiResponse<CalendarEventResponse>>(
           {
             success: false,
@@ -273,6 +295,9 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         { status: 400 }
       );
     }
+
+    // Get family ID from request (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || body.familyId;
     
     // Convert dates to UTC for storage
     const startTimeUTC = toUTC(body.startTime);
@@ -296,6 +321,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         customRecurrence: body.customRecurrence || null,
         reminderTime: body.reminderTime || null,
         notificationSent: false,
+        familyId: familyId || null,
         
         // Create relationships
         babies: {
@@ -390,13 +416,27 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
         { status: 400 }
       );
     }
+
+    // Get family ID from request (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || body.familyId;
     
-    // Check if event exists
+    // Check if event exists and belongs to the family
     const existingEvent = await prisma.calendarEvent.findUnique({
       where: { id },
     });
     
     if (!existingEvent || existingEvent.deletedAt) {
+      return NextResponse.json<ApiResponse<CalendarEventResponse>>(
+        {
+          success: false,
+          error: 'Calendar event not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check family access
+    if (familyId && existingEvent.familyId !== familyId) {
       return NextResponse.json<ApiResponse<CalendarEventResponse>>(
         {
           success: false,
@@ -435,6 +475,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
           recurrenceEnd: recurrenceEndUTC || null,
           customRecurrence: body.customRecurrence || null,
           reminderTime: body.reminderTime || null,
+          familyId: familyId || existingEvent.familyId, // Preserve existing familyId if not provided
           
           // Create new relationships
           babies: {
@@ -531,6 +572,9 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
         { status: 400 }
       );
     }
+
+    // Get family ID from request
+    const familyId = await getFamilyIdFromRequest(req);
     
     // Check if event exists
     const existingEvent = await prisma.calendarEvent.findUnique({
@@ -538,6 +582,17 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
     });
     
     if (!existingEvent) {
+      return NextResponse.json<ApiResponse<void>>(
+        {
+          success: false,
+          error: 'Calendar event not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check family access
+    if (familyId && existingEvent.familyId !== familyId) {
       return NextResponse.json<ApiResponse<void>>(
         {
           success: false,

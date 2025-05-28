@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
 } from '@/src/components/ui/dropdown-menu';
 import './calendar-event-form.css';
+import { useFamily } from '@/src/context/family';
 
 /**
  * CalendarEventForm Component
@@ -40,6 +41,8 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
   isLoading = false,
   familyId,
 }) => {
+  const { family } = useFamily();
+  
   // Helper function to get initial form data
   const getInitialFormData = (
     eventData: CalendarEventFormData | undefined, 
@@ -401,7 +404,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
       // Include familyId in the form data when submitting
       onSave({
         ...formData,
-        familyId: familyId || undefined,
+        familyId: familyId || family?.id || undefined,
       });
     }
   };

@@ -14,6 +14,7 @@ import {
 import CalendarEventForm from '@/src/components/forms/CalendarEventForm';
 import { CalendarEventFormData } from '@/src/components/forms/CalendarEventForm/calendar-event-form.types';
 import './calendar-day-view.css';
+import { useFamily } from '@/src/context/family';
 
 /**
  * CalendarDayView Component
@@ -40,6 +41,8 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
   onClose,
   isOpen,
 }) => {
+  const { family } = useFamily();
+  
   // State for event form
   const [showEventForm, setShowEventForm] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventFormData | undefined>(undefined);
@@ -51,16 +54,22 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
   React.useEffect(() => {
     const fetchData = async () => {
       try {
+        // Build URLs with family ID for proper data filtering
+        const urlParams = new URLSearchParams();
+        if (family?.id) {
+          urlParams.append('familyId', family.id);
+        }
+        
         // Fetch babies
-        const babiesResponse = await fetch('/api/baby');
+        const babiesResponse = await fetch(`/api/baby?${urlParams.toString()}`);
         const babiesData = await babiesResponse.json();
         
         // Fetch caretakers
-        const caretakersResponse = await fetch('/api/caretaker');
+        const caretakersResponse = await fetch(`/api/caretaker?${urlParams.toString()}`);
         const caretakersData = await caretakersResponse.json();
         
         // Fetch contacts
-        const contactsResponse = await fetch('/api/contact');
+        const contactsResponse = await fetch(`/api/contact?${urlParams.toString()}`);
         const contactsData = await contactsResponse.json();
         
         // Update state with fetched data
@@ -75,7 +84,8 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
     if (isOpen) {
       fetchData();
     }
-  }, [isOpen]);
+  }, [isOpen, family?.id]);
+  
   // Format date for display
   const formattedDate = useMemo(() => {
     return date.toLocaleDateString('en-US', {
@@ -245,6 +255,10 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
     try {
       const response = await fetch(`/api/calendar-event?id=${eventId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ familyId: family?.id }),
       });
       
       const data = await response.json();
@@ -406,6 +420,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
         babies={babies}
         caretakers={caretakers}
         contacts={contacts}
+        familyId={family?.id}
       />
     </>
   );
