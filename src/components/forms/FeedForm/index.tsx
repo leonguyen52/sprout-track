@@ -14,6 +14,7 @@ import {
 import { Check } from 'lucide-react';
 import { useTimezone } from '@/app/context/timezone';
 import { useTheme } from '@/src/context/theme';
+import { useFamily } from '@/src/context/family';
 import './feed-form.css';
 
 // Import subcomponents
@@ -42,6 +43,8 @@ export default function FeedForm({
 }: FeedFormProps) {
   const { formatDate, toUTCString } = useTimezone();
   const { theme } = useTheme();
+  const { family } = useFamily();
+  
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime
@@ -265,8 +268,15 @@ export default function FeedForm({
 
   const incrementAmount = () => {
     const currentAmount = parseFloat(formData.amount || '0');
-    const step = formData.unit === 'ML' ? 5 : 0.5;
-    const newAmount = (currentAmount + step).toFixed(1); // Only show one decimal place
+    // Different step sizes for different units
+    let step = 0.5; // Default for OZ and TBSP
+    if (formData.unit === 'ML') {
+      step = 5;
+    } else if (formData.unit === 'G') {
+      step = 5; // 1 grams increments for grams
+    }
+    
+    const newAmount = (currentAmount + step).toFixed(formData.unit === 'G' ? 0 : 1);
     setFormData(prev => ({
       ...prev,
       amount: newAmount
@@ -275,9 +285,16 @@ export default function FeedForm({
 
   const decrementAmount = () => {
     const currentAmount = parseFloat(formData.amount || '0');
-    const step = formData.unit === 'ML' ? 5 : 0.5;
+    // Different step sizes for different units
+    let step = 0.5; // Default for OZ and TBSP
+    if (formData.unit === 'ML') {
+      step = 5;
+    } else if (formData.unit === 'G') {
+      step = 1; // 1 gram increments for grams
+    }
+    
     if (currentAmount >= step) {
-      const newAmount = (currentAmount - step).toFixed(1); // Only show one decimal place
+      const newAmount = (currentAmount - step).toFixed(formData.unit === 'G' ? 0 : 1);
       setFormData(prev => ({
         ...prev,
         amount: newAmount
@@ -394,6 +411,10 @@ export default function FeedForm({
     
     console.log('Original time (local):', formData.time);
     console.log('Converted time (UTC):', utcTimeString);
+    console.log('Unit being sent:', formData.unit); // Debug log for unit
+    
+    // Use family context with fallback to prop
+    const finalFamilyId = familyId || family?.id;
     
       const payload = {
         babyId,
@@ -407,11 +428,13 @@ export default function FeedForm({
         }),
         ...((formData.type === 'BOTTLE' || formData.type === 'SOLIDS') && formData.amount && { 
           amount: parseFloat(formData.amount),
-          unitAbbr: formData.unit
+          unitAbbr: formData.unit // This should correctly send 'TBSP' or 'G'
         }),
         ...(formData.type === 'SOLIDS' && formData.food && { food: formData.food }),
-        familyId: familyId || undefined, // Include familyId in the payload
+        familyId: finalFamilyId || undefined, // Include familyId in the payload
       };
+
+    console.log('Payload being sent:', payload); // Debug log for payload
 
     // Get auth token from localStorage
     const authToken = localStorage.getItem('authToken');

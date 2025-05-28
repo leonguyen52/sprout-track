@@ -13,8 +13,8 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     // Convert all dates to UTC for storage
     const timeUTC = toUTC(body.time);
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request headers (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || (body as any).familyId;
     
     // Process startTime, endTime, and feedDuration if provided
     const data = {
@@ -25,7 +25,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
       ...(body.endTime && { endTime: toUTC(body.endTime) }),
       // Ensure feedDuration is properly included
       ...(body.feedDuration !== undefined && { feedDuration: body.feedDuration }),
-      ...(familyId && { familyId }), // Include family ID if available
+      familyId: familyId || null, // Include family ID if available
     };
     
     const feedLog = await prisma.feedLog.create({
@@ -63,17 +63,6 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
     const id = searchParams.get('id');
     const body: Partial<FeedLogCreate> = await req.json();
 
-    // Process all date fields - convert to UTC
-    const data = {
-      ...(body.time ? { time: toUTC(body.time) } : {}),
-      ...(body.startTime ? { startTime: toUTC(body.startTime) } : {}),
-      ...(body.endTime ? { endTime: toUTC(body.endTime) } : {}),
-      ...(body.feedDuration !== undefined ? { feedDuration: body.feedDuration } : {}),
-      ...Object.entries(body)
-        .filter(([key]) => !['time', 'startTime', 'endTime', 'feedDuration'].includes(key))
-        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
-    };
-
     if (!id) {
       return NextResponse.json<ApiResponse<FeedLogResponse>>(
         {
@@ -84,6 +73,10 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
+    // Get family ID from request headers (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || (body as any).familyId;
+
+    // Check if feed log exists and belongs to the family
     const existingFeedLog = await prisma.feedLog.findUnique({
       where: { id },
     });
@@ -97,6 +90,30 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
         { status: 404 }
       );
     }
+
+    // Check family access
+    if (familyId && existingFeedLog.familyId !== familyId) {
+      return NextResponse.json<ApiResponse<FeedLogResponse>>(
+        {
+          success: false,
+          error: 'Feed log not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Process all date fields - convert to UTC
+    const data = {
+      ...(body.time ? { time: toUTC(body.time) } : {}),
+      ...(body.startTime ? { startTime: toUTC(body.startTime) } : {}),
+      ...(body.endTime ? { endTime: toUTC(body.endTime) } : {}),
+      ...(body.feedDuration !== undefined ? { feedDuration: body.feedDuration } : {}),
+      ...Object.entries(body)
+        .filter(([key]) => !['time', 'startTime', 'endTime', 'feedDuration'].includes(key))
+        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {}),
+      // Preserve existing familyId if not provided in update
+      familyId: (body as any).familyId || existingFeedLog.familyId,
+    };
 
     const feedLog = await prisma.feedLog.update({
       where: { id },
@@ -137,8 +154,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const endDate = searchParams.get('endDate');
     const typeParam = searchParams.get('type');
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request headers or query params
+    const familyId = await getFamilyIdFromRequest(req) || searchParams.get('familyId');
 
     const queryParams = {
       ...(babyId && { babyId }),
@@ -153,7 +170,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     };
 
     if (id) {
-      const feedLog = await prisma.feedLog.findUnique({
+      const feedLog = await prisma.feedLog.findFirst({
         where: { 
           id,
           ...(familyId && { familyId }), // Filter by family ID if available
@@ -229,6 +246,35 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
           error: 'Feed log ID is required',
         },
         { status: 400 }
+      );
+    }
+
+    // Get family ID from request headers
+    const familyId = await getFamilyIdFromRequest(req);
+
+    // Check if feed log exists and belongs to the family
+    const existingFeedLog = await prisma.feedLog.findUnique({
+      where: { id },
+    });
+
+    if (!existingFeedLog) {
+      return NextResponse.json<ApiResponse<void>>(
+        {
+          success: false,
+          error: 'Feed log not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check family access
+    if (familyId && existingFeedLog.familyId !== familyId) {
+      return NextResponse.json<ApiResponse<void>>(
+        {
+          success: false,
+          error: 'Feed log not found',
+        },
+        { status: 404 }
       );
     }
 

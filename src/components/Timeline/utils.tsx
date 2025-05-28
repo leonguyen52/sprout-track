@@ -202,11 +202,12 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
         { label: 'Type', value: formatFeedType(activity.type) },
       ];
 
-      // Show amount for bottle and solids
+      // Show amount for bottle and solids - use unitAbbr instead of hardcoded units
       if (activity.amount && (activity.type === 'BOTTLE' || activity.type === 'SOLIDS')) {
+        const unit = (activity as any).unitAbbr || (activity.type === 'BOTTLE' ? 'oz' : 'g');
         details.push({ 
           label: 'Amount', 
-          value: `${activity.amount}${activity.type === 'BOTTLE' ? ' oz' : ' g'}`
+          value: `${activity.amount} ${unit}`
         });
       }
 
@@ -521,9 +522,13 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
         
         details = [side, duration].filter(Boolean).join(', ');
       } else if (activity.type === 'BOTTLE') {
-        details = `${activity.amount || 'unknown'} oz`;
+        // Use unitAbbr instead of hardcoded 'oz'
+        const unit = (activity as any).unitAbbr || 'oz';
+        details = `${activity.amount || 'unknown'} ${unit}`;
       } else if (activity.type === 'SOLIDS') {
-        details = `${activity.amount || 'unknown'} g`;
+        // Use unitAbbr instead of hardcoded 'g'
+        const unit = (activity as any).unitAbbr || 'g';
+        details = `${activity.amount || 'unknown'} ${unit}`;
         if (activity.food) {
           details += ` of ${activity.food}`;
         }
