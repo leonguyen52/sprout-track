@@ -14,6 +14,7 @@ interface ContactResponse {
   email: string | null;
   address: string | null;
   notes: string | null;
+  familyId: string | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -27,6 +28,7 @@ interface ContactCreate {
   email?: string;
   address?: string;
   notes?: string;
+  familyId?: string;
 }
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
@@ -35,8 +37,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const id = searchParams.get('id');
     const role = searchParams.get('role');
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request headers or query params
+    const familyId = await getFamilyIdFromRequest(req) || searchParams.get('familyId');
 
     // Build where clause
     const where: any = {
@@ -55,14 +57,15 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
     // If ID is provided, fetch a single contact
     if (id) {
-      const contact = await prisma.contact.findUnique({
+      const contact = await prisma.contact.findFirst({
         where: { 
           id,
+          deletedAt: null,
           ...(familyId && { familyId }), // Filter by family ID if available
         },
       });
 
-      if (!contact || contact.deletedAt) {
+      if (!contact) {
         return NextResponse.json<ApiResponse<ContactResponse>>(
           {
             success: false,
@@ -122,8 +125,8 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
     const body: ContactCreate = await req.json();
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request headers (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || body.familyId;
     
     // Validate required fields
     if (!body.name || !body.role) {
@@ -145,7 +148,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         email: body.email || null,
         address: body.address || null,
         notes: body.notes || null,
-        ...(familyId && { familyId }), // Include family ID if available
+        familyId: familyId || null, // Include family ID if available
       },
     });
     
@@ -188,13 +191,27 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
         { status: 400 }
       );
     }
+
+    // Get family ID from request headers (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || body.familyId;
     
-    // Check if contact exists
+    // Check if contact exists and belongs to the family
     const existingContact = await prisma.contact.findUnique({
       where: { id },
     });
     
     if (!existingContact || existingContact.deletedAt) {
+      return NextResponse.json<ApiResponse<ContactResponse>>(
+        {
+          success: false,
+          error: 'Contact not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check family access
+    if (familyId && existingContact.familyId !== familyId) {
       return NextResponse.json<ApiResponse<ContactResponse>>(
         {
           success: false,
@@ -225,6 +242,8 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
         email: body.email || null,
         address: body.address || null,
         notes: body.notes || null,
+        // Preserve existing familyId if not provided in update
+        familyId: body.familyId || existingContact.familyId,
       },
     });
     
@@ -266,13 +285,27 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
         { status: 400 }
       );
     }
+
+    // Get family ID from request headers
+    const familyId = await getFamilyIdFromRequest(req);
     
-    // Check if contact exists
+    // Check if contact exists and belongs to the family
     const existingContact = await prisma.contact.findUnique({
       where: { id },
     });
     
     if (!existingContact || existingContact.deletedAt) {
+      return NextResponse.json<ApiResponse<void>>(
+        {
+          success: false,
+          error: 'Contact not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check family access
+    if (familyId && existingContact.familyId !== familyId) {
       return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
