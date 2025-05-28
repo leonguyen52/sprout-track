@@ -54,9 +54,9 @@ async function handleGet(req: NextRequest) {
     const url = new URL(req.url);
     const { searchParams } = url;
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
-    console.log(`Family ID from request headers: ${familyId || 'null'}`);
+    // Get family ID from request (query params or URL slug)
+    const familyId = await getFamilyIdFromRequest(req);
+    console.log(`Family ID from request: ${familyId || 'null'}`);
     
     // Log all search parameters for debugging
     console.log("All search parameters:");

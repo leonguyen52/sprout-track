@@ -194,7 +194,7 @@ export default function SleepForm({
         quality: '' as SleepQuality | '',
       });
     }
-  }, [isOpen, initialTime, isSleeping, babyId, activity?.id, isInitialized]);
+  }, [isOpen, initialTime, isSleeping, babyId, familyId, activity?.id, isInitialized]);
 
   // Handle date/time changes
   const handleStartDateTimeChange = (date: Date) => {

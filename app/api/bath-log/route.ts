@@ -12,8 +12,8 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     // Convert time to UTC for storage
     const timeUTC = toUTC(body.time);
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request (body, query params, or URL slug)
+    const familyId = await getFamilyIdFromRequest(req, body);
     
     const bathLog = await prisma.bathLog.create({
       data: {
@@ -127,8 +127,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request (query params or URL slug)
+    const familyId = await getFamilyIdFromRequest(req);
 
     const queryParams = {
       ...(babyId && { babyId }),

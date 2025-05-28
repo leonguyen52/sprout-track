@@ -29,6 +29,7 @@ interface CaretakerFormProps {
   isEditing: boolean;
   caretaker: (PrismaCaretaker & { loginId?: string }) | null;
   onCaretakerChange?: () => void;
+  familyId?: string; // Add familyId prop for multi-family support
 }
 
 const defaultFormData = {
@@ -38,6 +39,7 @@ const defaultFormData = {
   role: 'USER' as UserRole,
   inactive: false,
   securityPin: '',
+  familyId: '',
 };
 
 export default function CaretakerForm({
@@ -46,6 +48,7 @@ export default function CaretakerForm({
   isEditing,
   caretaker,
   onCaretakerChange,
+  familyId, //NEEDS FINISHING
 }: CaretakerFormProps) {
   const [formData, setFormData] = useState(defaultFormData);
   const [confirmPin, setConfirmPin] = useState('');
@@ -63,6 +66,7 @@ export default function CaretakerForm({
         role: caretaker.role || 'USER',
         inactive: (caretaker as any).inactive || false,
         securityPin: caretaker.securityPin,
+        familyId: familyId || '',
       });
       setConfirmPin(caretaker.securityPin);
       setIsFirstCaretaker(false);
@@ -71,7 +75,7 @@ export default function CaretakerForm({
       setConfirmPin('');
       setError('');
     }
-  }, [caretaker, isOpen]);
+  }, [caretaker, familyId, isOpen]);
 
   // Check if this is the first caretaker in the system
   useEffect(() => {
@@ -96,7 +100,7 @@ export default function CaretakerForm({
       
       checkFirstCaretaker();
     }
-  }, [isEditing, isOpen]);
+  }, [isEditing, familyId, isOpen]);
 
   const validatePIN = () => {
     if (formData.securityPin.length < 6) {
@@ -150,6 +154,7 @@ export default function CaretakerForm({
         body: JSON.stringify({
           ...formData,
           id: caretaker?.id,
+          familyId: formData.familyId || familyId || undefined,
         }),
       });
 
