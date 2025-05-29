@@ -12,15 +12,15 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     // Convert date to UTC for storage
     const dateUTC = toUTC(body.date);
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request headers (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || (body as any).familyId;
     
     const measurement = await prisma.measurement.create({
       data: {
         ...body,
         date: dateUTC,
         caretakerId: authContext.caretakerId,
-        ...(familyId && { familyId }), // Include family ID if available
+        familyId: familyId || null, // Include family ID if available
       },
     });
 
@@ -65,11 +65,26 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
+    // Get family ID from request headers (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || (body as any).familyId;
+
+    // Check if measurement exists and belongs to the family
     const existingMeasurement = await prisma.measurement.findUnique({
       where: { id },
     });
 
     if (!existingMeasurement) {
+      return NextResponse.json<ApiResponse<MeasurementResponse>>(
+        {
+          success: false,
+          error: 'Measurement not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check family access
+    if (familyId && existingMeasurement.familyId !== familyId) {
       return NextResponse.json<ApiResponse<MeasurementResponse>>(
         {
           success: false,
@@ -86,7 +101,11 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
     const measurement = await prisma.measurement.update({
       where: { id },
-      data,
+      data: {
+        ...data,
+        // Preserve existing familyId if not provided in update
+        familyId: (data as any).familyId || existingMeasurement.familyId,
+      },
     });
 
     // Format dates as ISO strings for response
@@ -123,8 +142,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const endDate = searchParams.get('endDate');
     const type = searchParams.get('type');
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request headers or query params
+    const familyId = await getFamilyIdFromRequest(req) || searchParams.get('familyId');
 
     const queryParams: any = {
       ...(babyId && { babyId }),
@@ -139,7 +158,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     };
 
     if (id) {
-      const measurement = await prisma.measurement.findUnique({
+      const measurement = await prisma.measurement.findFirst({
         where: { 
           id,
           ...(familyId && { familyId }), // Filter by family ID if available
@@ -241,11 +260,26 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
+    // Get family ID from request headers
+    const familyId = await getFamilyIdFromRequest(req);
+
+    // Check if measurement exists and belongs to the family
     const existingMeasurement = await prisma.measurement.findUnique({
       where: { id },
     });
 
     if (!existingMeasurement) {
+      return NextResponse.json<ApiResponse<void>>(
+        {
+          success: false,
+          error: 'Measurement not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check family access
+    if (familyId && existingMeasurement.familyId !== familyId) {
       return NextResponse.json<ApiResponse<void>>(
         {
           success: false,

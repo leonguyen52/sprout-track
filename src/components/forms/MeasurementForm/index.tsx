@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MeasurementType } from '@prisma/client';
 import { MeasurementResponse, MeasurementCreate } from '@/app/api/types';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -13,6 +12,7 @@ import {
   FormPageFooter 
 } from '@/src/components/ui/form-page';
 import { useTimezone } from '@/app/context/timezone';
+import { useFamily } from '@/src/context/family';
 import { Textarea } from '@/src/components/ui/textarea';
 
 interface MeasurementFormProps {
@@ -51,6 +51,7 @@ export default function MeasurementForm({
   familyId,
 }: MeasurementFormProps) {
   const { formatDate, toUTCString } = useTimezone();
+  const { family } = useFamily();
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime
@@ -244,6 +245,9 @@ export default function MeasurementForm({
         return;
       }
       
+      // Use family context with fallback to prop
+      const finalFamilyId = familyId || family?.id;
+      
       // Create an array of measurements to save
       const measurements: MeasurementCreate[] = [];
       
@@ -256,7 +260,7 @@ export default function MeasurementForm({
           value: parseFloat(formData.height.value),
           unit: formData.height.unit,
           notes: formData.notes || undefined,
-          familyId: familyId || undefined, // Include familyId in the payload
+          familyId: finalFamilyId || undefined, // Include familyId in the payload
         });
       }
       
@@ -269,7 +273,7 @@ export default function MeasurementForm({
           value: parseFloat(formData.weight.value),
           unit: formData.weight.unit,
           notes: formData.notes || undefined,
-          familyId: familyId || undefined, // Include familyId in the payload
+          familyId: finalFamilyId || undefined, // Include familyId in the payload
         });
       }
       
@@ -282,7 +286,7 @@ export default function MeasurementForm({
           value: parseFloat(formData.headCircumference.value),
           unit: formData.headCircumference.unit,
           notes: formData.notes || undefined,
-          familyId: familyId || undefined, // Include familyId in the payload
+          familyId: finalFamilyId || undefined, // Include familyId in the payload
         });
       }
       
@@ -295,7 +299,7 @@ export default function MeasurementForm({
           value: parseFloat(formData.temperature.value),
           unit: formData.temperature.unit,
           notes: formData.notes || undefined,
-          familyId: familyId || undefined, // Include familyId in the payload
+          familyId: finalFamilyId || undefined, // Include familyId in the payload
         });
       }
       
