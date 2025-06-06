@@ -13,8 +13,8 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     const startTimeUTC = toUTC(body.startTime);
     const endTimeUTC = body.endTime ? toUTC(body.endTime) : null;
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request (body, query params, or URL slug)
+    const familyId = await getFamilyIdFromRequest(req, body);
     
     // Calculate duration if both start and end times are present
     const duration = endTimeUTC ? calculateDurationMinutes(startTimeUTC, endTimeUTC) : undefined;
@@ -72,8 +72,11 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingSleepLog = await prisma.sleepLog.findUnique({
-      where: { id },
+    // Get family ID from request (query params or URL slug)
+    const familyId = await getFamilyIdFromRequest(req);
+
+    const existingSleepLog = await prisma.sleepLog.findFirst({
+      where: { id, ...(familyId && { familyId }) },
     });
 
     if (!existingSleepLog) {
@@ -139,8 +142,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request (query params or URL slug)
+    const familyId = await getFamilyIdFromRequest(req);
 
     const queryParams = {
       ...(babyId && { babyId }),
@@ -154,7 +157,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     };
 
     if (id) {
-      const sleepLog = await prisma.sleepLog.findUnique({
+      const sleepLog = await prisma.sleepLog.findFirst({
         where: { 
           id,
           ...(familyId && { familyId }), // Filter by family ID if available
@@ -232,6 +235,23 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
           error: 'Sleep log ID is required',
         },
         { status: 400 }
+      );
+    }
+
+    // Get family ID from request (query params or URL slug)
+    const familyId = await getFamilyIdFromRequest(req);
+
+    const existingSleepLog = await prisma.sleepLog.findFirst({
+      where: { id, ...(familyId && { familyId }) },
+    });
+
+    if (!existingSleepLog) {
+      return NextResponse.json<ApiResponse<void>>(
+        {
+          success: false,
+          error: 'Sleep log not found',
+        },
+        { status: 404 }
       );
     }
 

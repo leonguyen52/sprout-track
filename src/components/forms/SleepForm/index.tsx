@@ -20,6 +20,7 @@ import {
   FormPageFooter 
 } from '@/src/components/ui/form-page';
 import { useTimezone } from '@/app/context/timezone';
+import { useFamily } from '@/src/context/family';
 
 interface SleepFormProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ export default function SleepForm({
   familyId,
 }: SleepFormProps) {
   const { formatDate, calculateDurationMinutes, toUTCString } = useTimezone();
+  const { family } = useFamily();
   const [startDateTime, setStartDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime
@@ -104,8 +106,10 @@ export default function SleepForm({
           try {
             // Get auth token from localStorage
             const authToken = localStorage.getItem('authToken');
+            const familyIdToUse = familyId || family?.id;
+            const url = `/api/sleep-log?babyId=${babyId}${familyIdToUse ? `&familyId=${familyIdToUse}` : ''}`;
 
-            const response = await fetch(`/api/sleep-log?babyId=${babyId}`, {
+            const response = await fetch(url, {
               headers: {
                 'Authorization': authToken ? `Bearer ${authToken}` : ''
               }
@@ -194,7 +198,7 @@ export default function SleepForm({
         quality: '' as SleepQuality | '',
       });
     }
-  }, [isOpen, initialTime, isSleeping, babyId, familyId, activity?.id, isInitialized]);
+  }, [isOpen, initialTime, isSleeping, babyId, familyId, activity?.id, isInitialized, family]);
 
   // Handle date/time changes
   const handleStartDateTimeChange = (date: Date) => {
@@ -243,15 +247,15 @@ export default function SleepForm({
       
       if (activity) {
         // Editing mode - update existing record
-      const payload = {
-        startTime: utcStartTime,
-        endTime: utcEndTime,
-        duration,
-        type: formData.type,
-        location: formData.location || null,
-        quality: formData.quality || null,
-        familyId: familyId || undefined, // Include familyId in the payload
-      };
+        const payload = {
+          startTime: utcStartTime,
+          endTime: utcEndTime,
+          duration,
+          type: formData.type,
+          location: formData.location || null,
+          quality: formData.quality || null,
+          familyId: familyId || family?.id || undefined, // Include familyId in the payload
+        };
 
         // Get auth token from localStorage
         const authToken = localStorage.getItem('authToken');
@@ -268,8 +272,10 @@ export default function SleepForm({
         // Ending sleep - update existing record
         // Get auth token from localStorage
         const authToken = localStorage.getItem('authToken');
+        const familyIdToUse = familyId || family?.id;
+        const url = `/api/sleep-log?babyId=${babyId}${familyIdToUse ? `&familyId=${familyIdToUse}` : ''}`;
 
-        const sleepResponse = await fetch(`/api/sleep-log?babyId=${babyId}`, {
+        const sleepResponse = await fetch(url, {
           headers: {
             'Authorization': authToken ? `Bearer ${authToken}` : ''
           }
@@ -291,6 +297,7 @@ export default function SleepForm({
             endTime: utcEndTime,
             duration,
             quality: formData.quality || null,
+            familyId: familyId || family?.id || undefined, // Include familyId in the payload
           }),
         });
       } else {
@@ -303,7 +310,7 @@ export default function SleepForm({
           type: formData.type,
           location: formData.location || null,
           quality: null,
-          familyId: familyId || undefined, // Include familyId in the payload
+          familyId: familyId || family?.id || undefined, // Include familyId in the payload
         };
 
         // Get auth token from localStorage
