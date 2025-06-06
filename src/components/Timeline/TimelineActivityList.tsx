@@ -11,6 +11,7 @@ const TimelineActivityList = ({
   activities,
   settings,
   isLoading,
+  isAnimated = true,
   itemsPerPage,
   currentPage,
   totalPages,
@@ -178,15 +179,15 @@ const TimelineActivityList = ({
                     key={activity.id}
                     className="group hover:bg-gray-50/50 transition-colors duration-200 cursor-pointer timeline-activity-item"
                     onClick={() => onActivitySelect(activity)}
-                    initial={{ opacity: 0, y: -50, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{
+                    initial={isAnimated ? { opacity: 0, y: -50, scale: 0.95 } : false}
+                    animate={isAnimated ? { opacity: 1, y: 0, scale: 1 } : false}
+                    transition={isAnimated ? {
                       delay: index * 0.05,
                       duration: 0.5,
                       type: "spring",
                       stiffness: 200,
                       damping: 25
-                    }}
+                    } : { duration: 0 }}
                   >
                     <div className="flex items-center px-6 py-3">
                       <div className={`flex-shrink-0 ${style.bg} p-2 rounded-xl mr-4`}>

@@ -1,7 +1,6 @@
 import { Settings } from '@prisma/client';
 import { CardHeader } from '@/src/components/ui/card';
-import { Button } from '@/src/components/ui/button';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import SleepForm from '@/src/components/forms/SleepForm';
 import FeedForm from '@/src/components/forms/FeedForm';
 import DiaperForm from '@/src/components/forms/DiaperForm';
@@ -24,51 +23,31 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
   const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>(null);
   const [editModalType, setEditModalType] = useState<'sleep' | 'feed' | 'diaper' | 'medicine' | 'note' | 'bath' | 'pump' | 'milestone' | 'measurement' | null>(null);
-  // Pagination removed as it breaks up view by day
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
-  // State to store the activities fetched for the selected date
   const [dateFilteredActivities, setDateFilteredActivities] = useState<ActivityType[]>([]);
   
-  // Loading state for fetching activities
   const [isLoadingActivities, setIsLoadingActivities] = useState<boolean>(false);
+  const [isFetchAnimated, setIsFetchAnimated] = useState<boolean>(true);
+  const lastRefreshTimestamp = useRef<number>(Date.now());
+  const wasIdle = useRef<boolean>(false);
 
-  const handleFormSuccess = () => {
-    setEditModalType(null);
-    setSelectedActivity(null);
+  const babyId = useMemo(() => (activities.length > 0 ? activities[0].babyId : undefined), [activities]);
 
-    const babyId = activities.length > 0 ? activities[0].babyId : undefined;
-    if (babyId) {
-      fetchActivitiesForDate(babyId, selectedDate);
+  const fetchActivitiesForDate = async (babyId: string, date: Date, isAnimated: boolean) => {
+    setIsFetchAnimated(isAnimated);
+    if (isAnimated) {
+      setIsLoadingActivities(true);
     }
 
-    if (onActivityDeleted) {
-      onActivityDeleted();
-    }
-  };
-  
-  // Function to fetch activities for a specific date
-  const fetchActivitiesForDate = async (babyId: string, date: Date) => {
     try {
-      // Format date for API request - ensure it's in ISO format
       const formattedDate = date.toISOString();
-      
-      console.log(`Fetching activities for date: ${formattedDate}`);
-      
-      // Add a timestamp to prevent caching
       const timestamp = new Date().getTime();
-      
-      // Get family ID from URL if available
       const urlPath = window.location.pathname;
       const familySlugMatch = urlPath.match(/^\/([^\/]+)\//);
       const familySlug = familySlugMatch ? familySlugMatch[1] : null;
       
-      // Make the API call with the date parameter
       let url = `/api/timeline?babyId=${babyId}&date=${encodeURIComponent(formattedDate)}&_t=${timestamp}`;
-      
-      // The middleware will automatically add the family ID to the request headers
-      // based on the family slug in the URL, so we don't need to add it explicitly
-      console.log(`API URL: ${url}`);
       
       const response = await fetch(url, {
         cache: 'no-store',
@@ -80,59 +59,56 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
       });
       
       if (response.ok) {
-        console.log('Successfully fetched activities for date');
         const data = await response.json();
         if (data.success) {
           setDateFilteredActivities(data.data);
-          console.log(`Received ${data.data.length} activities for date ${formattedDate}`);
-          return data.data;
+          lastRefreshTimestamp.current = Date.now();
         } else {
           setDateFilteredActivities([]);
-          console.log(`No activities found for date ${formattedDate}`);
-          return [];
         }
       } else {
         console.error('Failed to fetch activities:', await response.text());
         setDateFilteredActivities([]);
-        return [];
       }
     } catch (error) {
       console.error('Error fetching activities for date:', error);
       setDateFilteredActivities([]);
-      return [];
+    } finally {
+      if (isAnimated) {
+        setIsLoadingActivities(false);
+      }
     }
   };
-  
-  // Handle date selection and fetch data for the selected date
+
+  const handleFormSuccess = () => {
+    setEditModalType(null);
+    setSelectedActivity(null);
+
+    if (babyId) {
+      fetchActivitiesForDate(babyId, selectedDate, true);
+    }
+
+    if (onActivityDeleted) {
+      onActivityDeleted();
+    }
+  };
+
   const handleDateSelection = (newDate: Date) => {
     setSelectedDate(newDate);
-    // Pagination removed as it breaks up view by day
-    
-    // Get the baby ID from the first activity if available
-    const babyId = activities.length > 0 ? activities[0].babyId : null;
-    
     if (babyId) {
-      // Fetch data for the selected date
-      fetchActivitiesForDate(babyId, newDate);
-      
-      // Notify parent that date has changed
+      fetchActivitiesForDate(babyId, newDate, true);
       if (onActivityDeleted) {
         onActivityDeleted(newDate);
       }
     }
   };
-  
-  // Function to handle date navigation
+
   const handleDateChange = (days: number) => {
-    // Calculate the new date
     const newDate = new Date(selectedDate);
     newDate.setDate(newDate.getDate() + days);
-    
-    // Update the selected date
     handleDateSelection(newDate);
   };
   
-  // Fetch settings on component mount
   useEffect(() => {
     const fetchSettings = async () => {
       const response = await fetch('/api/settings');
@@ -147,21 +123,53 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
   }, []);
   
   useEffect(() => {
-    // When the component mounts or the selected date changes, fetch the activities for that date.
-    const babyId = activities.length > 0 ? activities[0].babyId : null;
     if (babyId) {
-      setIsLoadingActivities(true);
-      fetchActivitiesForDate(babyId, selectedDate)
-        .finally(() => setIsLoadingActivities(false));
+      fetchActivitiesForDate(babyId, selectedDate, true);
     } else {
-      // If there's no babyId (e.g., initial load with no activities),
-      // we can use the activities from props directly.
       setDateFilteredActivities(activities);
     }
-  }, [activities, selectedDate]); // Rerun when parent activities or selected date change.
+  }, [activities, selectedDate, babyId]);
+
+  useEffect(() => {
+    if (!babyId) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // User came back to the tab, refresh immediately
+        fetchActivitiesForDate(babyId, selectedDate, false);
+      }
+    };
+
+    const poll = setInterval(() => {
+      const idleThreshold = 5 * 60 * 1000; // 5 minutes
+      const activeRefreshRate = 30 * 1000; // 30 seconds
+
+      const idleTime = Date.now() - parseInt(localStorage.getItem('unlockTime') || `${Date.now()}`);
+      const isCurrentlyIdle = idleTime >= idleThreshold;
+      const timeSinceLastRefresh = Date.now() - lastRefreshTimestamp.current;
+
+      // Case 1: User just came back from an idle state (was idle, now is not)
+      if (wasIdle.current && !isCurrentlyIdle) {
+        fetchActivitiesForDate(babyId, selectedDate, false);
+      }
+      // Case 2: User is active and the regular refresh interval has passed
+      else if (!isCurrentlyIdle && timeSinceLastRefresh > activeRefreshRate) {
+        fetchActivitiesForDate(babyId, selectedDate, false);
+      }
+
+      // Update the idle state for the next check
+      wasIdle.current = isCurrentlyIdle;
+    }, 10000); // Check status every 10 seconds
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [babyId, selectedDate]);
 
   const sortedActivities = useMemo(() => {
-    // Only use dateFilteredActivities, never fall back to activities from props
     const filtered = !activeFilter || activeFilter === null
       ? dateFilteredActivities
       : dateFilteredActivities.filter(activity => {
@@ -197,8 +205,6 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
 
     return sorted;
   }, [dateFilteredActivities, activeFilter]);
-
-  // Pagination removed as it breaks up view by day
 
   const handleDelete = async (activity: ActivityType) => {
     if (!confirm('Are you sure you want to delete this activity?')) return;
@@ -248,9 +254,10 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
         activities={sortedActivities}
         settings={settings}
         isLoading={isLoadingActivities}
-        onActivitySelect={setSelectedActivity}
-        onSwipeLeft={Object.assign(() => handleDateChange(1), { activeFilter })} // Next day (swipe left) with activeFilter
-        onSwipeRight={() => handleDateChange(-1)} // Previous day (swipe right)
+        isAnimated={isFetchAnimated}
+        onActivitySelect={(activity) => setSelectedActivity(activity)}
+        onSwipeLeft={() => handleDateChange(1)}
+        onSwipeRight={() => handleDateChange(-1)}
       />
 
       {/* Activity Details */}
