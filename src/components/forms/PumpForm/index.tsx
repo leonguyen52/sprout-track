@@ -20,6 +20,7 @@ import {
   FormPageFooter 
 } from '@/src/components/ui/form-page';
 import { useTimezone } from '@/app/context/timezone';
+import { useFamily } from '@/src/context/family';
 import { useTheme } from '@/src/context/theme';
 import { Plus, Minus } from 'lucide-react';
 import './pump-form.css';
@@ -45,6 +46,7 @@ export default function PumpForm({
   familyId,
 }: PumpFormProps) {
   const { formatDate, toUTCString } = useTimezone();
+  const { family } = useFamily();
   const [selectedStartDateTime, setSelectedStartDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime
@@ -282,7 +284,7 @@ export default function PumpForm({
         totalAmount: formData.totalAmount ? parseFloat(formData.totalAmount) : undefined,
         unitAbbr: formData.unitAbbr || 'OZ',
         notes: formData.notes || undefined,
-        familyId: familyId || undefined, // Include familyId in the payload
+        familyId: familyId || family?.id || undefined, // Include familyId in the payload
       };
       
       // Determine if we're creating a new record or updating an existing one

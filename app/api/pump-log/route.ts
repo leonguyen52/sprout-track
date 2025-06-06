@@ -13,8 +13,8 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     const startTimeUTC = toUTC(body.startTime);
     const endTimeUTC = body.endTime ? toUTC(body.endTime) : undefined;
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request (body, query params, or URL slug)
+    const familyId = await getFamilyIdFromRequest(req, body);
     
     // Calculate duration if not provided but start and end times are available
     let duration = body.duration;
@@ -86,8 +86,10 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingPumpLog = await prisma.pumpLog.findUnique({
-      where: { id },
+    const familyId = await getFamilyIdFromRequest(req, body);
+
+    const existingPumpLog = await prisma.pumpLog.findFirst({
+      where: { id, ...(familyId && { familyId }) },
     });
 
     if (!existingPumpLog) {
@@ -179,7 +181,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const endDate = searchParams.get('endDate');
     
     // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    const familyId = await getFamilyIdFromRequest(req);
 
     const queryParams: any = {
       ...(babyId && { babyId }),
@@ -196,7 +198,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
     // If ID is provided, fetch a single pump log
     if (id) {
-      const pumpLog = await prisma.pumpLog.findUnique({
+      const pumpLog = await prisma.pumpLog.findFirst({
         where: { 
           id,
           ...(familyId && { familyId }), // Filter by family ID if available
@@ -278,8 +280,10 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingPumpLog = await prisma.pumpLog.findUnique({
-      where: { id },
+    const familyId = await getFamilyIdFromRequest(req);
+
+    const existingPumpLog = await prisma.pumpLog.findFirst({
+      where: { id, ...(familyId && { familyId }) },
     });
 
     if (!existingPumpLog) {
