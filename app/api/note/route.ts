@@ -12,8 +12,8 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     // Convert time to UTC for storage
     const timeUTC = toUTC(body.time);
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request (body, query params, or URL slug)
+    const familyId = await getFamilyIdFromRequest(req, body);
     
     const note = await prisma.note.create({
       data: {
@@ -65,8 +65,14 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
+    // Get family ID from request (query params or URL slug)
+    const familyId = await getFamilyIdFromRequest(req);
+
     const existingNote = await prisma.note.findUnique({
-      where: { id },
+      where: {
+        id,
+        ...(familyId && { familyId }),
+      },
     });
 
     if (!existingNote) {
@@ -85,7 +91,10 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       : body;
 
     const note = await prisma.note.update({
-      where: { id },
+      where: {
+        id,
+        ...(familyId && { familyId }),
+      },
       data,
     });
 
@@ -123,8 +132,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const endDate = searchParams.get('endDate');
     const categories = searchParams.get('categories');
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request (query params or URL slug)
+    const familyId = await getFamilyIdFromRequest(req);
 
     // If categories flag is present, return unique categories
     if (categories === 'true') {
@@ -242,8 +251,30 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
+    // Get family ID from request (query params or URL slug)
+    const familyId = await getFamilyIdFromRequest(req);
+
+    const existingNote = await prisma.note.findFirst({
+      where: { 
+        id,
+        ...(familyId && { familyId }),
+      },
+    });
+
+    if (!existingNote) {
+      return NextResponse.json<ApiResponse<void>>(
+        {
+          success: false,
+          error: 'Note not found',
+        },
+        { status: 404 }
+      );
+    }
+
     await prisma.note.delete({
-      where: { id },
+      where: { 
+        id,
+      },
     });
 
     return NextResponse.json<ApiResponse<void>>({
