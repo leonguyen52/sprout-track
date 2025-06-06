@@ -167,8 +167,7 @@ async function handleGet(req: NextRequest) {
         include: {
           caretaker: true
         },
-        orderBy: { startTime: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { startTime: 'desc' }
       }),
       prisma.feedLog.findMany({
         where: {
@@ -184,8 +183,7 @@ async function handleGet(req: NextRequest) {
         include: {
           caretaker: true
         },
-        orderBy: { time: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { time: 'desc' }
       }),
       prisma.diaperLog.findMany({
         where: {
@@ -201,8 +199,7 @@ async function handleGet(req: NextRequest) {
         include: {
           caretaker: true
         },
-        orderBy: { time: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { time: 'desc' }
       }),
       prisma.note.findMany({
         where: {
@@ -218,8 +215,7 @@ async function handleGet(req: NextRequest) {
         include: {
           caretaker: true
         },
-        orderBy: { time: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { time: 'desc' }
       }),
       prisma.bathLog.findMany({
         where: {
@@ -235,8 +231,7 @@ async function handleGet(req: NextRequest) {
         include: {
           caretaker: true
         },
-        orderBy: { time: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { time: 'desc' }
       }),
       prisma.pumpLog.findMany({
         where: {
@@ -252,8 +247,7 @@ async function handleGet(req: NextRequest) {
         include: {
           caretaker: true
         },
-        orderBy: { startTime: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { startTime: 'desc' }
       }),
       prisma.milestone.findMany({
         where: {
@@ -269,8 +263,7 @@ async function handleGet(req: NextRequest) {
         include: {
           caretaker: true
         },
-        orderBy: { date: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { date: 'desc' }
       }),
       prisma.measurement.findMany({
         where: {
@@ -286,8 +279,7 @@ async function handleGet(req: NextRequest) {
         include: {
           caretaker: true
         },
-        orderBy: { date: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { date: 'desc' }
       }),
       prisma.medicineLog.findMany({
         where: {
@@ -304,8 +296,7 @@ async function handleGet(req: NextRequest) {
           caretaker: true,
           medicine: true
         },
-        orderBy: { time: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { time: 'desc' }
       })
     ]);
     
