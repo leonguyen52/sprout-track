@@ -19,6 +19,7 @@ import {
   FormPageFooter 
 } from '@/src/components/ui/form-page';
 import { useTimezone } from '@/app/context/timezone';
+import { useFamily } from '@/src/context/family';
 import { Textarea } from '@/src/components/ui/textarea';
 interface MilestoneFormProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export default function MilestoneForm({
   familyId
 }: MilestoneFormProps) {
   const { formatDate, toUTCString } = useTimezone();
+  const { family } = useFamily();
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime
@@ -149,7 +151,7 @@ export default function MilestoneForm({
         title: formData.title,
         description: formData.description || null,
         category: formData.category,
-        familyId: familyId || undefined, // Include familyId in the payload
+        familyId: familyId || family?.id || undefined, // Include familyId in the payload
       };
 
       // Get auth token from localStorage

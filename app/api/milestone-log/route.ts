@@ -12,8 +12,8 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     // Convert date to UTC for storage
     const dateUTC = toUTC(body.date);
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request (body, query params, or URL slug)
+    const familyId = await getFamilyIdFromRequest(req, body);
     
     const milestone = await prisma.milestone.create({
       data: {
@@ -65,8 +65,14 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
+    // Get family ID from request (query params or URL slug)
+    const familyId = await getFamilyIdFromRequest(req);
+
     const existingMilestone = await prisma.milestone.findUnique({
-      where: { id },
+      where: {
+        id,
+        ...(familyId && { familyId }),
+      },
     });
 
     if (!existingMilestone) {
@@ -85,7 +91,10 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       : body;
 
     const milestone = await prisma.milestone.update({
-      where: { id },
+      where: { 
+        id,
+        ...(familyId && { familyId }),
+      },
       data,
     });
 
@@ -123,8 +132,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const endDate = searchParams.get('endDate');
     const category = searchParams.get('category');
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request (query params or URL slug)
+    const familyId = await getFamilyIdFromRequest(req);
 
     const queryParams: any = {
       ...(babyId && { babyId }),
