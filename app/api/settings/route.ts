@@ -8,14 +8,14 @@ import { getFamilyIdFromRequest } from '../utils/family';
 async function handleGet(req: NextRequest) {
   try {
     // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    const familyId = await getFamilyIdFromRequest(req);
     
     // Get the settings record for the family or create default
     let settings;
     
     if (familyId) {
       settings = await prisma.settings.findFirst({
-        where: { familyId } as any // Type cast to avoid TypeScript error
+        where: { familyId },
       });
     } else {
       settings = await prisma.settings.findFirst();
@@ -55,8 +55,8 @@ async function handlePost(req: NextRequest) {
   try {
     const body = await req.json();
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request (body, query params, or URL slug)
+    const familyId = await getFamilyIdFromRequest(req, body);
     
     // Cast to any to avoid TypeScript errors with the new fields
     const data: any = {
@@ -96,15 +96,15 @@ async function handlePut(req: NextRequest) {
   try {
     const body = await req.json();
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request (body, query params, or URL slug)
+    const familyId = await getFamilyIdFromRequest(req, body);
     
     // Get the settings record for the family
     let existingSettings;
     
     if (familyId) {
       existingSettings = await prisma.settings.findFirst({
-        where: { familyId } as any // Type cast to avoid TypeScript error
+        where: { familyId },
       });
     } else {
       existingSettings = await prisma.settings.findFirst();

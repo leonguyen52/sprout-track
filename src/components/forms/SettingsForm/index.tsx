@@ -20,6 +20,7 @@ import {
   FormPageContent, 
   FormPageFooter 
 } from '@/src/components/ui/form-page';
+import { useFamily } from '@/src/context/family';
 import BabyForm from '@/src/components/forms/BabyForm';
 import CaretakerForm from '@/src/components/forms/CaretakerForm';
 import ContactForm from '@/src/components/forms/ContactForm';
@@ -42,6 +43,7 @@ export default function SettingsForm({
   selectedBabyId,
   familyId,
 }: SettingsFormProps) {
+  const { family } = useFamily();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [babies, setBabies] = useState<Baby[]>([]);
   const [caretakers, setCaretakers] = useState<Caretaker[]>([]);
@@ -68,12 +70,15 @@ export default function SettingsForm({
   const fetchData = async () => {
     try {
       setLoading(true);
+      const familyIdToUse = familyId || family?.id;
+      const query = familyIdToUse ? `?familyId=${familyIdToUse}` : '';
+
       const [settingsResponse, babiesResponse, unitsResponse, caretakersResponse, contactsResponse] = await Promise.all([
-        fetch('/api/settings'),
-        fetch('/api/baby'),
+        fetch(`/api/settings${query}`),
+        fetch(`/api/baby${query}`),
         fetch('/api/units'),
-        fetch('/api/caretaker?includeInactive=true'),
-        fetch('/api/contact')
+        fetch(`/api/caretaker?includeInactive=true${familyIdToUse ? `&familyId=${familyIdToUse}` : ''}`),
+        fetch(`/api/contact${query}`)
       ]);
 
       if (settingsResponse.ok) {
@@ -124,7 +129,7 @@ export default function SettingsForm({
         body: JSON.stringify({ 
           ...settings, 
           ...updates,
-          familyId: familyId || undefined, // Include familyId in the payload
+          familyId: familyId || family?.id || undefined, // Include familyId in the payload
         }),
       });
 
@@ -602,7 +607,7 @@ export default function SettingsForm({
         onClose={handleBabyFormClose}
         isEditing={isEditing}
         baby={selectedBaby}
-        familyId={familyId}
+        familyId={familyId || family?.id}
         onBabyChange={async () => {
           await fetchData(); // Refresh local babies list
           onBabyStatusChange?.(); // Refresh parent's babies list
@@ -621,7 +626,7 @@ export default function SettingsForm({
         isOpen={showContactForm}
         onClose={handleContactFormClose}
         contact={selectedContact || undefined}
-        familyId={familyId}
+        familyId={familyId || family?.id}
         onSave={() => fetchData()}
         onDelete={() => fetchData()}
       />
