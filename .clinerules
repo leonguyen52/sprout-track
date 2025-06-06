@@ -4,13 +4,11 @@ These rules capture the key development patterns from the Web to Mobile Developm
 
 ## Tech Stack
 
-- Next.js with App Router
-- TypeScript
-- Prisma with SQLite (`/prisma`)
-- TailwindCSS for styling
-- React Query for data fetching
-- React Hook Form for form handling
-- React Testing Library for testing
+ - Next.js with App Router: Core framework for routing, server components, and API routes.
+ - TypeScript: For type-safe code.
+ - Prisma with SQLite: The ORM and database for data persistence.
+ - TailwindCSS: For utility-first styling.
+ - React Hooks (useState, useEffect, useContext): Used for all client-side state management, including component state, context-based global state, data fetching, and form handling.
 
 ## Project Structure
 
