@@ -27,14 +27,25 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
   // Pagination removed as it breaks up view by day
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
-  // Keep track of the last fetched date to prevent duplicate fetches
-  const [lastFetchedDate, setLastFetchedDate] = useState<string>('');
-  
   // State to store the activities fetched for the selected date
   const [dateFilteredActivities, setDateFilteredActivities] = useState<ActivityType[]>([]);
   
   // Loading state for fetching activities
   const [isLoadingActivities, setIsLoadingActivities] = useState<boolean>(false);
+
+  const handleFormSuccess = () => {
+    setEditModalType(null);
+    setSelectedActivity(null);
+
+    const babyId = activities.length > 0 ? activities[0].babyId : undefined;
+    if (babyId) {
+      fetchActivitiesForDate(babyId, selectedDate);
+    }
+
+    if (onActivityDeleted) {
+      onActivityDeleted();
+    }
+  };
   
   // Function to fetch activities for a specific date
   const fetchActivitiesForDate = async (babyId: string, date: Date) => {
@@ -103,7 +114,6 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
     if (babyId) {
       // Fetch data for the selected date
       fetchActivitiesForDate(babyId, newDate);
-      setLastFetchedDate(newDate.toDateString());
       
       // Notify parent that date has changed
       if (onActivityDeleted) {
@@ -136,38 +146,19 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
     fetchSettings();
   }, []);
   
-  // Initialize with the current date and fetch data when needed
   useEffect(() => {
-    // Get the baby ID from the first activity if available
+    // When the component mounts or the selected date changes, fetch the activities for that date.
     const babyId = activities.length > 0 ? activities[0].babyId : null;
-    
-    if (babyId && lastFetchedDate !== selectedDate.toDateString()) {
-      // Fetch data for the selected date if we haven't already
+    if (babyId) {
       setIsLoadingActivities(true);
       fetchActivitiesForDate(babyId, selectedDate)
         .finally(() => setIsLoadingActivities(false));
-      setLastFetchedDate(selectedDate.toDateString());
+    } else {
+      // If there's no babyId (e.g., initial load with no activities),
+      // we can use the activities from props directly.
+      setDateFilteredActivities(activities);
     }
-  }, [activities.length, selectedDate, lastFetchedDate]); // Run when these dependencies change
-  
-  // This effect will run when the activities prop changes (e.g., when a new activity is added)
-  // We need to be careful to avoid infinite loops here
-  useEffect(() => {
-    // Only refresh if we have a selected date and activities
-    if (selectedDate && activities.length > 0) {
-      const babyId = activities[0].babyId;
-      
-      // Check if we need to refresh - only do this if the lastFetchedDate doesn't match
-      // the current selected date to avoid unnecessary refetches
-      if (babyId && lastFetchedDate !== selectedDate.toDateString()) {
-        // Refresh data for the currently selected date
-        setIsLoadingActivities(true);
-        fetchActivitiesForDate(babyId, selectedDate)
-          .finally(() => setIsLoadingActivities(false));
-        setLastFetchedDate(selectedDate.toDateString());
-      }
-    }
-  }, [activities, selectedDate, lastFetchedDate]); // Include all dependencies
+  }, [activities, selectedDate]); // Rerun when parent activities or selected date change.
 
   const sortedActivities = useMemo(() => {
     // Only use dateFilteredActivities, never fall back to activities from props
@@ -272,85 +263,53 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
         onEdit={handleEdit}
       />
 
-      {/* Edit Forms */}
-      {selectedActivity && (
+          {/* Edit Forms */}
+      {selectedActivity && editModalType && (
         <>
           <SleepForm
             isOpen={editModalType === 'sleep'}
-            onClose={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-            }}
+            onClose={() => setEditModalType(null)}
+            babyId={selectedActivity.babyId}
+            initialTime={getActivityTime(selectedActivity)}
+            activity={'duration' in selectedActivity && 'type' in selectedActivity ? selectedActivity : undefined}
+            onSuccess={handleFormSuccess}
             isSleeping={false}
             onSleepToggle={() => {}}
-            babyId={selectedActivity.babyId}
-            initialTime={'startTime' in selectedActivity && selectedActivity.startTime ? String(selectedActivity.startTime) : getActivityTime(selectedActivity)}
-            activity={'duration' in selectedActivity && 'type' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
           />
           <FeedForm
             isOpen={editModalType === 'feed'}
-            onClose={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-            }}
+            onClose={() => setEditModalType(null)}
             babyId={selectedActivity.babyId}
-            initialTime={'time' in selectedActivity && selectedActivity.time ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
-            activity={'amount' in selectedActivity && 'type' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
+            initialTime={getActivityTime(selectedActivity)}
+            activity={'amount' in selectedActivity ? selectedActivity : undefined}
+            onSuccess={handleFormSuccess}
           />
           <DiaperForm
             isOpen={editModalType === 'diaper'}
-            onClose={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-            }}
+            onClose={() => setEditModalType(null)}
             babyId={selectedActivity.babyId}
-            initialTime={'time' in selectedActivity && selectedActivity.time ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
-            activity={'condition' in selectedActivity && 'type' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
+            initialTime={getActivityTime(selectedActivity)}
+            activity={'condition' in selectedActivity ? selectedActivity : undefined}
+            onSuccess={handleFormSuccess}
           />
           <NoteForm
             isOpen={editModalType === 'note'}
-            onClose={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-            }}
+            onClose={() => setEditModalType(null)}
             babyId={selectedActivity.babyId}
-            initialTime={'time' in selectedActivity && selectedActivity.time ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
-            activity={'content' in selectedActivity && 'time' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
+            initialTime={getActivityTime(selectedActivity)}
+            activity={'content' in selectedActivity ? selectedActivity : undefined}
+            onSuccess={handleFormSuccess}
+            familyId={
+              'familyId' in selectedActivity ? (selectedActivity as any).familyId : undefined
+            }
           />
           <BathForm
             isOpen={editModalType === 'bath'}
-            onClose={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-            }}
+            onClose={() => setEditModalType(null)}
             babyId={selectedActivity.babyId}
-            initialTime={'time' in selectedActivity && selectedActivity.time ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
+            initialTime={getActivityTime(selectedActivity)}
             activity={'soapUsed' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
+            onSuccess={handleFormSuccess}
           />
           <PumpForm
             isOpen={editModalType === 'pump'}
@@ -365,11 +324,7 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
                 (selectedActivity as unknown as PumpLogResponse) : 
                 undefined
             }
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
+            onSuccess={handleFormSuccess}
           />
           <MilestoneForm
             isOpen={editModalType === 'milestone'}
@@ -380,11 +335,7 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
             babyId={selectedActivity.babyId}
             initialTime={'date' in selectedActivity && selectedActivity.date ? String(selectedActivity.date) : getActivityTime(selectedActivity)}
             activity={'title' in selectedActivity && 'category' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
+            onSuccess={handleFormSuccess}
           />
           <MeasurementForm
             isOpen={editModalType === 'measurement'}
@@ -395,29 +346,19 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
             babyId={selectedActivity.babyId}
             initialTime={'date' in selectedActivity && selectedActivity.date ? String(selectedActivity.date) : getActivityTime(selectedActivity)}
             activity={'value' in selectedActivity && 'unit' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
+            onSuccess={handleFormSuccess}
+          />
+          <MedicineForm
+            isOpen={editModalType === 'medicine'}
+            onClose={() => {
               setEditModalType(null);
               setSelectedActivity(null);
-              onActivityDeleted?.();
             }}
+            babyId={selectedActivity.babyId}
+            initialTime={'doseAmount' in selectedActivity && 'time' in selectedActivity ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
+            activity={'doseAmount' in selectedActivity && 'medicineId' in selectedActivity ? selectedActivity : undefined}
+            onSuccess={handleFormSuccess}
           />
-          {editModalType === 'medicine' && (
-            <MedicineForm
-              isOpen={true}
-              onClose={() => {
-                setEditModalType(null);
-                setSelectedActivity(null);
-              }}
-              babyId={selectedActivity.babyId}
-              initialTime={'time' in selectedActivity && selectedActivity.time ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
-              onSuccess={() => {
-                setEditModalType(null);
-                setSelectedActivity(null);
-                onActivityDeleted?.();
-              }}
-              activity={'doseAmount' in selectedActivity && 'medicineId' in selectedActivity ? selectedActivity : undefined}
-            />
-          )}
         </>
       )}
     </div>
