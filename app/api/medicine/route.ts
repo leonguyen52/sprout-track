@@ -21,25 +21,20 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
       active 
     } = body;
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request headers (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || (body as any).familyId;
 
-    // Prepare data for creation, explicitly listing fields to avoid undefined keys
-    const medicineCreateData = {
-      name,
-      typicalDoseSize,
-      doseMinTime,
-      notes,
-      active,
-      // Connect to the unit if unitAbbr is provided
-      ...(unitAbbr ? { unit: { connect: { unitAbbr } } } : {}),
-      // Include family ID if available
-      ...(familyId && { familyId })
-    };
-
-    // Create the medicine
+    // Create the medicine using unchecked approach (direct field assignment)
     const medicine = await prisma.medicine.create({
-      data: medicineCreateData,
+      data: {
+        name,
+        typicalDoseSize,
+        doseMinTime,
+        notes,
+        active,
+        familyId: familyId || null,
+        unitAbbr: unitAbbr || null, // Use direct field assignment instead of relation
+      },
     });
 
     // Associate with contacts if provided
@@ -116,7 +111,10 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       active 
     } = body;
 
-    // Check if medicine exists
+    // Get family ID from request headers (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || (body as any).familyId;
+
+    // Check if medicine exists and belongs to the family
     const existingMedicine = await prisma.medicine.findUnique({
       where: { id },
     });
@@ -131,23 +129,30 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Prepare data for update, explicitly listing fields to avoid undefined keys
-    const medicineUpdateData = {
-      name,
-      typicalDoseSize,
-      doseMinTime,
-      notes,
-      active,
-      // Connect to the unit if unitAbbr is provided, or disconnect if it's empty
-      unit: unitAbbr 
-        ? { connect: { unitAbbr } } 
-        : { disconnect: true }
-    };
+    // Check family access
+    if (familyId && existingMedicine.familyId !== familyId) {
+      return NextResponse.json<ApiResponse<MedicineResponse>>(
+        {
+          success: false,
+          error: 'Medicine not found',
+        },
+        { status: 404 }
+      );
+    }
 
-    // Update the medicine
+    // Update the medicine using unchecked approach (direct field assignment)
     const medicine = await prisma.medicine.update({
       where: { id },
-      data: medicineUpdateData,
+      data: {
+        name,
+        typicalDoseSize,
+        doseMinTime,
+        notes,
+        active,
+        // Preserve existing familyId if not provided in update
+        familyId: (body as any).familyId || existingMedicine.familyId,
+        unitAbbr: unitAbbr || null, // Use direct field assignment instead of relation
+      },
     });
 
     // Update contact associations if provided
@@ -225,8 +230,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const active = searchParams.get('active');
     const contactId = searchParams.get('contactId');
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request headers or query params
+    const familyId = await getFamilyIdFromRequest(req) || searchParams.get('familyId');
 
     // Build where clause
     const where: any = {
@@ -245,7 +250,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
     // If ID is provided, fetch a single medicine
     if (id) {
-      const medicine = await prisma.medicine.findUnique({
+      const medicine = await prisma.medicine.findFirst({
         where: { 
           id,
           ...(familyId && { familyId }), // Filter by family ID if available
@@ -379,12 +384,26 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Check if medicine exists
+    // Get family ID from request headers
+    const familyId = await getFamilyIdFromRequest(req);
+
+    // Check if medicine exists and belongs to the family
     const existingMedicine = await prisma.medicine.findUnique({
       where: { id },
     });
 
     if (!existingMedicine) {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Medicine not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check family access
+    if (familyId && existingMedicine.familyId !== familyId) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,

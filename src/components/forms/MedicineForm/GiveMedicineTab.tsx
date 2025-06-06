@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator
 } from '@/src/components/ui/dropdown-menu';
 import { useTimezone } from '@/app/context/timezone';
+import { useFamily } from '@/src/context/family';
 
 /**
  * GiveMedicineTab Component
@@ -34,6 +35,7 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   familyId
 }) => {
   const { formatDate, toUTCString } = useTimezone();
+  const { family } = useFamily();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +74,7 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
       doseAmount: activity && 'doseAmount' in activity ? activity.doseAmount : 0,
       unitAbbr: activity && 'unitAbbr' in activity ? activity.unitAbbr : '',
       notes: activity && 'notes' in activity ? activity.notes : '',
-      familyId: familyId || undefined,
+      familyId: familyId || family?.id || undefined,
     };
   });
   
@@ -89,8 +91,12 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
       setError(null);
       
       try {
+        // Use family context with fallback to prop
+        const finalFamilyId = familyId || family?.id;
+        
         // Fetch active medicines
-        const medicinesResponse = await fetch('/api/medicine?active=true');
+        const medicinesUrl = `/api/medicine?active=true${finalFamilyId ? `&familyId=${finalFamilyId}` : ''}`;
+        const medicinesResponse = await fetch(medicinesUrl);
         
         if (!medicinesResponse.ok) {
           throw new Error('Failed to load medicines');
@@ -274,8 +280,14 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
       const url = isEdit ? `/api/medicine-log?id=${activity.id}` : '/api/medicine-log';
       const method = isEdit ? 'PUT' : 'POST';
       
+      // Use family context with fallback to prop
+      const finalFamilyId = familyId || family?.id;
+      
       // Create a copy of the form data to ensure consistency
-      const dataToSubmit = { ...formData };
+      const dataToSubmit = { 
+        ...formData,
+        familyId: finalFamilyId || undefined
+      };
       
       // If dose amount is 0, set the unit to an empty string
       // The API will handle this and convert it to null in the database

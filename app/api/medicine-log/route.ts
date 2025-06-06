@@ -15,15 +15,15 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     // Convert time to UTC for storage
     const timeUTC = toUTC(body.time);
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request headers (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || (body as any).familyId;
     
     // Prepare data for creation
     const data = {
       ...body,
       time: timeUTC,
       caretakerId: authContext.caretakerId,
-      ...(familyId && { familyId }), // Include family ID if available
+      familyId: familyId || null, // Include family ID if available
     };
     
     // If unitAbbr is an empty string, set it to null
@@ -80,12 +80,26 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Check if log exists
+    // Get family ID from request headers (with fallback to body)
+    const familyId = await getFamilyIdFromRequest(req) || (body as any).familyId;
+
+    // Check if log exists and belongs to the family
     const existingLog = await prisma.medicineLog.findUnique({
       where: { id },
     });
 
     if (!existingLog) {
+      return NextResponse.json<ApiResponse<MedicineLogResponse>>(
+        {
+          success: false,
+          error: 'Medicine log not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check family access
+    if (familyId && existingLog.familyId !== familyId) {
       return NextResponse.json<ApiResponse<MedicineLogResponse>>(
         {
           success: false,
@@ -112,7 +126,11 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
     // Update the log
     const medicineLog = await prisma.medicineLog.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...updateData,
+        // Preserve existing familyId if not provided in update
+        familyId: (updateData as any).familyId || existingLog.familyId,
+      },
     });
 
     // Format dates for response
@@ -153,8 +171,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const endDate = searchParams.get('endDate');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit') || '10', 10) : undefined;
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
+    // Get family ID from request headers or query params
+    const familyId = await getFamilyIdFromRequest(req) || searchParams.get('familyId');
 
     // Build where clause
     const where: any = {};
@@ -192,7 +210,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
     // If ID is provided, fetch a single log
     if (id) {
-      const medicineLog = await prisma.medicineLog.findUnique({
+      const medicineLog = await prisma.medicineLog.findFirst({
         where: { 
           id,
           ...(familyId && { familyId }), // Filter by family ID if available
@@ -302,12 +320,26 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Check if log exists
+    // Get family ID from request headers
+    const familyId = await getFamilyIdFromRequest(req);
+
+    // Check if log exists and belongs to the family
     const existingLog = await prisma.medicineLog.findUnique({
       where: { id },
     });
 
     if (!existingLog) {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Medicine log not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check family access
+    if (familyId && existingLog.familyId !== familyId) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,

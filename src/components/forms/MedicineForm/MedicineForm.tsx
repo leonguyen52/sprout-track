@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/src/components/ui/select';
 import { Contact } from '@/src/components/CalendarEvent/calendar-event.types';
+import { useFamily } from '@/src/context/family';
 import ContactSelector from './ContactSelector';
 
 interface MedicineFormProps {
@@ -47,6 +48,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
   onSave,
   familyId,
 }) => {
+  const { family } = useFamily();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
@@ -284,6 +286,9 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
     
     setIsLoading(true);
     
+    // Use family context with fallback to prop
+    const finalFamilyId = familyId || family?.id;
+    
     // Create a copy of the form data to ensure all fields are included
     const dataToSubmit = {
       ...formData,
@@ -292,7 +297,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
       // Ensure contactIds has no duplicates
       contactIds: formData.contactIds ? Array.from(new Set(formData.contactIds)) : [],
       // Include familyId if available
-      familyId: familyId || undefined
+      familyId: finalFamilyId || undefined
     };
     
     // Log the form data being sent
@@ -468,7 +473,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
                 onAddNewContact={handleAddContact}
                 onEditContact={handleEditContact}
                 onDeleteContact={handleDeleteContact}
-                familyId={familyId}
+                familyId={familyId || family?.id}
               />
             </div>
           </div>

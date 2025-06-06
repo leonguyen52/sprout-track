@@ -7,6 +7,7 @@ import { MedicineFormProps, MedicineFormTab } from './medicine-form.types';
 import { PillBottle, Loader2 } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { FormPage, FormPageContent, FormPageFooter } from '@/src/components/ui/form-page';
+import { useFamily } from '@/src/context/family';
 import ActiveDosesTab from './ActiveDosesTab';
 import GiveMedicineTab from './GiveMedicineTab';
 import ManageMedicinesTab from './ManageMedicinesTab';
@@ -39,6 +40,7 @@ import './medicine-form.css';
   activity,
   familyId,
 }) => {
+  const { family } = useFamily();
   const [activeTab, setActiveTab] = useState<MedicineFormTab>('active-doses');
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -125,7 +127,7 @@ import './medicine-form.css';
             <ActiveDosesTab
               babyId={babyId}
               refreshData={refreshData}
-              familyId={familyId}
+              familyId={familyId || family?.id}
             />
           )}
           
@@ -137,14 +139,14 @@ import './medicine-form.css';
               refreshData={refreshData}
               setIsSubmitting={setIsSubmitting}
               activity={activity}
-              familyId={familyId}
+              familyId={familyId || family?.id}
             />
           )}
           
           {activeTab === 'manage-medicines' && (
             <ManageMedicinesTab
               refreshData={refreshData}
-              familyId={familyId}
+              familyId={familyId || family?.id}
             />
           )}
         </div>
