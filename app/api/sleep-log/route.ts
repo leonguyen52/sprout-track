@@ -3,18 +3,27 @@ import prisma from '../db';
 import { ApiResponse, SleepLogCreate, SleepLogResponse } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse, calculateDurationMinutes } from '../utils/timezone';
-import { getFamilyIdFromRequest } from '../utils/family';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: SleepLogCreate = await req.json();
+
+    const baby = await prisma.baby.findFirst({
+      where: { id: body.babyId, familyId: userFamilyId },
+    });
+
+    if (!baby) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
+    }
     
     // Convert times to UTC for storage
     const startTimeUTC = toUTC(body.startTime);
     const endTimeUTC = body.endTime ? toUTC(body.endTime) : null;
-    
-    // Get family ID from request (body, query params, or URL slug)
-    const familyId = await getFamilyIdFromRequest(req, body);
     
     // Calculate duration if both start and end times are present
     const duration = endTimeUTC ? calculateDurationMinutes(startTimeUTC, endTimeUTC) : undefined;
@@ -25,8 +34,8 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         startTime: startTimeUTC,
         ...(endTimeUTC && { endTime: endTimeUTC }),
         duration,
-        caretakerId: authContext.caretakerId,
-        ...(familyId && { familyId }), // Include family ID if available
+        caretakerId: caretakerId,
+        familyId: userFamilyId,
       },
     });
 
@@ -58,6 +67,11 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const body: Partial<SleepLogCreate> = await req.json();
@@ -72,18 +86,15 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Get family ID from request (query params or URL slug)
-    const familyId = await getFamilyIdFromRequest(req);
-
     const existingSleepLog = await prisma.sleepLog.findFirst({
-      where: { id, ...(familyId && { familyId }) },
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingSleepLog) {
       return NextResponse.json<ApiResponse<SleepLogResponse>>(
         {
           success: false,
-          error: 'Sleep log not found',
+          error: 'Sleep log not found or access denied',
         },
         { status: 404 }
       );
@@ -136,16 +147,19 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const babyId = searchParams.get('babyId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     
-    // Get family ID from request (query params or URL slug)
-    const familyId = await getFamilyIdFromRequest(req);
-
-    const queryParams = {
+    const queryParams: any = {
+      familyId: userFamilyId,
       ...(babyId && { babyId }),
       ...(startDate && endDate && {
         startTime: {
@@ -153,14 +167,13 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
           lte: toUTC(endDate),
         },
       }),
-      ...(familyId && { familyId }), // Filter by family ID if available
     };
 
     if (id) {
       const sleepLog = await prisma.sleepLog.findFirst({
         where: { 
           id,
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId: userFamilyId,
         },
       });
 
@@ -168,7 +181,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
         return NextResponse.json<ApiResponse<SleepLogResponse>>(
           {
             success: false,
-            error: 'Sleep log not found',
+            error: 'Sleep log not found or access denied',
           },
           { status: 404 }
         );
@@ -225,6 +238,11 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -238,18 +256,15 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Get family ID from request (query params or URL slug)
-    const familyId = await getFamilyIdFromRequest(req);
-
     const existingSleepLog = await prisma.sleepLog.findFirst({
-      where: { id, ...(familyId && { familyId }) },
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingSleepLog) {
       return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
-          error: 'Sleep log not found',
+          error: 'Sleep log not found or access denied',
         },
         { status: 404 }
       );
