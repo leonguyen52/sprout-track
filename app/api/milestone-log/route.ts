@@ -3,24 +3,33 @@ import prisma from '../db';
 import { ApiResponse, MilestoneCreate, MilestoneResponse } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
-import { getFamilyIdFromRequest } from '../utils/family';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: MilestoneCreate = await req.json();
-    
+
+    const baby = await prisma.baby.findFirst({
+      where: { id: body.babyId, familyId: userFamilyId },
+    });
+
+    if (!baby) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
+    }
+
     // Convert date to UTC for storage
     const dateUTC = toUTC(body.date);
-    
-    // Get family ID from request (body, query params, or URL slug)
-    const familyId = await getFamilyIdFromRequest(req, body);
     
     const milestone = await prisma.milestone.create({
       data: {
         ...body,
         date: dateUTC,
-        caretakerId: authContext.caretakerId,
-        ...(familyId && { familyId }), // Include family ID if available
+        caretakerId: caretakerId,
+        familyId: userFamilyId,
       },
     });
 
@@ -51,6 +60,11 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const body: Partial<MilestoneCreate> = await req.json();
@@ -65,13 +79,10 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Get family ID from request (query params or URL slug)
-    const familyId = await getFamilyIdFromRequest(req);
-
-    const existingMilestone = await prisma.milestone.findUnique({
-      where: {
+    const existingMilestone = await prisma.milestone.findFirst({
+      where: { 
         id,
-        ...(familyId && { familyId }),
+        familyId: userFamilyId 
       },
     });
 
@@ -79,7 +90,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       return NextResponse.json<ApiResponse<MilestoneResponse>>(
         {
           success: false,
-          error: 'Milestone not found',
+          error: 'Milestone not found or access denied',
         },
         { status: 404 }
       );
@@ -92,8 +103,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
     const milestone = await prisma.milestone.update({
       where: { 
-        id,
-        ...(familyId && { familyId }),
+        id
       },
       data,
     });
@@ -125,6 +135,11 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const babyId = searchParams.get('babyId');
@@ -132,10 +147,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const endDate = searchParams.get('endDate');
     const category = searchParams.get('category');
     
-    // Get family ID from request (query params or URL slug)
-    const familyId = await getFamilyIdFromRequest(req);
-
     const queryParams: any = {
+      familyId: userFamilyId,
       ...(babyId && { babyId }),
       ...(category && { category }),
       ...(startDate && endDate && {
@@ -144,14 +157,13 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
           lte: toUTC(endDate),
         },
       }),
-      ...(familyId && { familyId }), // Filter by family ID if available
     };
 
     if (id) {
-      const milestone = await prisma.milestone.findUnique({
+      const milestone = await prisma.milestone.findFirst({
         where: { 
           id,
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId: userFamilyId
         },
       });
 
@@ -159,7 +171,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
         return NextResponse.json<ApiResponse<MilestoneResponse>>(
           {
             success: false,
-            error: 'Milestone not found',
+            error: 'Milestone not found or access denied',
           },
           { status: 404 }
         );
@@ -237,6 +249,11 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -250,15 +267,18 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingMilestone = await prisma.milestone.findUnique({
-      where: { id },
+    const existingMilestone = await prisma.milestone.findFirst({
+      where: { 
+        id,
+        familyId: userFamilyId
+      },
     });
 
     if (!existingMilestone) {
       return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
-          error: 'Milestone not found',
+          error: 'Milestone not found or access denied',
         },
         { status: 404 }
       );

@@ -19,8 +19,8 @@ import {
   FormPageFooter 
 } from '@/src/components/ui/form-page';
 import { useTimezone } from '@/app/context/timezone';
-import { useFamily } from '@/src/context/family';
 import { Textarea } from '@/src/components/ui/textarea';
+
 interface MilestoneFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,7 +28,6 @@ interface MilestoneFormProps {
   initialTime: string;
   activity?: MilestoneResponse;
   onSuccess?: () => void;
-  familyId?: string | undefined; // Add familyId prop for multi-family support
 }
 
 export default function MilestoneForm({
@@ -38,10 +37,8 @@ export default function MilestoneForm({
   initialTime,
   activity,
   onSuccess,
-  familyId
 }: MilestoneFormProps) {
   const { formatDate, toUTCString } = useTimezone();
-  const { family } = useFamily();
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime
@@ -120,11 +117,11 @@ export default function MilestoneForm({
       // Reset initialization flag when form closes
       setIsInitialized(false);
     }
-  }, [isOpen, initialTime, activity, familyId, isInitialized]);
+  }, [isOpen, initialTime, activity, isInitialized]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!babyId && !familyId) return;
+    if (!babyId) return;
 
     // Validate required fields
     if (!formData.title || !formData.category) {
@@ -151,7 +148,6 @@ export default function MilestoneForm({
         title: formData.title,
         description: formData.description || null,
         category: formData.category,
-        familyId: familyId || family?.id || undefined, // Include familyId in the payload
       };
 
       // Get auth token from localStorage

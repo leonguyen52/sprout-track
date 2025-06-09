@@ -107,7 +107,7 @@ This checklist tracks the progress of refactoring each component and its associa
     - APIs:
         - `app/api/medicine/`
         - `app/api/medicine-log/`
-- [ ] **Milestone Log**
+- [x] **Milestone Log**
     - Form: `src/components/forms/MilestoneForm/`
     - API: `app/api/milestone-log/`
 - [ ] **Mood Log**
