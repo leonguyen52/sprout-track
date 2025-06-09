@@ -34,11 +34,6 @@ export interface ContactFormProps {
    * Whether the form is in a loading state
    */
   isLoading?: boolean;
-  
-  /**
-   * The ID of the family this contact belongs to (for multi-family support)
-   */
-  familyId?: string;
 }
 
 /**

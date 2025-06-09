@@ -39,7 +39,7 @@ import { useTimezone } from '@/app/context/timezone';
  * Displays active medicine doses for a baby with countdown timers
  * showing when the next dose is safe to administer.
  */
-const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData, familyId }) => {
+const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) => {
   const { formatDate, calculateDurationMinutes } = useTimezone();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -243,12 +243,15 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData, fa
       const sixtyDaysAgo = new Date();
       sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
       
+      const authToken = localStorage.getItem('authToken');
       // Fetch medicine logs for this baby from the last 60 days
-      const url = `/api/medicine-log?babyId=${babyId}&startDate=${sixtyDaysAgo.toISOString()}${familyId ? `&familyId=${familyId}` : ''}`;
-      const response = await fetch(url);
+      const url = `/api/medicine-log?babyId=${babyId}&startDate=${sixtyDaysAgo.toISOString()}`;
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch medicine logs');
+        throw new Error('Failed to fetch active doses');
       }
       
       const data = await response.json();
@@ -263,7 +266,7 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData, fa
     } finally {
       setIsLoading(false);
     }
-  }, [babyId, familyId, createActiveDoses]);
+  }, [babyId, createActiveDoses]);
   
   // Set up interval to refresh countdown timers
   useEffect(() => {
@@ -278,7 +281,7 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData, fa
     }, 60000); // 1 minute
     
     return () => clearInterval(timer);
-  }, [babyId, familyId, fetchActiveDoses]);
+  }, [babyId, fetchActiveDoses]);
   
   // Refresh data when requested
   const handleRefresh = useCallback(() => {

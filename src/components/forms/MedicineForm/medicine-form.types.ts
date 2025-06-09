@@ -38,11 +38,6 @@ export interface MedicineFormProps {
    * Optional medicine activity for editing
    */
   activity?: any;
-  
-  /**
-   * The ID of the family this medicine belongs to (for multi-family support)
-   */
-  familyId?: string;
 }
 
 /**
@@ -58,11 +53,6 @@ export interface ActiveDosesTabProps {
    * Function to refresh the active doses data
    */
   refreshData: () => void;
-  
-  /**
-   * The ID of the family this medicine belongs to (for multi-family support)
-   */
-  familyId?: string;
 }
 
 /**
@@ -98,11 +88,6 @@ export interface GiveMedicineTabProps {
    * Optional existing medicine log activity for editing
    */
   activity?: any;
-  
-  /**
-   * The ID of the family this medicine belongs to (for multi-family support)
-   */
-  familyId?: string;
 }
 
 /**
@@ -113,11 +98,6 @@ export interface ManageMedicinesTabProps {
    * Function to refresh the medicines data
    */
   refreshData: () => void;
-  
-  /**
-   * The ID of the family this medicine belongs to (for multi-family support)
-   */
-  familyId?: string;
 }
 
 /**
@@ -172,7 +152,6 @@ export interface MedicineLogFormData {
   doseAmount: number;
   unitAbbr?: string;
   notes?: string;
-  familyId?: string;
 }
 
 /**

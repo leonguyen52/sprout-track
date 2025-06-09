@@ -102,7 +102,7 @@ This checklist tracks the progress of refactoring each component and its associa
 - [x] **Measurement Log**
     - Form: `src/components/forms/MeasurementForm/`
     - API: `app/api/measurement-log/`
-- [ ] **Medicine Log**
+- [x] **Medicine Log**
     - Form: `src/components/forms/MedicineForm/`
     - APIs:
         - `app/api/medicine/`

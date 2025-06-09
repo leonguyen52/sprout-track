@@ -5,7 +5,6 @@ import { AlertCircle, Loader2, Trash2, Mail, Phone, User, Briefcase } from 'luci
 import { FormPage, FormPageContent, FormPageFooter } from '@/src/components/ui/form-page';
 import { Input } from '@/src/components/ui/input';
 import { Button } from '@/src/components/ui/button';
-import { useFamily } from '@/src/context/family';
 
 /**
  * ContactForm Component
@@ -20,10 +19,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
   onSave,
   onDelete,
   isLoading: externalIsLoading = false,
-  familyId,
 }) => {
-  const { family } = useFamily();
-  
   // Local loading state
   const [isLoading, setIsLoading] = useState(externalIsLoading);
   
@@ -146,16 +142,12 @@ const ContactForm: React.FC<ContactFormProps> = ({
       
       const method = isUpdate ? 'PUT' : 'POST';
       
-      // Use family context with fallback to prop
-      const finalFamilyId = familyId || family?.id;
-      
       // Prepare request payload
       const payload = {
         name: formData.name,
         role: formData.role,
         phone: formData.phone || undefined,
         email: formData.email || undefined,
-        familyId: finalFamilyId || undefined, // Include familyId in the payload
       };
       
       // Send request to API

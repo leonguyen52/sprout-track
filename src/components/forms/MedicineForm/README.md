@@ -7,7 +7,6 @@ A comprehensive form component for managing and administering medicines in the B
 - **Active Doses Tab**: View active medicine doses with countdown timers for next safe dose
 - **Give Medicine Tab**: Record medicine administration with dose amount and time
 - **Manage Medicines Tab**: Add, edit, and manage medicines and their properties
-- **Multi-family support**: Associate medicines with specific families
 - **Contact association**: Link medicines with healthcare provider contacts
 - **Responsive design**: Works on mobile and desktop devices
 
@@ -21,18 +20,15 @@ A comprehensive form component for managing and administering medicines in the B
 | `initialTime` | string | Yes | Initial time value for the form (ISO format) |
 | `onSuccess` | () => void | No | Optional callback function called after successful submission |
 | `activity` | any | No | Existing medicine log data (for edit mode) |
-| `familyId` | string | No | The ID of the family this medicine belongs to (for multi-family support) |
 
 ## Usage
 
 ```tsx
 import MedicineForm from '@/src/components/forms/MedicineForm';
-import { useFamily } from '@/src/context/family'; // Import family context
 
 function MyComponent() {
   const [showMedicineForm, setShowMedicineForm] = useState(false);
   const [selectedBaby, setSelectedBaby] = useState<{ id: string }>();
-  const { family } = useFamily(); // Get current family from context
   
   return (
     <>
@@ -45,7 +41,6 @@ function MyComponent() {
         onClose={() => setShowMedicineForm(false)}
         babyId={selectedBaby?.id}
         initialTime={new Date().toISOString()}
-        familyId={family?.id} // Pass the current family ID
         onSuccess={() => {
           // Refresh data or perform other actions after successful submission
         }}
@@ -73,22 +68,9 @@ The MedicineForm component is organized into several subcomponents:
 
 - Uses the FormPage component for consistent UI across the application
 - Implements a tabbed interface for different medicine-related functions
-- Fetches medicine data from the API
+- Fetches medicine data securely from the API using token-based authorization
 - Handles form validation and submission
 - Provides feedback for loading and error states
-- Supports multi-family functionality by accepting a familyId prop and including it in API requests
-
-### Multi-Family Support
-
-The component supports multi-family functionality by:
-- Accepting a `familyId` prop to associate the medicine with a specific family
-- Including the family ID in the API request payload
-- The API endpoint also extracts the family ID from request headers as a fallback
-
-When using this component in a multi-family context, you should:
-1. Import and use the family context to get the current family ID
-2. Pass the family ID to the MedicineForm component
-3. The component will handle sending this ID to the API
 
 ## Accessibility
 
