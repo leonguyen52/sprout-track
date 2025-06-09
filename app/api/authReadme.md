@@ -15,7 +15,7 @@ Authentication is managed through JWT tokens stored in localStorage with fallbac
 
 1. Users authenticate through the `/api/auth` endpoint by providing their login ID and security PIN
 2. Upon successful authentication, the server:
-   - Generates a JWT token containing the user's ID, name, type, and role
+   - Generates a JWT token containing the user's ID, name, type, role, family ID, and family slug
    - Returns the token and user information to the client
 3. The client stores the JWT token in localStorage as `authToken`
 4. All subsequent API requests include the token in the Authorization header (`Bearer <token>`)
@@ -92,7 +92,7 @@ import { withAuthContext, ApiResponse, AuthResult } from '../utils/auth';
 
 async function handler(req: NextRequest, authContext: AuthResult): Promise<NextResponse<ApiResponse<any>>> {
   // Access user information from authContext
-  const { caretakerId, caretakerType, caretakerRole } = authContext;
+  const { caretakerId, caretakerType, caretakerRole, familyId, familySlug } = authContext;
   
   // Your handler logic here
   return NextResponse.json({ success: true, data: result });
@@ -153,6 +153,103 @@ Authentication errors return appropriate HTTP status codes:
 
 - **401 Unauthorized**: When a user is not authenticated
 - **403 Forbidden**: When a user is authenticated but lacks sufficient permissions
+
+## Family-Level Authorization
+
+The most critical security principle in this application is ensuring a user can **only** access data belonging to their own family. This is enforced by embedding the user's `familyId` into their JWT upon login, creating a trusted, server-side authentication context.
+
+### The Golden Rule: Never Trust Client-Sent Family Context
+
+API endpoints **must not** use any family ID or slug information sent from the client (e.g., in URL parameters, request bodies, or headers). The only source of truth for the user's family is the `familyId` provided in the `authContext` object by the `withAuthContext` middleware. Relying on client-provided data will lead to security vulnerabilities.
+
+### Implementing Secure, Family-Aware API Endpoints
+
+All API endpoints that handle family-specific data must use the `withAuthContext` middleware and follow the patterns below.
+
+#### 1. Verifying User's Family Context
+Before any other logic, check that the authenticated user belongs to a family.
+
+```typescript
+import { withAuthContext, ApiResponse, AuthResult } from '../utils/auth';
+
+async function handler(req: NextRequest, authContext: AuthResult): Promise<NextResponse<ApiResponse<any>>> {
+  const { familyId: userFamilyId } = authContext;
+
+  if (!userFamilyId) {
+    return NextResponse.json({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+  }
+
+  // ... proceed with handler logic
+}
+```
+
+#### 2. Authorizing Read, Update, and Delete Operations
+For any request that targets a specific resource by its ID, you must first fetch the resource and verify it belongs to the user's family before proceeding.
+
+**Example: `GET /api/bath-log?id={logId}`**
+```typescript
+// ... inside handler after getting userFamilyId
+
+const { searchParams } = new URL(req.url);
+const logId = searchParams.get('id');
+
+const log = await prisma.bathLog.findUnique({ where: { id: logId } });
+
+if (!log || log.familyId !== userFamilyId) {
+  return NextResponse.json({ success: false, error: 'Log not found or access denied.' }, { status: 404 });
+}
+
+// Now it's safe to return the log
+return NextResponse.json({ success: true, data: log });
+```
+This pattern must be used for `GET` (by ID), `PUT`, and `DELETE` handlers.
+
+#### 3. Authorizing Create Operations
+For requests that create a new resource linked to a parent (e.g., a `DiaperLog` for a `Baby`), you must verify the parent resource belongs to the user's family.
+
+**Example: `POST /api/diaper-log`**
+```typescript
+// ... inside handler after getting userFamilyId
+
+const { babyId, ...otherData } = await req.json();
+
+const baby = await prisma.baby.findFirst({
+  where: { id: babyId, familyId: userFamilyId }
+});
+
+if (!baby) {
+  return NextResponse.json({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
+}
+
+// Now it's safe to create the log, ensuring you set the familyId
+const newLog = await prisma.diaperLog.create({
+  data: {
+    ...otherData,
+    babyId: baby.id,
+    familyId: userFamilyId // Explicitly set the family from the trusted context
+  }
+});
+
+return NextResponse.json({ success: true, data: newLog });
+```
+
+#### 4. Authorizing List Operations
+For requests that return a list of resources, always add a `where` clause to filter by the `userFamilyId` from the authentication context.
+
+**Example: `GET /api/note`**
+```typescript
+// ... inside handler after getting userFamilyId
+
+const notes = await prisma.note.findMany({
+  where: {
+    familyId: userFamilyId, // This is the crucial filter
+    // ... other filters from query params
+  },
+  orderBy: { time: 'desc' }
+});
+
+return NextResponse.json({ success: true, data: notes });
+```
 
 ## Security Considerations
 

@@ -34,6 +34,8 @@ export interface AuthResult {
   caretakerId?: string | null;
   caretakerType?: string | null;
   caretakerRole?: string;
+  familyId?: string | null;
+  familySlug?: string | null;
   error?: string;
 }
 
@@ -79,6 +81,8 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           name: string;
           type: string | null;
           role: string;
+          familyId: string | null;
+          familySlug: string | null;
         };
         
         // Return authenticated user info from token
@@ -86,7 +90,9 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           authenticated: true,
           caretakerId: decoded.id,
           caretakerType: decoded.type,
-          caretakerRole: decoded.role
+          caretakerRole: decoded.role,
+          familyId: decoded.familyId,
+          familySlug: decoded.familySlug,
         };
       } catch (jwtError) {
         console.error('JWT verification error:', jwtError);
@@ -102,7 +108,9 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           authenticated: true, 
           caretakerId: 'system',
           caretakerType: 'admin',
-          caretakerRole: 'ADMIN'
+          caretakerRole: 'ADMIN',
+          familyId: null,
+          familySlug: null,
         };
       }
       
@@ -112,6 +120,9 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           id: caretakerId,
           deletedAt: null,
         },
+        include: {
+          family: true,
+        },
       });
       
       if (caretaker) {
@@ -120,7 +131,9 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           caretakerId: caretaker.id,
           caretakerType: caretaker.type,
           // Use type assertion for role until Prisma types are updated
-          caretakerRole: (caretaker as any).role || 'USER'
+          caretakerRole: (caretaker as any).role || 'USER',
+          familyId: caretaker.familyId,
+          familySlug: caretaker.family?.slug,
         };
       }
     }
