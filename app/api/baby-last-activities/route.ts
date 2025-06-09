@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
 import { ApiResponse } from '../types';
-import { withAuth } from '../utils/auth';
+import { withAuthContext, AuthResult } from '../utils/auth';
 import { formatForResponse } from '../utils/timezone';
-import { getFamilyIdFromRequest } from '../utils/family';
 
 // Helper function to get the most recent measurement of a specific type
 const getMeasurementByType = (measurements: any[], type: string) => {
@@ -17,13 +16,15 @@ const getMeasurementByType = (measurements: any[], type: string) => {
   };
 };
 
-async function handleGet(req: NextRequest) {
+async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const babyId = searchParams.get('babyId');
-    
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
     
     if (!babyId) {
       return NextResponse.json<ApiResponse<any>>({
@@ -32,13 +33,25 @@ async function handleGet(req: NextRequest) {
       }, { status: 400 });
     }
     
+    // Verify that the baby belongs to the caretaker's family
+    const baby = await prisma.baby.findFirst({
+        where: { id: babyId, familyId: userFamilyId },
+    });
+
+    if (!baby) {
+        return NextResponse.json<ApiResponse<null>>(
+            { success: false, error: "Baby not found in this family." },
+            { status: 404 }
+        );
+    }
+    
     // Get the most recent activity of each type
     const [lastDiaper, lastPoopDiaper, lastBath, measurements, lastNote] = await Promise.all([
       prisma.diaperLog.findFirst({
         where: { 
           babyId, 
           deletedAt: null,
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId: userFamilyId,
         },
         orderBy: { time: 'desc' },
         include: { caretaker: true }
@@ -48,7 +61,7 @@ async function handleGet(req: NextRequest) {
           babyId, 
           deletedAt: null,
           type: { in: ['DIRTY', 'BOTH'] },
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId: userFamilyId,
         },
         orderBy: { time: 'desc' },
         include: { caretaker: true }
@@ -57,7 +70,7 @@ async function handleGet(req: NextRequest) {
         where: { 
           babyId, 
           deletedAt: null,
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId: userFamilyId,
         },
         orderBy: { time: 'desc' },
         include: { caretaker: true }
@@ -66,7 +79,7 @@ async function handleGet(req: NextRequest) {
         where: { 
           babyId, 
           deletedAt: null,
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId: userFamilyId,
         },
         orderBy: { date: 'desc' },
         include: { caretaker: true }
@@ -75,7 +88,7 @@ async function handleGet(req: NextRequest) {
         where: { 
           babyId, 
           deletedAt: null,
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId: userFamilyId,
         },
         orderBy: { time: 'desc' },
         include: { caretaker: true }
@@ -125,4 +138,4 @@ async function handleGet(req: NextRequest) {
 }
 
 // Apply authentication middleware to all handlers
-export const GET = withAuth(handleGet as (req: NextRequest) => Promise<NextResponse<ApiResponse<any>>>);
+export const GET = withAuthContext(handleGet);

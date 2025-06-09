@@ -75,11 +75,11 @@ This checklist tracks the progress of refactoring each component and its associa
 - [x] **Timeline & General Activities**
     - `app/api/timeline/route.ts`
     - `src/components/Timeline/index.tsx`
-- [ ] **Baby Management**
+- [x] **Baby Management**
     - Form: `src/components/forms/BabyForm/`
     - APIs:
         - `app/api/baby/route.ts`
-        - `app/api/baby/[id]/route.ts`
+        - `app/api/baby/[id]/route.ts` (Removed)
         - `app/api/baby-last-activities/route.ts`
         - `app/api/baby-upcoming-events/route.ts`
 - [ ] **Caretaker Management**

@@ -1,24 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
 import { ApiResponse } from '../types';
-import { withAuth } from '../utils/auth';
+import { withAuthContext, AuthResult } from '../utils/auth';
 import { formatForResponse } from '../utils/timezone';
-import { getFamilyIdFromRequest } from '../utils/family';
 
-async function handleGet(req: NextRequest) {
+async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const babyId = searchParams.get('babyId');
     const limit = Number(searchParams.get('limit')) || 5;
-    
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
-    
+
     if (!babyId) {
       return NextResponse.json<ApiResponse<any>>({
         success: false,
         error: 'Baby ID is required'
       }, { status: 400 });
+    }
+
+    // Verify that the baby belongs to the caretaker's family
+    const baby = await prisma.baby.findFirst({
+        where: { id: babyId, familyId: userFamilyId },
+    });
+
+    if (!baby) {
+        return NextResponse.json<ApiResponse<null>>(
+            { success: false, error: "Baby not found in this family." },
+            { status: 404 }
+        );
     }
     
     // Get current date in UTC
@@ -36,7 +49,7 @@ async function handleGet(req: NextRequest) {
           gte: now
         },
         deletedAt: null,
-        ...(familyId && { familyId }), // Filter by family ID if available
+        familyId: userFamilyId, // Filter by family ID from context
       },
       include: {
         babies: {
@@ -101,4 +114,4 @@ async function handleGet(req: NextRequest) {
 }
 
 // Apply authentication middleware to all handlers
-export const GET = withAuth(handleGet as (req: NextRequest) => Promise<NextResponse<ApiResponse<any>>>);
+export const GET = withAuthContext(handleGet);

@@ -17,7 +17,6 @@ import {
   FormPageFooter 
 } from '@/src/components/ui/form-page';
 import { babyFormStyles } from './baby-form.styles';
-import { useFamily } from '@/src/context/family';
 
 interface BabyFormProps {
   isOpen: boolean;
@@ -25,7 +24,6 @@ interface BabyFormProps {
   isEditing: boolean;
   baby: Baby | null;
   onBabyChange?: () => void;
-  familyId?: string; // Add familyId prop
 }
 
 const defaultFormData = {
@@ -36,7 +34,6 @@ const defaultFormData = {
   inactive: false,
   feedWarningTime: '03:00',
   diaperWarningTime: '02:00',
-  familyId: '',
 };
 
 export default function BabyForm({
@@ -45,9 +42,7 @@ export default function BabyForm({
   isEditing,
   baby,
   onBabyChange,
-  familyId,
 }: BabyFormProps) {
-  const { family } = useFamily();
   const [formData, setFormData] = useState(defaultFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -66,15 +61,11 @@ export default function BabyForm({
         inactive: baby.inactive || false,
         feedWarningTime: baby.feedWarningTime || '03:00',
         diaperWarningTime: baby.diaperWarningTime || '02:00',
-        familyId: (baby as any).familyId || familyId || family?.id || '',
       });
     } else if (!isOpen) {
-      setFormData({
-        ...defaultFormData,
-        familyId: familyId || family?.id || '',
-      });
+      setFormData(defaultFormData);
     }
-  }, [baby, isOpen, familyId, family?.id]);
+  }, [baby, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +83,6 @@ export default function BabyForm({
           id: baby?.id,
           birthDate: new Date(formData.birthDate),
           gender: formData.gender as Gender,
-          familyId: familyId || family?.id || undefined,
         }),
       });
 
