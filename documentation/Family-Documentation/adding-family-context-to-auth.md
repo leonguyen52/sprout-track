@@ -65,4 +65,73 @@ This phase aligns the frontend with the new secure backend, simplifying client-s
 -   **Action:** Once all API endpoints and client-side components have been refactored according to the plan above, we can safely delete the following files:
     -   `app/api/utils/family.ts`
     -   `app/context/family.tsx`
--   **Outcome:** The final codebase will be more secure, robust, and easier to maintain. 
+-   **Outcome:** The final codebase will be more secure, robust, and easier to maintain.
+
+## 6. Refactoring Checklist
+
+This checklist tracks the progress of refactoring each component and its associated API endpoints to use the new token-based family authorization. Each item represents a testable unit of work.
+
+### Core Components
+- [x] **Timeline & General Activities**
+    - `app/api/timeline/route.ts`
+    - `src/components/Timeline/index.tsx`
+- [ ] **Baby Management**
+    - Form: `src/components/forms/BabyForm/`
+    - APIs:
+        - `app/api/baby/route.ts`
+        - `app/api/baby/[id]/route.ts`
+        - `app/api/baby-last-activities/route.ts`
+        - `app/api/baby-upcoming-events/route.ts`
+- [ ] **Caretaker Management**
+    - Form: `src/components/forms/CaretakerForm/`
+    - API: `app/api/caretaker/`
+- [ ] **Settings**
+    - Form: `src/components/forms/SettingsForm/`
+    - API: `app/api/settings/`
+
+### Activity Log Components
+- [ ] **Bath Log**
+    - Form: `src/components/forms/BathForm/`
+    - API: `app/api/bath-log/`
+- [ ] **Diaper Log**
+    - Form: `src/components/forms/DiaperForm/`
+    - API: `app/api/diaper-log/`
+- [ ] **Feed Log**
+    - Form: `src/components/forms/FeedForm/`
+    - API: `app/api/feed-log/`
+- [ ] **Measurement Log**
+    - Form: `src/components/forms/MeasurementForm/`
+    - API: `app/api/measurement-log/`
+- [ ] **Medicine Log**
+    - Form: `src/components/forms/MedicineForm/`
+    - APIs:
+        - `app/api/medicine/`
+        - `app/api/medicine-log/`
+- [ ] **Milestone Log**
+    - Form: `src/components/forms/MilestoneForm/`
+    - API: `app/api/milestone-log/`
+- [ ] **Mood Log**
+    - API: `app/api/mood-log/`
+- [ ] **Note Log**
+    - Form: `src/components/forms/NoteForm/`
+    - API: `app/api/note/`
+- [ ] **Pump Log**
+    - Form: `src/components/forms/PumpForm/`
+    - API: `app/api/pump-log/`
+- [ ] **Sleep Log**
+    - Form: `src/components/forms/SleepForm/`
+    - API: `app/api/sleep-log/`
+
+### Other Components
+- [ ] **Calendar**
+    - Form: `src/components/forms/CalendarEventForm/`
+    - API: `app/api/calendar-event/`
+- [ ] **Contacts**
+    - Form: `src/components/forms/ContactForm/`
+    - API: `app/api/contact/`
+- [ ] **Units**
+    - API: `app/api/units/`
+- [ ] **Family API**
+    - API: `app/api/family/`
+- [ ] **Activity Settings**
+    - API: `app/api/activity-settings/` 
