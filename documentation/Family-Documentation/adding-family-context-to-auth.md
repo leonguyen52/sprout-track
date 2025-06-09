@@ -127,12 +127,9 @@ This checklist tracks the progress of refactoring each component and its associa
 - [x] **Contacts**
     - Form: `src/components/forms/ContactForm/`
     - API: `app/api/contact/`
-- [ ] **Units**
+- [x] **Units**
     - API: `app/api/units/`
-- [ ] **Family API**
+- [x] **Family API**
     - API: `app/api/family/`
-- [ ] **Activity Settings**
+- [x] **Activity Settings**
     - API: `app/api/activity-settings/`
-- [ ] **Growth Log**
-- [ ] **Health Log**
-- [ ] **Other Milestones** 

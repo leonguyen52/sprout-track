@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
 import { ApiResponse, ActivitySettings } from '../types';
-import { withAuth } from '../utils/auth';
-import { getFamilyIdFromRequest } from '../utils/family';
+import { withAuthContext, AuthResult } from '../utils/auth';
 
 /**
  * GET /api/activity-settings
@@ -14,16 +13,18 @@ import { getFamilyIdFromRequest } from '../utils/family';
  * Automatically adds any new activities from the default list to a caretaker's settings
  * if they don't already exist in their configuration
  */
-async function getActivitySettings(req: NextRequest): Promise<NextResponse<ApiResponse<ActivitySettings>>> {
+async function getActivitySettings(req: NextRequest, authContext: AuthResult): Promise<NextResponse<ApiResponse<ActivitySettings | null>>> {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     // Get caretakerId from query params if provided
     const url = new URL(req.url);
     const caretakerId = url.searchParams.get('caretakerId');
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
-    
-    console.log(`GET /api/activity-settings - caretakerId: ${caretakerId || 'null'}, familyId: ${familyId || 'null'}`);
+    console.log(`GET /api/activity-settings - caretakerId: ${caretakerId || 'null'}, familyId: ${userFamilyId}`);
     
     // Default settings to use if none are found
     const defaultSettings: ActivitySettings = {
@@ -35,8 +36,7 @@ async function getActivitySettings(req: NextRequest): Promise<NextResponse<ApiRe
     // Get settings from database
     const settings = await prisma.settings.findFirst({
       where: { 
-        id: { not: '' },
-        ...(familyId && { familyId }) // Filter by family ID if available
+        familyId: userFamilyId
       },
       orderBy: { updatedAt: 'desc' },
     });
@@ -291,15 +291,17 @@ async function getActivitySettings(req: NextRequest): Promise<NextResponse<ApiRe
  * 
  * Also ensures any new activities from the default list are included in the saved settings
  */
-async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiResponse<ActivitySettings>>> {
+async function saveActivitySettings(req: NextRequest, authContext: AuthResult): Promise<NextResponse<ApiResponse<ActivitySettings | null>>> {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body = await req.json();
     const { order, visible, caretakerId } = body as ActivitySettings;
     
-    // Get family ID from request headers
-    const familyId = getFamilyIdFromRequest(req);
-
-    console.log(`POST /api/activity-settings - caretakerId: ${caretakerId || 'null'}, familyId: ${familyId || 'null'}`);
+    console.log(`POST /api/activity-settings - caretakerId: ${caretakerId || 'null'}, familyId: ${userFamilyId}`);
 
     // Validate input
     if (!order || !Array.isArray(order) || !visible || !Array.isArray(visible)) {
@@ -343,8 +345,7 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
     // Get current settings
     let currentSettings = await prisma.settings.findFirst({
       where: { 
-        id: { not: '' },
-        ...(familyId && { familyId }) // Filter by family ID if available
+        familyId: userFamilyId
       },
       orderBy: { updatedAt: 'desc' },
     });
@@ -354,6 +355,7 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
       console.log('No settings record found, creating a new one');
       currentSettings = await prisma.settings.create({
         data: {
+          familyId: userFamilyId,
           familyName: 'My Family',
           securityPin: '111222',
           defaultBottleUnit: 'OZ',
@@ -367,7 +369,6 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
               visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine']
             }
           }),
-          ...(familyId && { familyId }) // Include family ID if available
         }
       });
     }
@@ -431,5 +432,5 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
 }
 
 // Export handlers with authentication
-export const GET = withAuth(getActivitySettings);
-export const POST = withAuth(saveActivitySettings);
+export const GET = withAuthContext(getActivitySettings);
+export const POST = withAuthContext(saveActivitySettings);
