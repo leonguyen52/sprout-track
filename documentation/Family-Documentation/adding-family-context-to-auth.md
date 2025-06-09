@@ -82,7 +82,7 @@ This checklist tracks the progress of refactoring each component and its associa
         - `app/api/baby/[id]/route.ts` (Removed)
         - `app/api/baby-last-activities/route.ts`
         - `app/api/baby-upcoming-events/route.ts`
-- [ ] **Caretaker Management**
+- [x] **Caretaker Management**
     - Form: `src/components/forms/CaretakerForm/`
     - API: `app/api/caretaker/`
 - [ ] **Settings**
