@@ -99,7 +99,7 @@ This checklist tracks the progress of refactoring each component and its associa
 - [x] **Feed Log**
     - Form: `src/components/forms/FeedForm/`
     - API: `app/api/feed-log/`
-- [ ] **Measurement Log**
+- [x] **Measurement Log**
     - Form: `src/components/forms/MeasurementForm/`
     - API: `app/api/measurement-log/`
 - [ ] **Medicine Log**

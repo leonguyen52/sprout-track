@@ -12,7 +12,6 @@ import {
   FormPageFooter 
 } from '@/src/components/ui/form-page';
 import { useTimezone } from '@/app/context/timezone';
-import { useFamily } from '@/src/context/family';
 import { Textarea } from '@/src/components/ui/textarea';
 
 interface MeasurementFormProps {
@@ -22,7 +21,6 @@ interface MeasurementFormProps {
   initialTime: string;
   activity?: MeasurementResponse;
   onSuccess?: () => void;
-  familyId?: string; // Add familyId prop for multi-family support
 }
 
 // Define a type for the measurement data
@@ -48,10 +46,8 @@ export default function MeasurementForm({
   initialTime,
   activity,
   onSuccess,
-  familyId,
 }: MeasurementFormProps) {
   const { formatDate, toUTCString } = useTimezone();
-  const { family } = useFamily();
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime
@@ -245,11 +241,8 @@ export default function MeasurementForm({
         return;
       }
       
-      // Use family context with fallback to prop
-      const finalFamilyId = familyId || family?.id;
-      
       // Create an array of measurements to save
-      const measurements: MeasurementCreate[] = [];
+      const measurements: Omit<MeasurementCreate, 'familyId'>[] = [];
       
       // Add height measurement if value is provided
       if (formData.height.value) {
@@ -260,7 +253,6 @@ export default function MeasurementForm({
           value: parseFloat(formData.height.value),
           unit: formData.height.unit,
           notes: formData.notes || undefined,
-          familyId: finalFamilyId || undefined, // Include familyId in the payload
         });
       }
       
@@ -273,7 +265,6 @@ export default function MeasurementForm({
           value: parseFloat(formData.weight.value),
           unit: formData.weight.unit,
           notes: formData.notes || undefined,
-          familyId: finalFamilyId || undefined, // Include familyId in the payload
         });
       }
       
@@ -286,7 +277,6 @@ export default function MeasurementForm({
           value: parseFloat(formData.headCircumference.value),
           unit: formData.headCircumference.unit,
           notes: formData.notes || undefined,
-          familyId: finalFamilyId || undefined, // Include familyId in the payload
         });
       }
       
@@ -299,7 +289,6 @@ export default function MeasurementForm({
           value: parseFloat(formData.temperature.value),
           unit: formData.temperature.unit,
           notes: formData.notes || undefined,
-          familyId: finalFamilyId || undefined, // Include familyId in the payload
         });
       }
       
