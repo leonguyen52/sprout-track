@@ -13,7 +13,6 @@ import {
   FormPageFooter 
 } from '@/src/components/ui/form-page';
 import { useTimezone } from '@/app/context/timezone';
-import { useFamily } from '@/src/context/family';
 
 interface BathFormProps {
   isOpen: boolean;
@@ -22,7 +21,6 @@ interface BathFormProps {
   initialTime: string;
   activity?: BathLogResponse;
   onSuccess?: () => void;
-  familyId?: string; // Add familyId prop for multi-family support
 }
 
 export default function BathForm({
@@ -32,10 +30,8 @@ export default function BathForm({
   initialTime,
   activity,
   onSuccess,
-  familyId,
 }: BathFormProps) {
-  const { formatDate, toUTCString } = useTimezone();
-  const { family } = useFamily();
+  const { toUTCString } = useTimezone();
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime
@@ -134,7 +130,6 @@ export default function BathForm({
         soapUsed: formData.soapUsed,
         shampooUsed: formData.shampooUsed,
         notes: formData.notes || null,
-        familyId: familyId || family?.id || undefined, // Use prop familyId, fallback to context family ID
       };
       
       // Determine if we're creating a new record or updating an existing one

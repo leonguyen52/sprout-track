@@ -90,7 +90,7 @@ This checklist tracks the progress of refactoring each component and its associa
     - API: `app/api/settings/`
 
 ### Activity Log Components
-- [ ] **Bath Log**
+- [x] **Bath Log**
     - Form: `src/components/forms/BathForm/`
     - API: `app/api/bath-log/`
 - [ ] **Diaper Log**
