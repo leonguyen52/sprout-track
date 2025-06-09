@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
 import { ApiResponse, SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MilestoneResponse, MeasurementResponse, MedicineLogResponse, MedicineResponse } from '../types';
-import { withAuth } from '../utils/auth';
+import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
-import { getFamilyIdFromRequest } from '../utils/family';
 
 // Extended activity types with caretaker information
 type ActivityTypeWithCaretaker = (
@@ -45,18 +44,55 @@ const getActivityTime = (activity: any): number => {
   return new Date().getTime();
 };
 
-async function handleGet(req: NextRequest) {
+async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
-    // Get the full URL to debug
-    const fullUrl = req.url;
-    console.log(`Full request URL: ${fullUrl}`);
+    const { caretakerId, familyId: caretakerFamilyId } = authContext;
+
+    if (!caretakerFamilyId) {
+        return NextResponse.json<ApiResponse<null>>(
+            { success: false, error: 'User is not associated with a family.' },
+            { status: 403 }
+        );
+    }
     
     const url = new URL(req.url);
     const { searchParams } = url;
     
-    // Get family ID from request (query params or URL slug)
-    const familyId = await getFamilyIdFromRequest(req);
-    console.log(`Family ID from request: ${familyId || 'null'}`);
+    const babyId = searchParams.get('babyId');
+
+    if (!babyId) {
+      return NextResponse.json<ApiResponse<ActivityType[]>>(
+        {
+          success: false,
+          error: 'Baby ID is required',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Verify that the baby belongs to the caretaker's family
+    const baby = await prisma.baby.findFirst({
+        where: {
+            id: babyId,
+            familyId: caretakerFamilyId,
+        },
+        select: {
+            familyId: true,
+        },
+    });
+
+    if (!baby) {
+        return NextResponse.json<ApiResponse<null>>(
+            { success: false, error: "Baby not found in this family." },
+            { status: 404 }
+        );
+    }
+
+    const familyId = baby.familyId; // Use the verified family ID for all queries
+
+    // Get the full URL to debug
+    const fullUrl = req.url;
+    console.log(`Full request URL: ${fullUrl}`);
     
     // Log all search parameters for debugging
     console.log("All search parameters:");
@@ -64,7 +100,6 @@ async function handleGet(req: NextRequest) {
       console.log(`${key}: ${value}`);
     });
     
-    const babyId = searchParams.get('babyId');
     const limit = Number(searchParams.get('limit')) || 200;
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -114,16 +149,6 @@ async function handleGet(req: NextRequest) {
       console.log(`No date parameters provided, using limit: ${limit}`);
     }
 
-    if (!babyId) {
-      return NextResponse.json<ApiResponse<ActivityType[]>>(
-        {
-          success: false,
-          error: 'Baby ID is required',
-        },
-        { status: 400 }
-      );
-    }
-
     // Log query parameters
     console.log(`Query parameters - useLimit: ${useLimit}, limit: ${limit}`);
     console.log(`Date filtering: ${effectiveStartDate ? 'Yes' : 'No'}`);
@@ -162,7 +187,7 @@ async function handleGet(req: NextRequest) {
               }
             ]
           } : {}),
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
@@ -178,7 +203,7 @@ async function handleGet(req: NextRequest) {
               lte: endDateUTC
             }
           } : {}),
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
@@ -194,7 +219,7 @@ async function handleGet(req: NextRequest) {
               lte: endDateUTC
             }
           } : {}),
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
@@ -210,7 +235,7 @@ async function handleGet(req: NextRequest) {
               lte: endDateUTC
             }
           } : {}),
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
@@ -226,7 +251,7 @@ async function handleGet(req: NextRequest) {
               lte: endDateUTC
             }
           } : {}),
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
@@ -242,7 +267,7 @@ async function handleGet(req: NextRequest) {
               lte: endDateUTC
             }
           } : {}),
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
@@ -258,7 +283,7 @@ async function handleGet(req: NextRequest) {
               lte: endDateUTC
             }
           } : {}),
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
@@ -274,7 +299,7 @@ async function handleGet(req: NextRequest) {
               lte: endDateUTC
             }
           } : {}),
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
@@ -290,7 +315,7 @@ async function handleGet(req: NextRequest) {
               lte: endDateUTC
             }
           } : {}),
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true,
@@ -492,8 +517,8 @@ async function handleGet(req: NextRequest) {
       data: finalActivities
     });
   } catch (error) {
-    console.error('Error fetching timeline:', error);
-    return NextResponse.json<ApiResponse<ActivityType[]>>(
+    console.error(`Error fetching timeline:`, error);
+    return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
         error: 'Failed to fetch timeline',
@@ -503,6 +528,4 @@ async function handleGet(req: NextRequest) {
   }
 }
 
-// Apply authentication middleware to all handlers
-// Use type assertions to handle the multiple return types
-export const GET = withAuth(handleGet as (req: NextRequest) => Promise<NextResponse<ApiResponse<any>>>);
+export const GET = withAuthContext(handleGet);

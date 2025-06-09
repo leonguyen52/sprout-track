@@ -109,6 +109,9 @@ export async function POST(req: NextRequest) {
           inactive: false,
           deletedAt: null,
         } as any, // Type assertion for loginId field
+        include: {
+          family: true, // Include family information
+        },
       });
 
       if (caretaker) {
@@ -119,6 +122,8 @@ export async function POST(req: NextRequest) {
             name: caretaker.name,
             type: caretaker.type,
             role: (caretaker as any).role || 'USER',
+            familyId: caretaker.familyId,
+            familySlug: caretaker.family?.slug,
           },
           JWT_SECRET,
           { expiresIn: `${TOKEN_EXPIRATION}s` } // Token expires based on AUTH_LIFE env variable
@@ -131,6 +136,8 @@ export async function POST(req: NextRequest) {
           type: string | null; 
           role: string;
           token: string;
+          familyId: string | null;
+          familySlug: string | null;
         }>>(
           {
             success: true,
@@ -141,6 +148,8 @@ export async function POST(req: NextRequest) {
               // Use type assertion for role until Prisma types are updated
               role: (caretaker as any).role || 'USER',
               token: token,
+              familyId: caretaker.familyId,
+              familySlug: caretaker.family?.slug || null,
             },
           }
         );
