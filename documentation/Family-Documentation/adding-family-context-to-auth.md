@@ -110,9 +110,7 @@ This checklist tracks the progress of refactoring each component and its associa
 - [x] **Milestone Log**
     - Form: `src/components/forms/MilestoneForm/`
     - API: `app/api/milestone-log/`
-- [ ] **Mood Log**
-    - API: `app/api/mood-log/`
-- [ ] **Note Log**
+- [x] **Note Log**
     - Form: `src/components/forms/NoteForm/`
     - API: `app/api/note/`
 - [ ] **Pump Log**

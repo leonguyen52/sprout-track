@@ -21,7 +21,6 @@ import {
 } from '@/src/components/ui/dropdown-menu';
 import { ChevronDown } from 'lucide-react';
 import { useTimezone } from '@/app/context/timezone';
-import { useFamily } from '@/src/context/family';
 import { useTheme } from '@/src/context/theme';
 import './note-form.css';
 
@@ -32,7 +31,6 @@ interface NoteFormProps {
   initialTime: string;
   activity?: NoteResponse;
   onSuccess?: () => void;
-  familyId?: string; // Add familyId prop for multi-family support
 }
 
 export default function NoteForm({
@@ -42,10 +40,8 @@ export default function NoteForm({
   initialTime,
   activity,
   onSuccess,
-  familyId,
 }: NoteFormProps) {
   const { formatDate, toUTCString } = useTimezone();
-  const { family } = useFamily();
   const { theme } = useTheme();
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
@@ -216,7 +212,6 @@ export default function NoteForm({
         time: utcTimeString, // Send the UTC ISO string instead of local time
         content: formData.content,
         category: formData.category || null,
-        familyId: familyId || family?.id || undefined, // Include familyId in the payload
       };
 
       // Get auth token from localStorage
