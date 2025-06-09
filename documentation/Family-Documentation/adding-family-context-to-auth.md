@@ -93,7 +93,7 @@ This checklist tracks the progress of refactoring each component and its associa
 - [x] **Bath Log**
     - Form: `src/components/forms/BathForm/`
     - API: `app/api/bath-log/`
-- [ ] **Diaper Log**
+- [x] **Diaper Log**
     - Form: `src/components/forms/DiaperForm/`
     - API: `app/api/diaper-log/`
 - [ ] **Feed Log**

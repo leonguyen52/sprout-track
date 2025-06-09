@@ -19,7 +19,6 @@ import {
   FormPageFooter 
 } from '@/src/components/ui/form-page';
 import { useTimezone } from '@/app/context/timezone';
-import { useFamily } from '@/src/context/family';
 
 interface DiaperFormProps {
   isOpen: boolean;
@@ -28,7 +27,6 @@ interface DiaperFormProps {
   initialTime: string;
   activity?: DiaperLogResponse;
   onSuccess?: () => void;
-  familyId?: string; // Add familyId prop for multi-family support
 }
 
 export default function DiaperForm({
@@ -38,10 +36,8 @@ export default function DiaperForm({
   initialTime,
   activity,
   onSuccess,
-  familyId,
 }: DiaperFormProps) {
-  const { formatDate, toUTCString } = useTimezone();
-  const { family } = useFamily();
+  const { toUTCString } = useTimezone();
   
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
@@ -149,16 +145,12 @@ export default function DiaperForm({
       console.log('Original time (local):', formData.time);
       console.log('Converted time (UTC):', utcTimeString);
 
-      // Use family context with fallback to prop
-      const finalFamilyId = familyId || family?.id;
-
       const payload = {
         babyId,
         time: utcTimeString, // Send the UTC ISO string instead of local time
         type: formData.type,
         condition: formData.condition || null,
         color: formData.color || null,
-        familyId: finalFamilyId || undefined, // Include familyId in the payload
       };
 
       // Get auth token from localStorage

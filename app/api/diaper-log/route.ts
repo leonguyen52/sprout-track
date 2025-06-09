@@ -3,24 +3,32 @@ import prisma from '../db';
 import { ApiResponse, DiaperLogCreate, DiaperLogResponse } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
-import { getFamilyIdFromRequest } from '../utils/family';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: DiaperLogCreate = await req.json();
+
+    const baby = await prisma.baby.findFirst({
+      where: { id: body.babyId, familyId: userFamilyId },
+    });
+
+    if (!baby) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
+    }
     
-    // Convert time to UTC for storage
     const timeUTC = toUTC(body.time);
-    
-    // Get family ID from request headers (with fallback to body)
-    const familyId = await getFamilyIdFromRequest(req) || (body as any).familyId;
     
     const diaperLog = await prisma.diaperLog.create({
       data: {
         ...body,
         time: timeUTC,
-        caretakerId: authContext.caretakerId,
-        familyId: familyId || null, // Include family ID if available
+        caretakerId: caretakerId,
+        familyId: userFamilyId,
       },
     });
 
@@ -51,6 +59,11 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const body: Partial<DiaperLogCreate> = await req.json();
@@ -65,30 +78,15 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Get family ID from request headers (with fallback to body)
-    const familyId = await getFamilyIdFromRequest(req) || (body as any).familyId;
-
-    // Check if diaper log exists and belongs to the family
-    const existingDiaperLog = await prisma.diaperLog.findUnique({
-      where: { id },
+    const existingDiaperLog = await prisma.diaperLog.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingDiaperLog) {
       return NextResponse.json<ApiResponse<DiaperLogResponse>>(
         {
           success: false,
-          error: 'Diaper log not found',
-        },
-        { status: 404 }
-      );
-    }
-
-    // Check family access
-    if (familyId && existingDiaperLog.familyId !== familyId) {
-      return NextResponse.json<ApiResponse<DiaperLogResponse>>(
-        {
-          success: false,
-          error: 'Diaper log not found',
+          error: 'Diaper log not found or access denied',
         },
         { status: 404 }
       );
@@ -101,11 +99,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
     const diaperLog = await prisma.diaperLog.update({
       where: { id },
-      data: {
-        ...data,
-        // Preserve existing familyId if not provided in update
-        familyId: (data as any).familyId || existingDiaperLog.familyId,
-      },
+      data,
     });
 
     // Format dates as ISO strings for response
@@ -135,39 +129,27 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const babyId = searchParams.get('babyId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
-    
-    // Get family ID from request headers or query params
-    const familyId = await getFamilyIdFromRequest(req) || searchParams.get('familyId');
-
-    const queryParams = {
-      ...(babyId && { babyId }),
-      ...(startDate && endDate && {
-        time: {
-          gte: toUTC(startDate),
-          lte: toUTC(endDate),
-        },
-      }),
-      ...(familyId && { familyId }), // Filter by family ID if available
-    };
 
     if (id) {
       const diaperLog = await prisma.diaperLog.findFirst({
-        where: { 
-          id,
-          ...(familyId && { familyId }), // Filter by family ID if available
-        },
+        where: { id, familyId: userFamilyId },
       });
 
       if (!diaperLog) {
         return NextResponse.json<ApiResponse<DiaperLogResponse>>(
           {
             success: false,
-            error: 'Diaper log not found',
+            error: 'Diaper log not found or access denied',
           },
           { status: 404 }
         );
@@ -189,7 +171,16 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     }
 
     const diaperLogs = await prisma.diaperLog.findMany({
-      where: queryParams,
+      where: {
+        familyId: userFamilyId,
+        ...(babyId && { babyId }),
+        ...(startDate && endDate && {
+          time: {
+            gte: toUTC(startDate),
+            lte: toUTC(endDate),
+          },
+        }),
+      },
       orderBy: {
         time: 'desc',
       },
@@ -222,6 +213,11 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -235,30 +231,15 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Get family ID from request headers
-    const familyId = await getFamilyIdFromRequest(req);
-
-    // Check if diaper log exists and belongs to the family
-    const existingDiaperLog = await prisma.diaperLog.findUnique({
-      where: { id },
+    const existingDiaperLog = await prisma.diaperLog.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingDiaperLog) {
       return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
-          error: 'Diaper log not found',
-        },
-        { status: 404 }
-      );
-    }
-
-    // Check family access
-    if (familyId && existingDiaperLog.familyId !== familyId) {
-      return NextResponse.json<ApiResponse<void>>(
-        {
-          success: false,
-          error: 'Diaper log not found',
+          error: 'Diaper log not found or access denied',
         },
         { status: 404 }
       );
