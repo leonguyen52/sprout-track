@@ -4,7 +4,6 @@ import { ApiResponse } from '../types';
 import { CalendarEventType, RecurrencePattern } from '@prisma/client';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
-import { getFamilyIdFromRequest } from '../utils/family';
 
 // Type for calendar event response
 interface CalendarEventResponse {
@@ -46,6 +45,7 @@ interface CalendarEventResponse {
     address: string | null;
     notes: string | null;
   }>;
+  contactIds: string[];
 }
 
 // Type for calendar event create/update
@@ -71,6 +71,11 @@ interface CalendarEventCreate {
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const babyId = searchParams.get('babyId');
@@ -81,18 +86,11 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const typeParam = searchParams.get('type');
     const recurringParam = searchParams.get('recurring');
 
-    // Get family ID from request
-    const familyId = await getFamilyIdFromRequest(req);
-
     // Build where clause
     const where: any = {
       deletedAt: null,
+      familyId: userFamilyId,
     };
-
-    // Add family filter if available
-    if (familyId) {
-      where.familyId = familyId;
-    }
 
     // Add filters
     if (id) {
@@ -140,8 +138,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
     // If ID is provided, fetch a single event
     if (id) {
-      const event = await prisma.calendarEvent.findUnique({
-        where: { id },
+      const event = await prisma.calendarEvent.findFirst({
+        where: { id, familyId: userFamilyId },
         include: {
           babies: {
             include: {
@@ -177,18 +175,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
         return NextResponse.json<ApiResponse<CalendarEventResponse>>(
           {
             success: false,
-            error: 'Calendar event not found',
-          },
-          { status: 404 }
-        );
-      }
-
-      // Check family access
-      if (familyId && event.familyId !== familyId) {
-        return NextResponse.json<ApiResponse<CalendarEventResponse>>(
-          {
-            success: false,
-            error: 'Calendar event not found',
+            error: 'Calendar event not found or access denied',
           },
           { status: 404 }
         );
@@ -206,6 +193,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
         babies: event.babies.map(be => be.baby),
         caretakers: event.caretakers.map(ce => ce.caretaker),
         contacts: event.contacts.map(ce => ce.contact),
+        contactIds: event.contacts.map(ce => ce.contact.id),
       };
 
       return NextResponse.json<ApiResponse<CalendarEventResponse>>({
@@ -263,6 +251,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
       babies: event.babies.map(be => be.baby),
       caretakers: event.caretakers.map(ce => ce.caretaker),
       contacts: event.contacts.map(ce => ce.contact),
+      contactIds: event.contacts.map(ce => ce.contact.id),
     }));
 
     return NextResponse.json<ApiResponse<CalendarEventResponse[]>>({
@@ -283,26 +272,59 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId: userCaretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: CalendarEventCreate = await req.json();
     
     // Validate required fields
     if (!body.title || !body.startTime || body.type === undefined || body.allDay === undefined) {
-      return NextResponse.json<ApiResponse<CalendarEventResponse>>(
-        {
-          success: false,
-          error: 'Missing required fields',
-        },
-        { status: 400 }
-      );
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Get family ID from request (with fallback to body)
-    const familyId = await getFamilyIdFromRequest(req) || body.familyId;
-    
+    // Validate that all associated entities belong to the user's family
+    if (body.babyIds.length > 0) {
+      const babiesCount = await prisma.baby.count({
+        where: {
+          id: { in: body.babyIds },
+          familyId: userFamilyId,
+        },
+      });
+      if (babiesCount !== body.babyIds.length) {
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: 'One or more babies not found in this family.' }, { status: 404 });
+      }
+    }
+
+    if (body.caretakerIds.length > 0) {
+      const caretakersCount = await prisma.caretaker.count({
+        where: {
+          id: { in: body.caretakerIds },
+          familyId: userFamilyId,
+        },
+      });
+      if (caretakersCount !== body.caretakerIds.length) {
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: 'One or more caretakers not found in this family.' }, { status: 404 });
+      }
+    }
+
+    if (body.contactIds.length > 0) {
+      const contactsCount = await prisma.contact.count({
+        where: {
+          id: { in: body.contactIds },
+          familyId: userFamilyId,
+        },
+      });
+      if (contactsCount !== body.contactIds.length) {
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: 'One or more contacts not found in this family.' }, { status: 404 });
+      }
+    }
+
     // Convert dates to UTC for storage
     const startTimeUTC = toUTC(body.startTime);
-    const endTimeUTC = body.endTime ? toUTC(body.endTime) : undefined;
-    const recurrenceEndUTC = body.recurrenceEnd ? toUTC(body.recurrenceEnd) : undefined;
+    const endTimeUTC = body.endTime ? toUTC(body.endTime) : null;
+    const recurrenceEndUTC = body.recurrenceEnd ? toUTC(body.recurrenceEnd) : null;
     
     // Create event
     const event = await prisma.calendarEvent.create({
@@ -310,7 +332,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         title: body.title,
         description: body.description || null,
         startTime: startTimeUTC,
-        endTime: endTimeUTC || null,
+        endTime: endTimeUTC,
         allDay: body.allDay,
         type: body.type,
         location: body.location || null,
@@ -321,23 +343,17 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         customRecurrence: body.customRecurrence || null,
         reminderTime: body.reminderTime || null,
         notificationSent: false,
-        familyId: familyId || null,
+        familyId: userFamilyId || null,
         
         // Create relationships
         babies: {
-          create: (body.babyIds || []).map(babyId => ({
-            baby: { connect: { id: babyId } },
-          })),
+          create: body.babyIds.map(babyId => ({ babyId })),
         },
         caretakers: {
-          create: (body.caretakerIds || []).map(caretakerId => ({
-            caretaker: { connect: { id: caretakerId } },
-          })),
+          create: body.caretakerIds.map(caretakerId => ({ caretakerId })),
         },
         contacts: {
-          create: (body.contactIds || []).map(contactId => ({
-            contact: { connect: { id: contactId } },
-          })),
+          create: body.contactIds.map(contactId => ({ contactId })),
         },
       },
       include: {
@@ -383,6 +399,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
       babies: event.babies.map(be => be.baby),
       caretakers: event.caretakers.map(ce => ce.caretaker),
       contacts: event.contacts.map(ce => ce.contact),
+      contactIds: event.contacts.map(ce => ce.contact.id),
     };
     
     return NextResponse.json<ApiResponse<CalendarEventResponse>>({
@@ -391,7 +408,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating calendar event:', error);
-    return NextResponse.json<ApiResponse<CalendarEventResponse>>(
+    return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
         error: 'Failed to create calendar event',
@@ -403,51 +420,57 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-    const body: CalendarEventCreate = await req.json();
-    
-    if (!id) {
-      return NextResponse.json<ApiResponse<CalendarEventResponse>>(
-        {
-          success: false,
-          error: 'Calendar event ID is required',
-        },
-        { status: 400 }
-      );
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
 
-    // Get family ID from request (with fallback to body)
-    const familyId = await getFamilyIdFromRequest(req) || body.familyId;
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    const body: Partial<CalendarEventCreate> = await req.json();
     
-    // Check if event exists and belongs to the family
-    const existingEvent = await prisma.calendarEvent.findUnique({
-      where: { id },
+    if (!id) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Calendar event ID is required' }, { status: 400 });
+    }
+
+    const existingEvent = await prisma.calendarEvent.findFirst({
+      where: { id, familyId: userFamilyId },
     });
     
     if (!existingEvent || existingEvent.deletedAt) {
-      return NextResponse.json<ApiResponse<CalendarEventResponse>>(
-        {
-          success: false,
-          error: 'Calendar event not found',
-        },
-        { status: 404 }
-      );
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Calendar event not found or access denied' }, { status: 404 });
     }
 
-    // Check family access
-    if (familyId && existingEvent.familyId !== familyId) {
-      return NextResponse.json<ApiResponse<CalendarEventResponse>>(
-        {
-          success: false,
-          error: 'Calendar event not found',
-        },
-        { status: 404 }
-      );
+    // Validate associated entities
+    if (body.babyIds && body.babyIds.length > 0) {
+      const babiesCount = await prisma.baby.count({
+        where: { id: { in: body.babyIds }, familyId: userFamilyId },
+      });
+      if (babiesCount !== body.babyIds.length) {
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: 'One or more babies not found in this family.' }, { status: 404 });
+      }
     }
-    
+
+    if (body.caretakerIds && body.caretakerIds.length > 0) {
+      const caretakersCount = await prisma.caretaker.count({
+        where: { id: { in: body.caretakerIds }, familyId: userFamilyId },
+      });
+      if (caretakersCount !== body.caretakerIds.length) {
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: 'One or more caretakers not found in this family.' }, { status: 404 });
+      }
+    }
+
+    if (body.contactIds && body.contactIds.length > 0) {
+      const contactsCount = await prisma.contact.count({
+        where: { id: { in: body.contactIds }, familyId: userFamilyId },
+      });
+      if (contactsCount !== body.contactIds.length) {
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: 'One or more contacts not found in this family.' }, { status: 404 });
+      }
+    }
+
     // Convert dates to UTC for storage
-    const startTimeUTC = toUTC(body.startTime);
+    const startTimeUTC = body.startTime ? toUTC(body.startTime) : undefined;
     const endTimeUTC = body.endTime ? toUTC(body.endTime) : undefined;
     const recurrenceEndUTC = body.recurrenceEnd ? toUTC(body.recurrenceEnd) : undefined;
     
@@ -475,24 +498,21 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
           recurrenceEnd: recurrenceEndUTC || null,
           customRecurrence: body.customRecurrence || null,
           reminderTime: body.reminderTime || null,
-          familyId: familyId || existingEvent.familyId, // Preserve existing familyId if not provided
+          familyId: userFamilyId || existingEvent.familyId, // Preserve existing familyId if not provided
           
           // Create new relationships
-          babies: {
-            create: (body.babyIds || []).map(babyId => ({
-              baby: { connect: { id: babyId } },
-            })),
-          },
-          caretakers: {
-            create: (body.caretakerIds || []).map(caretakerId => ({
-              caretaker: { connect: { id: caretakerId } },
-            })),
-          },
-          contacts: {
-            create: (body.contactIds || []).map(contactId => ({
-              contact: { connect: { id: contactId } },
-            })),
-          },
+          babies: body.babyIds ? {
+            deleteMany: {},
+            create: body.babyIds.map(babyId => ({ babyId })),
+          } : undefined,
+          caretakers: body.caretakerIds ? {
+            deleteMany: {},
+            create: body.caretakerIds.map(caretakerId => ({ caretakerId })),
+          } : undefined,
+          contacts: body.contactIds ? {
+            deleteMany: {},
+            create: body.contactIds.map(contactId => ({ contactId })),
+          } : undefined,
         },
         include: {
           babies: {
@@ -540,6 +560,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       babies: updatedEvent.babies.map(be => be.baby),
       caretakers: updatedEvent.caretakers.map(ce => ce.caretaker),
       contacts: updatedEvent.contacts.map(ce => ce.contact),
+      contactIds: updatedEvent.contacts.map(ce => ce.contact.id),
     };
     
     return NextResponse.json<ApiResponse<CalendarEventResponse>>({
@@ -548,7 +569,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
     });
   } catch (error) {
     console.error('Error updating calendar event:', error);
-    return NextResponse.json<ApiResponse<CalendarEventResponse>>(
+    return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
         error: 'Failed to update calendar event',
@@ -560,50 +581,25 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     
     if (!id) {
-      return NextResponse.json<ApiResponse<void>>(
-        {
-          success: false,
-          error: 'Calendar event ID is required',
-        },
-        { status: 400 }
-      );
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Calendar event ID is required' }, { status: 400 });
     }
 
-    // Get family ID from request
-    const familyId = await getFamilyIdFromRequest(req);
-    
-    // Check if event exists
-    const existingEvent = await prisma.calendarEvent.findUnique({
-      where: { id },
+    const existingEvent = await prisma.calendarEvent.findFirst({
+      where: { id, familyId: userFamilyId },
     });
     
     if (!existingEvent) {
-      return NextResponse.json<ApiResponse<void>>(
-        {
-          success: false,
-          error: 'Calendar event not found',
-        },
-        { status: 404 }
-      );
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Calendar event not found or access denied' }, { status: 404 });
     }
-
-    // Check family access
-    if (familyId && existingEvent.familyId !== familyId) {
-      return NextResponse.json<ApiResponse<void>>(
-        {
-          success: false,
-          error: 'Calendar event not found',
-        },
-        { status: 404 }
-      );
-    }
-    
-    // Allow deleting even if it's already marked as deleted
-    // This prevents errors when trying to delete an event multiple times
     
     // Soft delete the event
     await prisma.calendarEvent.update({
@@ -613,12 +609,10 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       },
     });
     
-    return NextResponse.json<ApiResponse<void>>({
-      success: true,
-    });
+    return NextResponse.json<ApiResponse<null>>({ success: true });
   } catch (error) {
     console.error('Error deleting calendar event:', error);
-    return NextResponse.json<ApiResponse<void>>(
+    return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
         error: 'Failed to delete calendar event',

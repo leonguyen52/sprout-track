@@ -121,7 +121,7 @@ This checklist tracks the progress of refactoring each component and its associa
     - API: `app/api/sleep-log/`
 
 ### Other Components
-- [ ] **Calendar**
+- [x] **Calendar**
     - Form: `src/components/forms/CalendarEventForm/`
     - API: `app/api/calendar-event/`
 - [x] **Contacts**

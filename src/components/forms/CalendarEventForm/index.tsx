@@ -21,7 +21,6 @@ import {
   DropdownMenuItem,
 } from '@/src/components/ui/dropdown-menu';
 import './calendar-event-form.css';
-import { useFamily } from '@/src/context/family';
 
 /**
  * CalendarEventForm Component
@@ -39,9 +38,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
   caretakers,
   contacts,
   isLoading = false,
-  familyId,
 }) => {
-  const { family } = useFamily();
   
   // Helper function to get initial form data
   const getInitialFormData = (
@@ -168,7 +165,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: checked }));
-  }; // <-- Added missing closing brace
+  };
 
   // Handle start date/time change with DateTimePicker
   const handleStartDateTimeChange = (date: Date) => {
@@ -399,13 +396,8 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (validateForm()) {
-      // Include familyId in the form data when submitting
-      onSave({
-        ...formData,
-        familyId: familyId || family?.id || undefined,
-      });
+      onSave(formData);
     }
   };
   
@@ -414,27 +406,20 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
     onClose();
   };
   
+  if (!isOpen) return null;
+
   return (
-    <FormPage
-      isOpen={isOpen}
-      onClose={onClose}
-      title={event ? 'Edit Event' : 'Add Event'}
-      description="Schedule and manage calendar events"
-      className="calendar-event-form-container"
-    >
-  <form onSubmit={handleSubmit} className="flex flex-col h-full">
-    <FormPageContent className="flex-1">
-          <div className="space-y-6 pb-20">
+    <FormPage isOpen={isOpen} onClose={handleClose} title={event ? 'Edit Event' : 'New Event'}>
+      <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        <FormPageContent>
+          <div className="space-y-6">
             {/* Event details section */}
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>Event Details</h3>
               
               {/* Title */}
               <div className={styles.fieldGroup}>
-                <label 
-                  htmlFor="title" 
-                  className="form-label"
-                >
+                <label htmlFor="title" className={styles.fieldLabel}>
                   Title
                   <span className={styles.fieldRequired}>*</span>
                 </label>
@@ -454,22 +439,16 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                   </div>
                 )}
               </div>
-              
+
               {/* Event type */}
               <div className={styles.fieldGroup}>
-                <label 
-                  htmlFor="type" 
-                  className="form-label"
-                >
+                <label htmlFor="type" className={styles.fieldLabel}>
                   Event Type
                   <span className={styles.fieldRequired}>*</span>
                 </label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-between"
-                    >
+                    <Button variant="outline" className="w-full justify-between">
                       {formData.type.charAt(0) + formData.type.slice(1).toLowerCase().replace('_', ' ')}
                     </Button>
                   </DropdownMenuTrigger>
@@ -513,15 +492,12 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                   All day event
                 </label>
               </div>
-              
+
               {/* Date and time - each on its own row */}
               <div className="space-y-4">
                 {/* Start Date/Time - Full width */}
                 <div className={styles.fieldGroup}>
-                  <label 
-                    htmlFor="startTime" 
-                    className="form-label"
-                  >
+                  <label htmlFor="startTime" className={styles.fieldLabel}>
                     Start Time
                     <span className={styles.fieldRequired}>*</span>
                   </label>
@@ -544,10 +520,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                 
                 {/* End Date/Time - Full width */}
                 <div className={styles.fieldGroup}>
-                  <label 
-                    htmlFor="endTime" 
-                    className="form-label"
-                  >
+                  <label htmlFor="endTime" className={styles.fieldLabel}>
                     End Time
                   </label>
                   <div className="grid w-full">
@@ -570,10 +543,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
               
               {/* Location */}
               <div className={styles.fieldGroup}>
-                <label 
-                  htmlFor="location" 
-                  className="form-label"
-                >
+                <label htmlFor="location" className={styles.fieldLabel}>
                   Location
                 </label>
                 <div className="relative">
@@ -592,10 +562,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
               
               {/* Description */}
               <div className={styles.fieldGroup}>
-                <label 
-                  htmlFor="description" 
-                  className="form-label"
-                >
+                <label htmlFor="description" className={styles.fieldLabel}>
                   Description
                 </label>
                 <Textarea
@@ -610,10 +577,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
               
               {/* Color */}
               <div className={styles.fieldGroup}>
-                <label 
-                  htmlFor="color" 
-                  className="form-label"
-                >
+                <label htmlFor="color" className={styles.fieldLabel}>
                   Color
                 </label>
                 <div className="flex items-center space-x-2">
@@ -637,9 +601,9 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                 </div>
               </div>
             </div>
-            
+
             {/* Recurrence section - commented out as functionality is not fully implemented yet */}
-            {/* 
+            {/*
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>Recurrence</h3>
               
@@ -657,7 +621,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
               />
             </div>
             */}
-            
+
             {/* Reminder section - commented out as functionality is not fully implemented yet */}
             {/*
             <div className={styles.section}>
@@ -729,7 +693,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
               {/* Babies - Only show if there's more than one active baby */}
               {babies.filter(baby => baby.inactive !== true).length > 1 ? (
                 <div className={styles.fieldGroup}>
-                  <label className="form-label">
+                  <label className={styles.fieldLabel}>
                     Babies
                   </label>
                   <div className="space-y-2">
@@ -789,7 +753,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
               
               {/* Caretakers */}
               <div className={styles.fieldGroup}>
-                <label className="form-label">
+                <label className={styles.fieldLabel}>
                   Caretakers
                 </label>
                 <div className="space-y-2">
@@ -816,7 +780,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
               
               {/* Contacts */}
               <div className={styles.fieldGroup}>
-                <label className="form-label">
+                <label className={styles.fieldLabel}>
                   Contacts
                 </label>
                 <ContactSelector
@@ -834,73 +798,75 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
         </FormPageContent>
         
         <FormPageFooter>
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
+          <div className="flex justify-between items-center w-full">
+            <div>
+              {event && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={async () => {
+                    if (!event.id) return;
+                    
+                    try {
+                      // Delete the event
+                      const response = await fetch(`/api/calendar-event?id=${event.id}`, {
+                        method: 'DELETE',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                      });
+                      
+                      const data = await response.json();
+                      
+                      if (data.success) {
+                        // Close the form
+                        onClose();
+                        
+                        // Call onSave with a special flag to indicate deletion
+                        // This will trigger a refresh in the parent components
+                        onSave({
+                          ...event,
+                          _deleted: true, // Special flag to indicate deletion
+                        });
+                      } else {
+                        console.error('Error deleting event:', data.error);
+                      }
+                    } catch (error) {
+                      console.error('Error deleting event:', error);
+                    }
+                  }}
+                  disabled={isLoading}
+                >
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  Delete
+                </Button>
+              )}
+            </div>
             
-            {event && (
+            <div className="flex justify-end space-x-2">
               <Button
                 type="button"
-                variant="destructive"
-                onClick={async () => {
-                  if (!event.id) return;
-                  
-      try {
-        // Delete the event
-        const response = await fetch(`/api/calendar-event?id=${event.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ familyId }), // Include familyId in the request body
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          // Close the form
-          onClose();
-          
-          // Call onSave with a special flag to indicate deletion
-          // This will trigger a refresh in the parent components
-          onSave({
-            ...event,
-            _deleted: true, // Special flag to indicate deletion
-            familyId, // Include familyId in the event data
-          });
-        } else {
-          console.error('Error deleting event:', data.error);
-        }
-      } catch (error) {
-        console.error('Error deleting event:', error);
-      }
-                }}
+                variant="outline"
+                onClick={handleClose}
                 disabled={isLoading}
               >
-                <Trash2 className="h-4 w-4 mr-1.5" />
-                Delete
+                Cancel
               </Button>
-            )}
-            
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Event'
-              )}
-            </Button>
+              
+              <Button 
+                type="submit" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Event'
+                )}
+              </Button>
+            </div>
           </div>
         </FormPageFooter>
       </form>
