@@ -20,7 +20,6 @@ import {
   FormPageContent, 
   FormPageFooter 
 } from '@/src/components/ui/form-page';
-import { useFamily } from '@/src/context/family';
 import BabyForm from '@/src/components/forms/BabyForm';
 import CaretakerForm from '@/src/components/forms/CaretakerForm';
 import ContactForm from '@/src/components/forms/ContactForm';
@@ -32,7 +31,6 @@ interface SettingsFormProps {
   onBabySelect?: (babyId: string) => void;
   onBabyStatusChange?: () => void;
   selectedBabyId?: string;
-  familyId?: string; // Add familyId prop for multi-family support
 }
 
 export default function SettingsForm({ 
@@ -41,9 +39,7 @@ export default function SettingsForm({
   onBabySelect,
   onBabyStatusChange,
   selectedBabyId,
-  familyId,
 }: SettingsFormProps) {
-  const { family } = useFamily();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [babies, setBabies] = useState<Baby[]>([]);
   const [caretakers, setCaretakers] = useState<Caretaker[]>([]);
@@ -70,15 +66,13 @@ export default function SettingsForm({
   const fetchData = async () => {
     try {
       setLoading(true);
-      const familyIdToUse = familyId || family?.id;
-      const query = familyIdToUse ? `?familyId=${familyIdToUse}` : '';
-
+      
       const [settingsResponse, babiesResponse, unitsResponse, caretakersResponse, contactsResponse] = await Promise.all([
-        fetch(`/api/settings${query}`),
-        fetch(`/api/baby${query}`),
+        fetch(`/api/settings`),
+        fetch(`/api/baby`),
         fetch('/api/units'),
-        fetch(`/api/caretaker?includeInactive=true${familyIdToUse ? `&familyId=${familyIdToUse}` : ''}`),
-        fetch(`/api/contact${query}`)
+        fetch(`/api/caretaker?includeInactive=true`),
+        fetch(`/api/contact`)
       ]);
 
       if (settingsResponse.ok) {
@@ -122,15 +116,11 @@ export default function SettingsForm({
   const handleSettingsChange = async (updates: Partial<Settings>) => {
     try {
       const response = await fetch('/api/settings', {
-        method: settings ? 'PUT' : 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          ...settings, 
-          ...updates,
-          familyId: familyId || family?.id || undefined, // Include familyId in the payload
-        }),
+        body: JSON.stringify(updates),
       });
 
       if (response.ok) {
@@ -607,7 +597,6 @@ export default function SettingsForm({
         onClose={handleBabyFormClose}
         isEditing={isEditing}
         baby={selectedBaby}
-        familyId={familyId || family?.id}
         onBabyChange={async () => {
           await fetchData(); // Refresh local babies list
           onBabyStatusChange?.(); // Refresh parent's babies list
@@ -626,7 +615,6 @@ export default function SettingsForm({
         isOpen={showContactForm}
         onClose={handleContactFormClose}
         contact={selectedContact || undefined}
-        familyId={familyId || family?.id}
         onSave={() => fetchData()}
         onDelete={() => fetchData()}
       />

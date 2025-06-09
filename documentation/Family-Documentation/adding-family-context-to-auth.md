@@ -85,7 +85,7 @@ This checklist tracks the progress of refactoring each component and its associa
 - [x] **Caretaker Management**
     - Form: `src/components/forms/CaretakerForm/`
     - API: `app/api/caretaker/`
-- [ ] **Settings**
+- [x] **Settings**
     - Form: `src/components/forms/SettingsForm/`
     - API: `app/api/settings/`
 
