@@ -113,7 +113,7 @@ This checklist tracks the progress of refactoring each component and its associa
 - [x] **Note Log**
     - Form: `src/components/forms/NoteForm/`
     - API: `app/api/note/`
-- [ ] **Pump Log**
+- [x] **Pump Log**
     - Form: `src/components/forms/PumpForm/`
     - API: `app/api/pump-log/`
 - [ ] **Sleep Log**

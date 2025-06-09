@@ -3,18 +3,27 @@ import prisma from '../db';
 import { ApiResponse, PumpLogCreate, PumpLogResponse } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse, calculateDurationMinutes } from '../utils/timezone';
-import { getFamilyIdFromRequest } from '../utils/family';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: PumpLogCreate = await req.json();
+
+    const baby = await prisma.baby.findFirst({
+      where: { id: body.babyId, familyId: userFamilyId },
+    });
+
+    if (!baby) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
+    }
     
     // Convert times to UTC for storage
     const startTimeUTC = toUTC(body.startTime);
     const endTimeUTC = body.endTime ? toUTC(body.endTime) : undefined;
-    
-    // Get family ID from request (body, query params, or URL slug)
-    const familyId = await getFamilyIdFromRequest(req, body);
     
     // Calculate duration if not provided but start and end times are available
     let duration = body.duration;
@@ -39,8 +48,8 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         totalAmount,
         unitAbbr: body.unitAbbr,
         notes: body.notes,
-        caretakerId: authContext.caretakerId,
-        ...(familyId && { familyId }), // Include family ID if available
+        caretakerId: caretakerId,
+        familyId: userFamilyId,
       },
     });
 
@@ -72,6 +81,11 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const body: Partial<PumpLogCreate> = await req.json();
@@ -86,17 +100,15 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const familyId = await getFamilyIdFromRequest(req, body);
-
     const existingPumpLog = await prisma.pumpLog.findFirst({
-      where: { id, ...(familyId && { familyId }) },
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingPumpLog) {
       return NextResponse.json<ApiResponse<PumpLogResponse>>(
         {
           success: false,
-          error: 'Pump log not found',
+          error: 'Pump log not found or access denied',
         },
         { status: 404 }
       );
@@ -174,18 +186,20 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const babyId = searchParams.get('babyId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     
-    // Get family ID from request headers
-    const familyId = await getFamilyIdFromRequest(req);
-
     const queryParams: any = {
+      familyId: userFamilyId,
       ...(babyId && { babyId }),
-      ...(familyId && { familyId }), // Filter by family ID if available
     };
     
     // Add date range filter if both start and end dates are provided
@@ -201,7 +215,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
       const pumpLog = await prisma.pumpLog.findFirst({
         where: { 
           id,
-          ...(familyId && { familyId }), // Filter by family ID if available
+          familyId: userFamilyId,
         },
       });
 
@@ -209,7 +223,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
         return NextResponse.json<ApiResponse<PumpLogResponse>>(
           {
             success: false,
-            error: 'Pump log not found',
+            error: 'Pump log not found or access denied',
           },
           { status: 404 }
         );
@@ -267,6 +281,11 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -280,17 +299,15 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const familyId = await getFamilyIdFromRequest(req);
-
     const existingPumpLog = await prisma.pumpLog.findFirst({
-      where: { id, ...(familyId && { familyId }) },
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingPumpLog) {
       return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
-          error: 'Pump log not found',
+          error: 'Pump log not found or access denied',
         },
         { status: 404 }
       );
