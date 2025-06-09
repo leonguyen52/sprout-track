@@ -96,7 +96,7 @@ This checklist tracks the progress of refactoring each component and its associa
 - [x] **Diaper Log**
     - Form: `src/components/forms/DiaperForm/`
     - API: `app/api/diaper-log/`
-- [ ] **Feed Log**
+- [x] **Feed Log**
     - Form: `src/components/forms/FeedForm/`
     - API: `app/api/feed-log/`
 - [ ] **Measurement Log**
@@ -134,4 +134,7 @@ This checklist tracks the progress of refactoring each component and its associa
 - [ ] **Family API**
     - API: `app/api/family/`
 - [ ] **Activity Settings**
-    - API: `app/api/activity-settings/` 
+    - API: `app/api/activity-settings/`
+- [ ] **Growth Log**
+- [ ] **Health Log**
+- [ ] **Other Milestones** 

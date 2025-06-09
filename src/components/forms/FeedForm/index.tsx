@@ -14,7 +14,6 @@ import {
 import { Check } from 'lucide-react';
 import { useTimezone } from '@/app/context/timezone';
 import { useTheme } from '@/src/context/theme';
-import { useFamily } from '@/src/context/family';
 import './feed-form.css';
 
 // Import subcomponents
@@ -29,7 +28,6 @@ interface FeedFormProps {
   initialTime: string;
   activity?: FeedLogResponse;
   onSuccess?: () => void;
-  familyId?: string; // Add familyId prop for multi-family support
 }
 
 export default function FeedForm({
@@ -39,11 +37,9 @@ export default function FeedForm({
   initialTime,
   activity,
   onSuccess,
-  familyId,
 }: FeedFormProps) {
   const { formatDate, toUTCString } = useTimezone();
   const { theme } = useTheme();
-  const { family } = useFamily();
   
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
@@ -413,26 +409,22 @@ export default function FeedForm({
     console.log('Converted time (UTC):', utcTimeString);
     console.log('Unit being sent:', formData.unit); // Debug log for unit
     
-    // Use family context with fallback to prop
-    const finalFamilyId = familyId || family?.id;
-    
-      const payload = {
-        babyId,
-        time: utcTimeString, // Send the UTC ISO string instead of local time
-        type: formData.type,
-        ...(formData.type === 'BREAST' && side && { 
-          side,
-          ...(startTime && { startTime: toUTCString(startTime) }),
-          ...(endTime && { endTime: toUTCString(endTime) }),
-          feedDuration: duration
-        }),
-        ...((formData.type === 'BOTTLE' || formData.type === 'SOLIDS') && formData.amount && { 
-          amount: parseFloat(formData.amount),
-          unitAbbr: formData.unit // This should correctly send 'TBSP' or 'G'
-        }),
-        ...(formData.type === 'SOLIDS' && formData.food && { food: formData.food }),
-        familyId: finalFamilyId || undefined, // Include familyId in the payload
-      };
+    const payload = {
+      babyId,
+      time: utcTimeString, // Send the UTC ISO string instead of local time
+      type: formData.type,
+      ...(formData.type === 'BREAST' && side && { 
+        side,
+        ...(startTime && { startTime: toUTCString(startTime) }),
+        ...(endTime && { endTime: toUTCString(endTime) }),
+        feedDuration: duration
+      }),
+      ...((formData.type === 'BOTTLE' || formData.type === 'SOLIDS') && formData.amount && { 
+        amount: parseFloat(formData.amount),
+        unitAbbr: formData.unit // This should correctly send 'TBSP' or 'G'
+      }),
+      ...(formData.type === 'SOLIDS' && formData.food && { food: formData.food }),
+    };
 
     console.log('Payload being sent:', payload); // Debug log for payload
 
