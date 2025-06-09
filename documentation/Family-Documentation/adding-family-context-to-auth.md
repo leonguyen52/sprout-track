@@ -126,7 +126,7 @@ This checklist tracks the progress of refactoring each component and its associa
 - [ ] **Calendar**
     - Form: `src/components/forms/CalendarEventForm/`
     - API: `app/api/calendar-event/`
-- [ ] **Contacts**
+- [x] **Contacts**
     - Form: `src/components/forms/ContactForm/`
     - API: `app/api/contact/`
 - [ ] **Units**
