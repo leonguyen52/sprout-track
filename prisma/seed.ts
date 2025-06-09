@@ -28,7 +28,7 @@ async function main() {
 
   // Define all available units with their activity types
   const unitData: UnitData[] = [
-    { unitAbbr: 'OZ', unitName: 'Ounces', activityTypes: 'weight,feed' },
+    { unitAbbr: 'OZ', unitName: 'Ounces', activityTypes: 'weight,feed,medicine' },
     { unitAbbr: 'ML', unitName: 'Milliliters', activityTypes: 'medicine,feed' },
     { unitAbbr: 'TBSP', unitName: 'Tablespoon', activityTypes: 'medicine,feed' },
     { unitAbbr: 'LB', unitName: 'Pounds', activityTypes: 'weight' },
