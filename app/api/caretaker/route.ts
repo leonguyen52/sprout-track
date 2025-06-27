@@ -17,6 +17,17 @@ async function postHandler(req: NextRequest, authContext: AuthResult) {
 
     const body: CaretakerCreate = await req.json();
 
+    // Prevent creating system caretaker through API
+    if (body.loginId === '00' || body.type === 'System Administrator') {
+      return NextResponse.json<ApiResponse<CaretakerResponse>>(
+        {
+          success: false,
+          error: 'System caretaker cannot be created through this API.',
+        },
+        { status: 403 }
+      );
+    }
+
     const existingCaretaker = await prisma.caretaker.findFirst({
       where: {
         loginId: body.loginId,
@@ -79,8 +90,30 @@ async function putHandler(req: NextRequest, authContext: AuthResult) {
     const body: CaretakerUpdate = await req.json();
     const { id, ...updateData } = body;
 
+    // Check if this is the system caretaker
+    const isSystemCaretaker = await prisma.caretaker.findFirst({
+      where: { 
+        id,
+        loginId: '00',
+        familyId: userFamilyId 
+      }
+    });
+
+    if (isSystemCaretaker) {
+      return NextResponse.json<ApiResponse<CaretakerResponse>>(
+        {
+          success: false,
+          error: 'System caretaker cannot be modified.',
+        },
+        { status: 403 }
+      );
+    }
+
     const existingCaretaker = await prisma.caretaker.findFirst({
-      where: { id, familyId: userFamilyId },
+      where: { 
+        id, 
+        familyId: userFamilyId,
+      },
     });
 
     if (!existingCaretaker) {
@@ -163,6 +196,25 @@ async function deleteHandler(req: NextRequest, authContext: AuthResult) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Caretaker ID is required' }, { status: 400 });
     }
 
+    // Check if this is the system caretaker
+    const isSystemCaretaker = await prisma.caretaker.findFirst({
+      where: { 
+        id,
+        loginId: '00',
+        familyId: userFamilyId 
+      }
+    });
+
+    if (isSystemCaretaker) {
+      return NextResponse.json<ApiResponse<null>>(
+        {
+          success: false,
+          error: 'System caretaker cannot be deleted.',
+        },
+        { status: 403 }
+      );
+    }
+
     const existingCaretaker = await prisma.caretaker.findFirst({
       where: { id, familyId: userFamilyId },
     });
@@ -224,6 +276,7 @@ async function getHandler(req: NextRequest, authContext: AuthResult) {
       where: {
         deletedAt: null,
         familyId: userFamilyId,
+        loginId: { not: '00' }, // Exclude system caretaker from lists
       },
       orderBy: {
         name: 'asc',

@@ -88,6 +88,31 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       data,
     });
 
+    // If securityPin was updated, also update system caretaker's pin
+    if (body.securityPin !== undefined) {
+      try {
+        const systemCaretaker = await prisma.caretaker.findFirst({
+          where: { 
+            loginId: '00',
+            familyId: familyId 
+          }
+        });
+
+        if (systemCaretaker) {
+          await prisma.caretaker.update({
+            where: { id: systemCaretaker.id },
+            data: { securityPin: body.securityPin }
+          });
+          console.log('Updated system caretaker security pin to match settings.');
+        } else {
+          console.log('System caretaker not found, skipping pin sync.');
+        }
+      } catch (error) {
+        console.error('Error updating system caretaker pin (non-fatal):', error);
+        // Don't fail the entire request if system caretaker update fails
+      }
+    }
+
     return NextResponse.json<ApiResponse<Settings>>({
       success: true,
       data: settings,

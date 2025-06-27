@@ -181,18 +181,72 @@ async function updateDatabase() {
       
       const familyMemberData = [];
       
-      // Add system user to family with admin role
-      familyMemberData.push({
-        familyId: familyId,
-        caretakerId: 'system',
-        role: 'admin',
-        joinedAt: new Date()
+      // Create or update system caretaker
+      let systemCaretaker = await prisma.caretaker.findFirst({
+        where: { 
+          loginId: '00',
+          familyId: familyId 
+        }
       });
       
-      // Get all existing caretakers
+      if (!systemCaretaker) {
+        console.log('Creating system caretaker...');
+        
+        // Get security pin from settings table
+        let securityPin = '111222'; // Default fallback from schema
+        try {
+          const settings = await prisma.settings.findFirst();
+          if (settings && settings.securityPin) {
+            securityPin = settings.securityPin;
+            console.log('Using security pin from settings table.');
+          } else {
+            console.log('No settings found or no security pin set, using default: 111222');
+          }
+        } catch (error) {
+          console.log('Error reading security pin from settings, using default 111222:', error.message);
+        }
+        
+        systemCaretaker = await prisma.caretaker.create({
+          data: {
+            id: randomUUID(),
+            loginId: '00',
+            name: 'system',
+            type: 'System Administrator',
+            role: 'ADMIN',
+            securityPin: securityPin,
+            familyId: familyId
+          }
+        });
+        console.log('System caretaker created successfully.');
+      } else {
+        console.log('System caretaker already exists in this family.');
+      }
+      
+      // Check if system user is already a family member
+      const existingSystemMember = await prisma.familyMember.findFirst({
+        where: {
+          familyId: familyId,
+          caretakerId: systemCaretaker.id
+        }
+      });
+      
+      if (!existingSystemMember) {
+        // Add system user to family with admin role
+        familyMemberData.push({
+          familyId: familyId,
+          caretakerId: systemCaretaker.id,
+          role: 'admin',
+          joinedAt: new Date()
+        });
+      } else {
+        console.log('System caretaker is already a family member.');
+      }
+      
+      // Get all existing caretakers (excluding system caretaker)
       const caretakers = await prisma.caretaker.findMany({
         where: {
-          deletedAt: null
+          deletedAt: null,
+          loginId: { not: '00' } // Exclude system caretaker to prevent duplicates
         },
         orderBy: {
           createdAt: 'asc'
@@ -202,26 +256,35 @@ async function updateDatabase() {
       if (caretakers.length > 0) {
         console.log(`Found ${caretakers.length} caretakers to link to family.`);
         
-        // Create FamilyMember records for each caretaker
-        const caretakerData = caretakers.map((caretaker) => {
-          // Determine role based on caretaker's existing role
-          let familyRole = 'member'; // default
+        // Create FamilyMember records for each caretaker (only if they don't already exist)
+        for (const caretaker of caretakers) {
+          const existingMember = await prisma.familyMember.findFirst({
+            where: {
+              familyId: familyId,
+              caretakerId: caretaker.id
+            }
+          });
           
-          // Use the caretaker's existing role (ADMIN -> admin, USER -> member)
-          if (caretaker.role === 'ADMIN') {
-            familyRole = 'admin';
+          if (!existingMember) {
+            // Determine role based on caretaker's existing role
+            let familyRole = 'member'; // default
+            
+            // Use the caretaker's existing role (ADMIN -> admin, USER -> member)
+            if (caretaker.role === 'ADMIN') {
+              familyRole = 'admin';
+            }
+            // USER role becomes member (this is the default we set above)
+            
+            familyMemberData.push({
+              familyId: familyId,
+              caretakerId: caretaker.id,
+              role: familyRole,
+              joinedAt: new Date()
+            });
+          } else {
+            console.log(`Caretaker ${caretaker.name} is already a family member.`);
           }
-          // USER role becomes member (this is the default we set above)
-          
-          return {
-            familyId: familyId,
-            caretakerId: caretaker.id,
-            role: familyRole,
-            joinedAt: new Date()
-          };
-        });
-        
-        familyMemberData.push(...caretakerData);
+        }
       }
       
       // Bulk create all family member relationships

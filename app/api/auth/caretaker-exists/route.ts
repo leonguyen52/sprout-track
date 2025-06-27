@@ -4,10 +4,11 @@ import { ApiResponse } from '../../types';
 
 export async function GET(req: NextRequest) {
   try {
-    // Count active caretakers
+    // Count active caretakers (excluding system caretaker)
     const caretakerCount = await prisma.caretaker.count({
       where: {
         deletedAt: null,
+        id: { not: 'system' }, // Exclude system caretaker
       },
     });
 
