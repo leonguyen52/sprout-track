@@ -6,10 +6,10 @@ import { Family } from '@prisma/client';
 // This endpoint doesn't require authentication as it's used for the initial family selection
 export async function GET(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ): Promise<NextResponse<ApiResponse<Family | null>>> {
   try {
-    const { slug } = params;
+    const { slug } = await params;
     
     if (!slug) {
       return NextResponse.json({
