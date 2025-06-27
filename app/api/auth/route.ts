@@ -41,10 +41,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Count active caretakers
+    // Count active caretakers (excluding system caretaker)
     const caretakerCount = await prisma.caretaker.count({
       where: {
         deletedAt: null,
+        loginId: { not: '00' }, // Exclude system caretaker
       },
     });
 
@@ -54,51 +55,79 @@ export async function POST(req: NextRequest) {
       const settings = await prisma.settings.findFirst();
       
       if (settings && settings.securityPin === securityPin) {
-        // Create JWT token for system admin
-        const token = jwt.sign(
-          {
-            id: 'system',
-            name: 'System Administrator',
-            type: 'admin',
-            role: 'ADMIN',
+        // Find the system caretaker to get family information
+        const systemCaretaker = await prisma.caretaker.findFirst({
+          where: {
+            loginId: '00',
+            deletedAt: null,
           },
-          JWT_SECRET,
-          { expiresIn: `${TOKEN_EXPIRATION}s` } // Token expires based on AUTH_LIFE env variable
-        );
-        
-        // Create response with token
-        const response = NextResponse.json<ApiResponse<{ 
-          id: string; 
-          name: string; 
-          type: string | null; 
-          role: string;
-          token: string;
-        }>>(
-          {
-            success: true,
-            data: {
-              id: 'system',
-              name: 'System Administrator',
-              type: 'admin',
-              role: 'ADMIN',
-              token: token,
-            },
-          }
-        );
-        
-        // Also set the caretakerId cookie for backward compatibility
-        response.cookies.set('caretakerId', 'system', {
-          httpOnly: true,
-          secure: process.env.COOKIE_SECURE === 'true',
-          sameSite: 'strict',
-          maxAge: TOKEN_EXPIRATION, // Use AUTH_LIFE env variable
-          path: '/',
+          include: {
+            family: true,
+          },
         });
         
-        // Reset failed attempts on successful login
-        resetFailedAttempts(ip);
-        
-        return response;
+        if (systemCaretaker) {
+          // Create JWT token for system admin with actual caretaker data
+          const token = jwt.sign(
+            {
+              id: systemCaretaker.id,
+              name: systemCaretaker.name,
+              type: systemCaretaker.type,
+              role: (systemCaretaker as any).role || 'ADMIN',
+              familyId: systemCaretaker.familyId,
+              familySlug: systemCaretaker.family?.slug,
+            },
+            JWT_SECRET,
+            { expiresIn: `${TOKEN_EXPIRATION}s` } // Token expires based on AUTH_LIFE env variable
+          );
+          
+          // Create response with token
+          const response = NextResponse.json<ApiResponse<{ 
+            id: string; 
+            name: string; 
+            type: string | null; 
+            role: string;
+            token: string;
+            familyId: string | null;
+            familySlug: string | null;
+          }>>(
+            {
+              success: true,
+              data: {
+                id: systemCaretaker.id,
+                name: systemCaretaker.name,
+                type: systemCaretaker.type,
+                role: (systemCaretaker as any).role || 'ADMIN',
+                token: token,
+                familyId: systemCaretaker.familyId,
+                familySlug: systemCaretaker.family?.slug || null,
+              },
+            }
+          );
+          
+          // Also set the caretakerId cookie for backward compatibility
+          response.cookies.set('caretakerId', systemCaretaker.id, {
+            httpOnly: true,
+            secure: process.env.COOKIE_SECURE === 'true',
+            sameSite: 'strict',
+            maxAge: TOKEN_EXPIRATION, // Use AUTH_LIFE env variable
+            path: '/',
+          });
+          
+          // Reset failed attempts on successful login
+          resetFailedAttempts(ip);
+          
+          return response;
+        } else {
+          // Fallback if system caretaker doesn't exist
+          return NextResponse.json<ApiResponse<null>>(
+            {
+              success: false,
+              error: 'System caretaker not found. Please contact administrator.',
+            },
+            { status: 500 }
+          );
+        }
       }
     } else if (loginId) {
       // If caretakers exist, require loginId and check caretaker credentials

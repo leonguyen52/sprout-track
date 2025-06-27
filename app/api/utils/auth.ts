@@ -102,18 +102,6 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
     
     // If no token but we have a caretakerId cookie, use the old method (backward compatibility)
     if (caretakerId) {
-      // Check if caretakerId is 'system' (system admin)
-      if (caretakerId === 'system') {
-        return { 
-          authenticated: true, 
-          caretakerId: 'system',
-          caretakerType: 'admin',
-          caretakerRole: 'ADMIN',
-          familyId: null,
-          familySlug: null,
-        };
-      }
-      
       // Verify caretaker exists in database
       const caretaker = await prisma.caretaker.findFirst({
         where: {
@@ -191,8 +179,24 @@ export function withAdminAuth<T>(
       );
     }
     
-    // Check if user is an admin (either by role or special system ID)
-    if (authResult.caretakerRole !== 'ADMIN' && authResult.caretakerId !== 'system') {
+    // Check if user is an admin by role or if they're a system caretaker
+    let isSystemCaretaker = false;
+    if (authResult.caretakerId) {
+      try {
+        const caretaker = await prisma.caretaker.findFirst({
+          where: {
+            id: authResult.caretakerId,
+            loginId: '00', // System caretakers have loginId '00'
+            deletedAt: null,
+          },
+        });
+        isSystemCaretaker = !!caretaker;
+      } catch (error) {
+        console.error('Error checking system caretaker:', error);
+      }
+    }
+    
+    if (authResult.caretakerRole !== 'ADMIN' && !isSystemCaretaker) {
       return NextResponse.json<ApiResponse<null>>(
         {
           success: false,
@@ -228,15 +232,28 @@ export function withAuthContext<T>(
       );
     }
     
-    // Modify authResult for system admin to use null caretakerId for database operations
-    if (authResult.caretakerId === 'system') {
-      // Create a new object to avoid modifying the original
-      const modifiedAuthResult = {
-        ...authResult,
-        // Set caretakerId to null for database operations
-        caretakerId: null
-      };
-      return handler(req, modifiedAuthResult);
+    // Check if this is a system caretaker by looking up loginId in database
+    if (authResult.caretakerId) {
+      try {
+        const caretaker = await prisma.caretaker.findFirst({
+          where: {
+            id: authResult.caretakerId,
+            loginId: '00', // System caretakers have loginId '00'
+            deletedAt: null,
+          },
+        });
+        
+        if (caretaker) {
+          // This is a system caretaker - set caretakerId to null for database operations
+          const modifiedAuthResult = {
+            ...authResult,
+            caretakerId: null
+          };
+          return handler(req, modifiedAuthResult);
+        }
+      } catch (error) {
+        console.error('Error checking system caretaker:', error);
+      }
     }
     
     return handler(req, authResult);

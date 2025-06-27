@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const caretakerCount = await prisma.caretaker.count({
       where: {
         deletedAt: null,
-        id: { not: 'system' }, // Exclude system caretaker
+        loginId: { not: '00' }, // Exclude system caretaker
       },
     });
 
