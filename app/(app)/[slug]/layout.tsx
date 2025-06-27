@@ -402,7 +402,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
                       </SideNavTrigger>
                     ) : null}
                     <div className="flex flex-col">
-                      {caretakerName && caretakerName !== 'System Administrator' && (
+                      {caretakerName && caretakerName !== 'system' && (
                         <span className="text-white text-xs opacity-80">
                           Hi, {caretakerName}
                         </span>
