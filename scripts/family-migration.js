@@ -70,8 +70,7 @@ const modelsToUpdate = [
   'medicine',
   'medicineLog',
   'contact',
-  'calendarEvent',
-  'unit'
+  'calendarEvent'
 ];
 
 // Generate a unique slug for the family
@@ -175,6 +174,73 @@ async function updateDatabase() {
     });
     
     console.log('Family record created successfully.');
+    
+    // Create family member relationships for system user and all existing caretakers
+    try {
+      console.log('Creating family member relationships...');
+      
+      const familyMemberData = [];
+      
+      // Add system user to family with admin role
+      familyMemberData.push({
+        familyId: familyId,
+        caretakerId: 'system',
+        role: 'admin',
+        joinedAt: new Date()
+      });
+      
+      // Get all existing caretakers
+      const caretakers = await prisma.caretaker.findMany({
+        where: {
+          deletedAt: null
+        },
+        orderBy: {
+          createdAt: 'asc'
+        }
+      });
+      
+      if (caretakers.length > 0) {
+        console.log(`Found ${caretakers.length} caretakers to link to family.`);
+        
+        // Create FamilyMember records for each caretaker
+        const caretakerData = caretakers.map((caretaker) => {
+          // Determine role based on caretaker's existing role
+          let familyRole = 'member'; // default
+          
+          // Use the caretaker's existing role (ADMIN -> admin, USER -> member)
+          if (caretaker.role === 'ADMIN') {
+            familyRole = 'admin';
+          }
+          // USER role becomes member (this is the default we set above)
+          
+          return {
+            familyId: familyId,
+            caretakerId: caretaker.id,
+            role: familyRole,
+            joinedAt: new Date()
+          };
+        });
+        
+        familyMemberData.push(...caretakerData);
+      }
+      
+      // Bulk create all family member relationships
+      if (familyMemberData.length > 0) {
+        await prisma.familyMember.createMany({
+          data: familyMemberData
+        });
+        
+        console.log(`Created ${familyMemberData.length} family member relationships.`);
+        console.log(`- ${familyMemberData.filter(fm => fm.role === 'admin').length} admin(s)`);
+        console.log(`- ${familyMemberData.filter(fm => fm.role === 'member').length} member(s)`);
+        console.log(`- System user included as admin`);
+      } else {
+        console.log('No family member relationships to create.');
+      }
+    } catch (error) {
+      console.error('Error creating family member relationships:', error);
+      // Don't exit on this error, continue with other updates
+    }
     
     // Update all existing records with the new familyId
     for (const model of modelsToUpdate) {

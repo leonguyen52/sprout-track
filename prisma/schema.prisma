@@ -122,8 +122,8 @@ model Family {
   medicineLogs     MedicineLog[]
   contacts         Contact[]
   calendarEvents   CalendarEvent[]
-  units            Unit[]
   familyMembers    FamilyMember[]
+  familySetups     FamilySetup[]
 }
 
 // New model for family membership
@@ -206,6 +206,7 @@ model Caretaker {
   medicineLogs MedicineLog[] // Relation to MedicineLog model
   events       CaretakerEvent[] // New relationship for calendar events
   familyMembers FamilyMember[]
+  familySetups  FamilySetup[]
   
   @@index([deletedAt])
   @@index([familyId])
@@ -249,10 +250,8 @@ model Unit {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   
-  // Add family relation
-  family      Family?       @relation(fields: [familyId], references: [id])
-  familyId    String?       // Nullable initially for migration
-  
+
+
   // Relationships
   feedLogs    FeedLog[]
   pumpLogs    PumpLog[]
@@ -260,7 +259,6 @@ model Unit {
   medicineLogs MedicineLog[] // Relation to MedicineLog model
   
   @@index([unitAbbr])
-  @@index([familyId])
 }
 
 model FeedLog {
@@ -729,4 +727,20 @@ model ContactMedicine {
   @@id([contactId, medicineId])
   @@index([contactId])
   @@index([medicineId])
+}
+
+// New model for family setup invitations
+model FamilySetup {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdBy String   // ID of the admin Caretaker who initiated the setup
+  familyId  String?  @unique // Linked to the Family record upon creation
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator   Caretaker @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  family    Family?   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@index([createdBy])
 }
