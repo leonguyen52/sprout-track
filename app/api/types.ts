@@ -15,6 +15,12 @@ export type FamilyResponse = Omit<Family, 'createdAt' | 'updatedAt'> & {
   updatedAt: string;
 };
 
+// Extended family response for management with counts
+export type FamilyManagementResponse = FamilyResponse & {
+  caretakerCount: number;
+  babyCount: number;
+};
+
 export interface FamilyCreate {
   name: string;
   slug: string;

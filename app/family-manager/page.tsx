@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/src/components/ui/card";
 import {
   Table,
@@ -11,48 +11,227 @@ import {
   TableRow,
 } from "@/src/components/ui/table";
 import { Button } from "@/src/components/ui/button";
+import { Input } from "@/src/components/ui/input";
+import { Checkbox } from "@/src/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/src/components/ui/dialog";
+import { 
+  Edit, 
+  Users, 
+  LogIn, 
+  Check, 
+  X, 
+  Plus,
+  Loader2,
+  AlertCircle
+} from "lucide-react";
+import { useRouter } from 'next/navigation';
 
-// Dummy data for family management
-const familyData = [
-  {
-    id: 1,
-    name: "The Johnson Family",
-    slug: "johnson-family",
-    members: 4,
-    babies: 2,
-    createdDate: "2024-01-15",
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "The Smith Household",
-    slug: "smith-household",
-    members: 3,
-    babies: 1,
-    createdDate: "2024-02-03",
-    status: "Active",
-  },
-  {
-    id: 3,
-    name: "The Williams Family",
-    slug: "williams-family",
-    members: 5,
-    babies: 3,
-    createdDate: "2024-01-28",
-    status: "Active",
-  },
-  {
-    id: 4,
-    name: "The Brown Family",
-    slug: "brown-family",
-    members: 2,
-    babies: 1,
-    createdDate: "2024-03-10",
-    status: "Inactive",
-  },
-];
+// Types for our family data
+interface FamilyData {
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  caretakerCount?: number;
+  babyCount?: number;
+}
+
+interface CaretakerData {
+  id: string;
+  loginId: string;
+  name: string;
+  type: string | null;
+  role: string;
+  inactive: boolean;
+}
 
 export default function FamilyManagerPage() {
+  const router = useRouter();
+  const [families, setFamilies] = useState<FamilyData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingData, setEditingData] = useState<Partial<FamilyData>>({});
+  const [saving, setSaving] = useState(false);
+  const [caretakersDialogOpen, setCaretakersDialogOpen] = useState(false);
+  const [selectedFamilyCaretakers, setSelectedFamilyCaretakers] = useState<CaretakerData[]>([]);
+  const [loadingCaretakers, setLoadingCaretakers] = useState(false);
+  const [slugError, setSlugError] = useState<string>('');
+  const [checkingSlug, setCheckingSlug] = useState(false);
+
+  // Fetch families data
+  const fetchFamilies = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/family/manage');
+      const data = await response.json();
+      
+      if (data.success) {
+        setFamilies(data.data);
+      } else {
+        console.error('Failed to fetch families:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching families:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Check slug uniqueness
+  const checkSlugUniqueness = useCallback(async (slug: string, currentFamilyId: string) => {
+    if (!slug || slug.trim() === '') {
+      setSlugError('');
+      return;
+    }
+
+    setCheckingSlug(true);
+    try {
+      const response = await fetch(`/api/family/by-slug/${encodeURIComponent(slug)}`);
+      const data = await response.json();
+      
+      if (data.success && data.data && data.data.id !== currentFamilyId) {
+        setSlugError('This slug is already taken');
+      } else {
+        setSlugError('');
+      }
+    } catch (error) {
+      console.error('Error checking slug:', error);
+      setSlugError('Error checking slug availability');
+    } finally {
+      setCheckingSlug(false);
+    }
+  }, []);
+
+  // Debounced slug check
+  useEffect(() => {
+    if (editingData.slug && editingId) {
+      const timeoutId = setTimeout(() => {
+        checkSlugUniqueness(editingData.slug!, editingId);
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [editingData.slug, editingId, checkSlugUniqueness]);
+
+  // Fetch caretakers for a family
+  const fetchCaretakers = async (familyId: string) => {
+    try {
+      setLoadingCaretakers(true);
+      const response = await fetch(`/api/family/${familyId}/caretakers`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setSelectedFamilyCaretakers(data.data);
+      } else {
+        console.error('Failed to fetch caretakers:', data.error);
+        setSelectedFamilyCaretakers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching caretakers:', error);
+      setSelectedFamilyCaretakers([]);
+    } finally {
+      setLoadingCaretakers(false);
+    }
+  };
+
+  // Save family changes
+  const saveFamily = async (family: FamilyData) => {
+    // Don't save if there's a slug error
+    if (slugError) {
+      alert('Please fix the slug error before saving');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const response = await fetch('/api/family/manage', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: family.id,
+          name: editingData.name || family.name,
+          slug: editingData.slug || family.slug,
+          isActive: editingData.isActive !== undefined ? editingData.isActive : family.isActive,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        await fetchFamilies(); // Refresh the list
+        setEditingId(null);
+        setEditingData({});
+        setSlugError('');
+      } else {
+        console.error('Failed to save family:', data.error);
+        alert('Failed to save changes: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error saving family:', error);
+      alert('Error saving changes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle edit button click
+  const handleEdit = (family: FamilyData) => {
+    setEditingId(family.id);
+    setEditingData({
+      name: family.name,
+      slug: family.slug,
+      isActive: family.isActive,
+    });
+    setSlugError('');
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingData({});
+    setSlugError('');
+  };
+
+  // Handle view caretakers
+  const handleViewCaretakers = async (family: FamilyData) => {
+    setCaretakersDialogOpen(true);
+    await fetchCaretakers(family.id);
+  };
+
+  // Handle login navigation
+  const handleLogin = (family: FamilyData) => {
+    router.push(`/${family.slug}/login`);
+  };
+
+  // Format date/time for display
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchFamilies();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="h-full w-full">
       <Card className="h-full w-full rounded-none border-0">
@@ -60,6 +239,7 @@ export default function FamilyManagerPage() {
           <div className="flex justify-between items-center">
             <CardTitle>All Families</CardTitle>
             <Button>
+              <Plus className="h-4 w-4 mr-2" />
               Add New Family
             </Button>
           </div>
@@ -70,48 +250,193 @@ export default function FamilyManagerPage() {
               <TableRow>
                 <TableHead>Family Name</TableHead>
                 <TableHead>Slug</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Members</TableHead>
                 <TableHead>Babies</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {familyData.map((family) => (
-                <TableRow key={family.id}>
-                  <TableCell className="font-medium">{family.name}</TableCell>
-                  <TableCell className="font-mono text-sm">{family.slug}</TableCell>
-                  <TableCell>{family.members}</TableCell>
-                  <TableCell>{family.babies}</TableCell>
-                  <TableCell>{new Date(family.createdDate).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        family.status === 'Active'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-                      }`}
-                    >
-                      {family.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm">
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Edit
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {families.map((family) => {
+                const isEditing = editingId === family.id;
+                
+                return (
+                  <TableRow key={family.id}>
+                    <TableCell className="font-medium">
+                      {isEditing ? (
+                        <Input
+                          value={editingData.name || ''}
+                          onChange={(e) => setEditingData(prev => ({ ...prev, name: e.target.value }))}
+                          className="min-w-[200px]"
+                        />
+                      ) : (
+                        family.name
+                      )}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {isEditing ? (
+                        <div className="space-y-1">
+                          <div className="relative">
+                            <Input
+                              value={editingData.slug || ''}
+                              onChange={(e) => setEditingData(prev => ({ ...prev, slug: e.target.value }))}
+                              className={`min-w-[150px] ${slugError ? 'border-red-500' : ''}`}
+                            />
+                            {checkingSlug && (
+                              <Loader2 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
+                            )}
+                          </div>
+                          {slugError && (
+                            <div className="flex items-center gap-1 text-red-600 text-xs">
+                              <AlertCircle className="h-3 w-3" />
+                              {slugError}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        family.slug
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">{formatDateTime(family.createdAt)}</TableCell>
+                    <TableCell className="text-sm">{formatDateTime(family.updatedAt)}</TableCell>
+                    <TableCell>
+                      {isEditing ? (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={editingData.isActive !== undefined ? editingData.isActive : family.isActive}
+                            onCheckedChange={(checked) => setEditingData(prev => ({ ...prev, isActive: !!checked }))}
+                          />
+                          <label className="text-sm">Active</label>
+                        </div>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            family.isActive
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                          }`}
+                        >
+                          {family.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>{family.caretakerCount || 0}</TableCell>
+                    <TableCell>{family.babyCount || 0}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {isEditing ? (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => saveFamily(family)}
+                              disabled={saving || !!slugError || checkingSlug}
+                            >
+                              {saving ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleCancelEdit}
+                              disabled={saving}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(family)}
+                              title="Edit family"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewCaretakers(family)}
+                              title="View caretakers"
+                            >
+                              <Users className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleLogin(family)}
+                              title="Login to family"
+                            >
+                              <LogIn className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {/* Caretakers Dialog */}
+      <Dialog open={caretakersDialogOpen} onOpenChange={setCaretakersDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Family Caretakers</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {loadingCaretakers ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : selectedFamilyCaretakers.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Login ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedFamilyCaretakers.map((caretaker) => (
+                    <TableRow key={caretaker.id}>
+                      <TableCell className="font-mono">{caretaker.loginId}</TableCell>
+                      <TableCell>{caretaker.name}</TableCell>
+                      <TableCell>{caretaker.type || 'N/A'}</TableCell>
+                      <TableCell>{caretaker.role}</TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            !caretaker.inactive
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                          }`}
+                        >
+                          {!caretaker.inactive ? 'Active' : 'Inactive'}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-center py-8 text-gray-500">No caretakers found for this family.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
