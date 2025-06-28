@@ -39,6 +39,89 @@ You should run this script:
 2. After cloning the repository for the first time
 3. When you need to reset the database to its initial state
 
+## generate-test-data.sh
+
+This script generates realistic test data for the Sprout Track application, including families, caretakers, babies, and log entries.
+
+### Purpose
+
+This script creates comprehensive test data to help with development and testing by generating:
+- Multiple families with unique slugs and names
+- Caretakers (2-4 per family) with realistic roles
+- Babies (1-2 per family) with appropriate ages
+- Sleep logs with realistic night sleep and nap patterns
+- Feed logs with bottle feeding schedules (every 2-4 hours)
+- Diaper logs with wet/dirty changes throughout the day
+
+### Running the Script
+
+```bash
+# Make sure the script is executable
+chmod +x scripts/generate-test-data.sh
+
+# Run the test data generation script
+./scripts/generate-test-data.sh
+```
+
+### Interactive Setup
+
+The script will prompt you for:
+1. **Number of families** (1-20): How many families to generate
+2. **Number of days** (1-90): How many days of log entries to create
+3. **Clear existing data** (y/N): Whether to delete all existing data first
+
+### Output
+
+The script provides detailed output about its progress:
+- Configuration summary with estimated data counts
+- Progress for each family being generated
+- Breakdown of log entries created per baby
+- Final summary with total counts of all generated data
+
+### Generated Data Structure
+
+For each family, the script creates:
+- **Family**: Unique slug (e.g., "happy-puppy"), realistic family name
+- **Settings**: Default family settings with PIN 111222
+- **Caretakers**: 2-4 caretakers per family
+  - First caretaker is always a "Parent" with ADMIN role
+  - Additional caretakers have varied types (Grandmother, Nanny, etc.)
+  - All have access PIN 111222 for testing
+- **Babies**: 1-2 babies per family
+  - Realistic names based on gender
+  - Birth dates ranging from newborn to 24 months old
+  - Gender randomly assigned
+- **Log Entries** (per baby, per day):
+  - **Sleep logs**: Night sleep (9 PM - 7 AM) plus 1-2 naps during the day
+  - **Feed logs**: 6 bottle feeds per day (every 2-4 hours)
+  - **Diaper logs**: 6-10 diaper changes (60% wet, 25% dirty, 15% both)
+
+### Realistic Patterns
+
+The generated data follows realistic baby care patterns:
+- **Night sleep**: 10-12 hours starting around 9 PM
+- **Naps**: Morning nap (10 AM-12 PM, 70% chance) and afternoon nap (2 PM-4 PM, 80% chance)
+- **Feeding**: Regular bottle feeds at 2 AM, 6 AM, 10 AM, 2 PM, 6 PM, 10 PM with variations
+- **Diapers**: Random throughout the day with realistic type distribution
+- **Timing**: All activities have natural time variations (±30-45 minutes)
+
+### When to Use
+
+You should run this script:
+1. When setting up a development environment
+2. Before testing the family manager page
+3. When you need sample data to test pagination and search features
+4. To populate the database for UI/UX testing
+5. When demonstrating the application with realistic data
+
+### Data Access
+
+After generation, you can:
+1. Visit `/family-manager` to see all generated families
+2. Use PIN `111222` to log into any family
+3. Browse the generated log entries in each family's timeline
+4. Test search and pagination features with the generated data
+
 ## ensure-utc-dates-improved.js
 
 This is an improved version of the UTC date conversion script with better DST handling and more reliable UTC detection.
