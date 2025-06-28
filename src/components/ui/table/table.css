@@ -1,28 +1,29 @@
 /* Dark mode overrides for Table component */
 html.dark .table-dark {
-  background-color: #1f2937 !important; /* gray-800 */
-  border-color: #374151 !important; /* gray-700 */
+  background-color: #4b5563 !important; /* gray-600 - matches side-nav */
+  border-color: #6b7280 !important; /* gray-500 - matches side-nav borders */
   color: #e5e7eb !important; /* gray-200 */
 }
 
 html.dark .table-header-dark {
-  background-color: #374151 !important; /* gray-700 */
+  background-color: #374151 !important; /* gray-700 - slightly darker than main */
 }
 
 html.dark .table-header-dark tr {
-  border-color: #4b5563 !important; /* gray-600 */
+  border-color: #6b7280 !important; /* gray-500 - matches side-nav borders */
 }
 
 html.dark .table-body-dark tr {
-  border-color: #374151 !important; /* gray-700 */
+  border-color: #6b7280 !important; /* gray-500 - matches side-nav borders */
 }
 
 html.dark .table-body-dark tr:hover {
-  background-color: #374151 !important; /* gray-700 */
+  background-color: #374151 !important; /* gray-700 - matches side-nav hover */
 }
 
 html.dark .table-body-dark tr[data-state="selected"] {
-  background-color: #312e81 !important; /* indigo-900 */
+  background-color: #1f2937 !important; /* gray-800 - matches side-nav active */
+  color: #5eead4 !important; /* teal-300 - matches side-nav accent */
 }
 
 html.dark .table-footer-dark {
@@ -30,16 +31,17 @@ html.dark .table-footer-dark {
 }
 
 html.dark .table-footer-dark tr {
-  border-color: #4b5563 !important; /* gray-600 */
+  border-color: #6b7280 !important; /* gray-500 - matches side-nav borders */
 }
 
 html.dark .table-head-dark {
-  background-color: #374151 !important; /* gray-700 */
+  background: #374151 !important; /* gray-700 - slightly darker than main - overrides gradient */
+  background-image: none !important; /* Remove any gradient */
   color: #e5e7eb !important; /* gray-200 */
 }
 
 html.dark .table-cell-dark {
-  color: #d1d5db !important; /* gray-300 */
+  color: #e5e7eb !important; /* gray-200 - matches side-nav text */
 }
 
 html.dark .table-caption-dark {
