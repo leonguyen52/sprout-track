@@ -71,4 +71,29 @@ html.dark .table-pagesize-select-dark {
   background-color: #374151 !important; /* gray-700 */
   border-color: #6b7280 !important; /* gray-500 */
   color: #e5e7eb !important; /* gray-200 */
-} 
+}
+
+/* Page buttons dark mode styling to match Select component */
+html.dark .table-page-btn[data-current="false"] {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #6b7280 !important; /* gray-500 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-page-btn[data-current="false"]:hover {
+  background-color: #4b5563 !important; /* gray-600 */
+}
+
+/* Current page button keeps its teal styling in dark mode */
+html.dark .table-page-btn[data-current="true"] {
+  background-color: #0d9488 !important; /* teal-600 */
+  border-color: #0d9488 !important; /* teal-600 */
+  color: #ffffff !important; /* white */
+}
+
+html.dark .table-page-btn[data-current="true"]:hover {
+  background-color: #0f766e !important; /* teal-700 */
+  border-color: #0f766e !important; /* teal-700 */
+}
+
+ 

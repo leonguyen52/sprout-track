@@ -27,13 +27,13 @@ export const tableStyles = {
   searchContainer: "mb-6 w-full",
   searchInput: "w-full sm:w-3/4 lg:w-1/2",
   
-  paginationContainer: "mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 px-2",
+  paginationContainer: "mt-2 flex flex-col sm:flex-row items-center justify-between gap-4 px-2",
   paginationInfo: "text-sm text-gray-700 order-2 sm:order-1",
   paginationControls: "flex items-center gap-1 order-1 sm:order-2",
-  paginationButton: "h-9 w-9",
-  paginationButtonCurrent: "h-9 w-9",
+  paginationButton: "h-8 w-8",
+  paginationButtonCurrent: "h-8 w-8",
   
-  pageSizeContainer: "flex items-center gap-2 order-3 sm:order-3",
+  pageSizeContainer: "flex items-center gap-4 px-2 order-3 sm:order-3",
   pageSizeLabel: "text-sm text-gray-700 whitespace-nowrap",
   pageSizeSelect: "h-8 w-20",
 } as const; 

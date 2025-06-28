@@ -199,58 +199,67 @@ const TablePagination = React.forwardRef<HTMLDivElement, TablePaginationProps>(
         </div>
         
         <div className={tableStyles.paginationControls}>
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={() => onPageChange(1)}
             disabled={disabled || currentPage === 1}
-            className={tableStyles.paginationButton}
+            className="h-9 w-9 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+            style={{
+              color: disabled || currentPage === 1 ? '#9ca3af' : 'currentColor'
+            }}
           >
             <ChevronsLeft className="h-4 w-4" />
-          </Button>
+          </button>
           
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={disabled || currentPage === 1}
-            className={tableStyles.paginationButton}
+            className="h-9 w-9 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+            style={{
+              color: disabled || currentPage === 1 ? '#9ca3af' : 'currentColor'
+            }}
           >
             <ChevronLeft className="h-4 w-4" />
-          </Button>
+          </button>
           
           {pageNumbers.map((page) => (
-            <Button
+            <button
               key={page}
-              variant={page === currentPage ? "default" : "outline"}
-              size="sm"
               onClick={() => onPageChange(page)}
               disabled={disabled}
-              className={tableStyles.paginationButton}
+              data-current={page === currentPage}
+              className={cn(
+                "h-9 w-9 flex items-center justify-center rounded text-sm font-medium border table-page-btn",
+                page === currentPage 
+                  ? "bg-teal-600 text-white hover:bg-teal-700 border-teal-600" 
+                  : "bg-white text-gray-900 border-gray-300 hover:bg-gray-50 shadow-sm",
+                disabled && "opacity-50 cursor-not-allowed"
+              )}
             >
               {page}
-            </Button>
+            </button>
           ))}
           
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={disabled || currentPage === totalPages}
-            className={tableStyles.paginationButton}
+            className="h-9 w-9 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+            style={{
+              color: disabled || currentPage === totalPages ? '#9ca3af' : 'currentColor'
+            }}
           >
             <ChevronRight className="h-4 w-4" />
-          </Button>
+          </button>
           
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={() => onPageChange(totalPages)}
             disabled={disabled || currentPage === totalPages}
-            className={tableStyles.paginationButton}
+            className="h-9 w-9 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+            style={{
+              color: disabled || currentPage === totalPages ? '#9ca3af' : 'currentColor'
+            }}
           >
             <ChevronsRight className="h-4 w-4" />
-          </Button>
+          </button>
         </div>
       </div>
     );
