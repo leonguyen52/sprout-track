@@ -1,6 +1,6 @@
 export const tableStyles = {
   // Main table container
-  table: "w-full caption-bottom text-sm border-collapse border-spacing-0 rounded-xl overflow-hidden border border-gray-200 bg-white/80 shadow-lg backdrop-blur-sm transition-all duration-200 hover:shadow-xl hover:bg-white/90",
+  table: "w-full caption-bottom text-sm border-separate border-spacing-0 rounded-xl overflow-hidden border border-gray-200 bg-white/80 backdrop-blur-sm transition-all duration-200 hover:bg-white/90",
   
   // Table header section
   header: "[&_tr]:border-b [&_tr]:border-gray-200",

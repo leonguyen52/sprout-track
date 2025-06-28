@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card } from "@/src/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/src/components/ui/card";
 import {
   Table,
   TableBody,
@@ -54,18 +54,17 @@ const familyData = [
 
 export default function FamilyManagerPage() {
   return (
-    <div className="min-h-[calc(100vh-80px)] p-6">
-      <div className="max-w-7xl mx-auto">
-        <Card className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              All Families
-            </h2>
+    <div className="h-full w-full">
+      <Card className="h-full w-full rounded-none border-0">
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>All Families</CardTitle>
             <Button>
               Add New Family
             </Button>
           </div>
-
+        </CardHeader>
+        <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
@@ -111,8 +110,8 @@ export default function FamilyManagerPage() {
               ))}
             </TableBody>
           </Table>
-        </Card>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 } 
