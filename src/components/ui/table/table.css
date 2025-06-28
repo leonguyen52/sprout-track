@@ -1,0 +1,47 @@
+/* Dark mode overrides for Table component */
+html.dark .table-dark {
+  background-color: #1f2937 !important; /* gray-800 */
+  border-color: #374151 !important; /* gray-700 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-header-dark {
+  background-color: #374151 !important; /* gray-700 */
+}
+
+html.dark .table-header-dark tr {
+  border-color: #4b5563 !important; /* gray-600 */
+}
+
+html.dark .table-body-dark tr {
+  border-color: #374151 !important; /* gray-700 */
+}
+
+html.dark .table-body-dark tr:hover {
+  background-color: #374151 !important; /* gray-700 */
+}
+
+html.dark .table-body-dark tr[data-state="selected"] {
+  background-color: #312e81 !important; /* indigo-900 */
+}
+
+html.dark .table-footer-dark {
+  background-color: #374151 !important; /* gray-700 */
+}
+
+html.dark .table-footer-dark tr {
+  border-color: #4b5563 !important; /* gray-600 */
+}
+
+html.dark .table-head-dark {
+  background-color: #374151 !important; /* gray-700 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-cell-dark {
+  color: #d1d5db !important; /* gray-300 */
+}
+
+html.dark .table-caption-dark {
+  color: #9ca3af !important; /* gray-400 */
+} 
