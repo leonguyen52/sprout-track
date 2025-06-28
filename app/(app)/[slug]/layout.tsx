@@ -94,13 +94,13 @@ function AppContent({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Fetch babies - filter by family ID if available
-      let babiesUrl = '/api/baby';
-      if (family?.id) {
-        babiesUrl += `?familyId=${family.id}`;
-      }
-      
-      const babiesResponse = await fetch(babiesUrl);
+      // Fetch babies - the API will automatically filter by family ID from JWT token
+      const authToken = localStorage.getItem('authToken');
+      const babiesResponse = await fetch('/api/baby', {
+        headers: authToken ? {
+          'Authorization': `Bearer ${authToken}`
+        } : {}
+      });
       if (babiesResponse.ok) {
         const babiesData = await babiesResponse.json();
         if (babiesData.success) {
@@ -190,6 +190,10 @@ function AppContent({ children }: { children: React.ReactNode }) {
     setIsAdmin(false);
     setSideNavOpen(false);
     
+    // Clear baby selection
+    setSelectedBaby(null);
+    setBabies([]);
+    
     // Redirect to login page with family slug
     if (familySlug) {
       router.push(`/${familySlug}/login`);
@@ -236,6 +240,13 @@ function AppContent({ children }: { children: React.ReactNode }) {
       window.removeEventListener('resize', checkScreenWidth);
     };
   }, [checkScreenWidth]); // Remove fetchData from dependencies to prevent infinite loop
+
+  // Watch for family changes and refetch data
+  useEffect(() => {
+    if (family?.id) {
+      fetchData();
+    }
+  }, [family?.id]);
   
   // Add continuous authentication check and redirect
   useEffect(() => {
@@ -256,7 +267,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
         return;
       }
       
-      // Check if JWT token has expired
+      // Check if JWT token has expired and validate family access
       try {
         // JWT tokens are in format: header.payload.signature
         // We need the payload part (index 1)
@@ -270,6 +281,16 @@ function AppContent({ children }: { children: React.ReactNode }) {
           handleLogout();
           return;
         }
+        
+        // Check if user's family slug matches the current URL slug
+        if (decodedPayload.familySlug && familySlug && decodedPayload.familySlug !== familySlug) {
+          console.log('User trying to access different family. Redirecting to correct family...');
+          // Redirect to the user's actual family
+          const currentPath = pathname?.split('/').slice(2).join('/') || 'log-entry'; // Remove family slug from path
+          router.push(`/${decodedPayload.familySlug}/${currentPath}`);
+          return;
+        }
+        
       } catch (error) {
         console.error('Error parsing JWT token:', error);
         handleLogout();

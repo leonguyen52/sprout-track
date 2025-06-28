@@ -11,9 +11,10 @@ import { ApiResponse } from '@/app/api/types';
 
 interface LoginSecurityProps {
   onUnlock: (caretakerId?: string) => void;
+  familySlug?: string;
 }
 
-export default function LoginSecurity({ onUnlock }: LoginSecurityProps) {
+export default function LoginSecurity({ onUnlock, familySlug }: LoginSecurityProps) {
   const { theme } = useTheme();
   const [loginId, setLoginId] = useState<string>('');
   const [pin, setPin] = useState<string>('');
@@ -69,7 +70,12 @@ export default function LoginSecurity({ onUnlock }: LoginSecurityProps) {
   useEffect(() => {
     const checkCaretakers = async () => {
       try {
-        const response = await fetch('/api/auth/caretaker-exists');
+        let url = '/api/auth/caretaker-exists';
+        if (familySlug) {
+          url += `?familySlug=${encodeURIComponent(familySlug)}`;
+        }
+        
+        const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
           const caretakersExist = data.success && data.data.exists;
@@ -86,7 +92,7 @@ export default function LoginSecurity({ onUnlock }: LoginSecurityProps) {
     };
     
     checkCaretakers();
-  }, []);
+  }, [familySlug]);
 
   const handleLoginIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -169,6 +175,7 @@ export default function LoginSecurity({ onUnlock }: LoginSecurityProps) {
         body: JSON.stringify({
           loginId: hasCaretakers ? loginId : undefined,
           securityPin: pin,
+          familySlug: familySlug,
         }),
       });
 

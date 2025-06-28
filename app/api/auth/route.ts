@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { loginId, securityPin } = await req.json();
+    const { loginId, securityPin, familySlug } = await req.json();
 
     if (!securityPin) {
       return NextResponse.json<ApiResponse<null>>(
@@ -39,6 +39,27 @@ export async function POST(req: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // Validate family slug if provided
+    let targetFamily = null;
+    if (familySlug) {
+      targetFamily = await prisma.family.findFirst({
+        where: {
+          slug: familySlug,
+          isActive: true,
+        },
+      });
+
+      if (!targetFamily) {
+        return NextResponse.json<ApiResponse<null>>(
+          {
+            success: false,
+            error: 'Invalid family',
+          },
+          { status: 404 }
+        );
+      }
     }
 
     // Count active caretakers (excluding system caretaker)
@@ -60,6 +81,8 @@ export async function POST(req: NextRequest) {
           where: {
             loginId: '00',
             deletedAt: null,
+            // If family slug is provided, ensure system caretaker belongs to that family
+            ...(targetFamily ? { familyId: targetFamily.id } : {}),
           },
           include: {
             family: true,
@@ -137,6 +160,8 @@ export async function POST(req: NextRequest) {
           securityPin: securityPin,
           inactive: false,
           deletedAt: null,
+          // If family slug is provided, ensure caretaker belongs to that family
+          ...(targetFamily ? { familyId: targetFamily.id } : {}),
         } as any, // Type assertion for loginId field
         include: {
           family: true, // Include family information
@@ -203,10 +228,15 @@ export async function POST(req: NextRequest) {
     // Record the failed attempt
     recordFailedAttempt(ip);
     
+    // Provide a more specific error message if family validation failed
+    const errorMessage = targetFamily 
+      ? 'Invalid credentials or user does not have access to this family'
+      : 'Invalid credentials';
+    
     return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
-        error: 'Invalid credentials',
+        error: errorMessage,
       },
       { status: 401 }
     );

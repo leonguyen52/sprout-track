@@ -105,7 +105,7 @@ export default function LoginPage() {
         </div>
       )}
       
-      <LoginSecurity onUnlock={handleUnlock} />
+      <LoginSecurity onUnlock={handleUnlock} familySlug={familySlug} />
     </div>
   );
 }

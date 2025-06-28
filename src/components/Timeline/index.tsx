@@ -49,12 +49,14 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
       
       let url = `/api/timeline?babyId=${babyId}&date=${encodeURIComponent(formattedDate)}&_t=${timestamp}`;
       
+      const authToken = localStorage.getItem('authToken');
       const response = await fetch(url, {
         cache: 'no-store',
         headers: {
           'Pragma': 'no-cache',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Expires': '0'
+          'Expires': '0',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
         }
       });
       
@@ -306,9 +308,6 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
             initialTime={getActivityTime(selectedActivity)}
             activity={'content' in selectedActivity ? selectedActivity : undefined}
             onSuccess={handleFormSuccess}
-            familyId={
-              'familyId' in selectedActivity ? (selectedActivity as any).familyId : undefined
-            }
           />
           <BathForm
             isOpen={editModalType === 'bath'}
