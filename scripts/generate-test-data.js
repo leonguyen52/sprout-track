@@ -81,6 +81,13 @@ function randomFloat(min, max) {
   return Math.random() * (max - min) + min;
 }
 
+// Check if two dates are on the same day
+function isSameDay(date1, date2) {
+  return date1.getFullYear() === date2.getFullYear() &&
+         date1.getMonth() === date2.getMonth() &&
+         date1.getDate() === date2.getDate();
+}
+
 // Generate unique slug
 async function generateUniqueSlug() {
   let attempts = 0;
@@ -112,12 +119,18 @@ function generateBabyBirthDate() {
   return birthDate;
 }
 
-// Generate realistic timestamp within a day
-function generateTimeInDay(baseDate, hour, minuteVariation = 30) {
+// Generate realistic timestamp within a day, ensuring it doesn't exceed maxTime
+function generateTimeInDay(baseDate, hour, minuteVariation = 30, maxTime = null) {
   const date = new Date(baseDate);
   date.setHours(hour);
   date.setMinutes(randomInt(-minuteVariation, minuteVariation));
   date.setSeconds(randomInt(0, 59));
+  
+  // If maxTime is provided and the generated time exceeds it, cap it at maxTime
+  if (maxTime && date > maxTime) {
+    return maxTime;
+  }
+  
   return date;
 }
 
@@ -243,69 +256,113 @@ async function generateBabies(family, caretakers) {
 }
 
 // Generate sleep logs for a baby
-async function generateSleepLogs(baby, caretakers, family, startDate, endDate) {
+async function generateSleepLogs(baby, caretakers, family, startDate, endDate, currentTime = new Date()) {
   const logs = [];
   const currentDate = new Date(startDate);
   
   while (currentDate <= endDate) {
     const caretaker = randomChoice(caretakers);
+    const isToday = isSameDay(currentDate, currentTime);
     
     // Night sleep (9 PM - 7 AM)
-    const nightStart = generateTimeInDay(currentDate, 21); // 9 PM
-    const nightEnd = generateTimeInDay(new Date(currentDate.getTime() + 24 * 60 * 60 * 1000), 7); // 7 AM next day
-    const nightDuration = Math.floor((nightEnd - nightStart) / (1000 * 60)); // minutes
+    const nightStart = generateTimeInDay(currentDate, 21, 30, isToday ? currentTime : null); // 9 PM
     
-    logs.push({
-      id: randomUUID(),
-      startTime: nightStart,
-      endTime: nightEnd,
-      duration: nightDuration,
-      type: 'NIGHT_SLEEP',
-      location: 'Crib',
-      quality: randomChoice(['GOOD', 'EXCELLENT', 'FAIR']),
-      babyId: baby.id,
-      caretakerId: caretaker.id,
-      familyId: family.id
-    });
+    // Only create night sleep if start time is not in the future
+    if (nightStart <= currentTime) {
+      const nextDay = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+      const isTomorrowToday = isSameDay(nextDay, currentTime);
+      let nightEnd = generateTimeInDay(nextDay, 7, 30, isTomorrowToday ? currentTime : null); // 7 AM next day
+      
+      // Ensure night end is not in the future
+      if (nightEnd > currentTime) {
+        nightEnd = currentTime;
+      }
+      
+      const nightDuration = Math.floor((nightEnd - nightStart) / (1000 * 60)); // minutes
+      
+      // Only create the log if it has a positive duration
+      if (nightDuration > 0) {
+        logs.push({
+          id: randomUUID(),
+          startTime: nightStart,
+          endTime: nightEnd,
+          duration: nightDuration,
+          type: 'NIGHT_SLEEP',
+          location: 'Crib',
+          quality: randomChoice(['GOOD', 'EXCELLENT', 'FAIR']),
+          babyId: baby.id,
+          caretakerId: caretaker.id,
+          familyId: family.id
+        });
+      }
+    }
     
     // Morning nap (10 AM - 12 PM)
     if (Math.random() > 0.3) { // 70% chance
-      const napStart = generateTimeInDay(currentDate, 10);
-      const napDuration = randomInt(60, 120); // 1-2 hours
-      const napEnd = new Date(napStart.getTime() + napDuration * 60 * 1000);
+      const napStart = generateTimeInDay(currentDate, 10, 30, isToday ? currentTime : null);
       
-      logs.push({
-        id: randomUUID(),
-        startTime: napStart,
-        endTime: napEnd,
-        duration: napDuration,
-        type: 'NAP',
-        location: 'Crib',
-        quality: randomChoice(['GOOD', 'FAIR', 'EXCELLENT']),
-        babyId: baby.id,
-        caretakerId: caretaker.id,
-        familyId: family.id
-      });
+      // Only create nap if start time is not in the future
+      if (napStart <= currentTime) {
+        const napDuration = randomInt(60, 120); // 1-2 hours
+        let napEnd = new Date(napStart.getTime() + napDuration * 60 * 1000);
+        
+        // Ensure nap end is not in the future
+        if (napEnd > currentTime) {
+          napEnd = currentTime;
+        }
+        
+        const actualDuration = Math.floor((napEnd - napStart) / (1000 * 60));
+        
+        // Only create the log if it has a positive duration
+        if (actualDuration > 0) {
+          logs.push({
+            id: randomUUID(),
+            startTime: napStart,
+            endTime: napEnd,
+            duration: actualDuration,
+            type: 'NAP',
+            location: 'Crib',
+            quality: randomChoice(['GOOD', 'FAIR', 'EXCELLENT']),
+            babyId: baby.id,
+            caretakerId: caretaker.id,
+            familyId: family.id
+          });
+        }
+      }
     }
     
     // Afternoon nap (2 PM - 4 PM)
     if (Math.random() > 0.2) { // 80% chance
-      const napStart = generateTimeInDay(currentDate, 14);
-      const napDuration = randomInt(90, 180); // 1.5-3 hours
-      const napEnd = new Date(napStart.getTime() + napDuration * 60 * 1000);
+      const napStart = generateTimeInDay(currentDate, 14, 30, isToday ? currentTime : null);
       
-      logs.push({
-        id: randomUUID(),
-        startTime: napStart,
-        endTime: napEnd,
-        duration: napDuration,
-        type: 'NAP',
-        location: 'Crib',
-        quality: randomChoice(['GOOD', 'FAIR', 'EXCELLENT']),
-        babyId: baby.id,
-        caretakerId: caretaker.id,
-        familyId: family.id
-      });
+      // Only create nap if start time is not in the future
+      if (napStart <= currentTime) {
+        const napDuration = randomInt(90, 180); // 1.5-3 hours
+        let napEnd = new Date(napStart.getTime() + napDuration * 60 * 1000);
+        
+        // Ensure nap end is not in the future
+        if (napEnd > currentTime) {
+          napEnd = currentTime;
+        }
+        
+        const actualDuration = Math.floor((napEnd - napStart) / (1000 * 60));
+        
+        // Only create the log if it has a positive duration
+        if (actualDuration > 0) {
+          logs.push({
+            id: randomUUID(),
+            startTime: napStart,
+            endTime: napEnd,
+            duration: actualDuration,
+            type: 'NAP',
+            location: 'Crib',
+            quality: randomChoice(['GOOD', 'FAIR', 'EXCELLENT']),
+            babyId: baby.id,
+            caretakerId: caretaker.id,
+            familyId: family.id
+          });
+        }
+      }
     }
     
     currentDate.setDate(currentDate.getDate() + 1);
@@ -315,31 +372,36 @@ async function generateSleepLogs(baby, caretakers, family, startDate, endDate) {
 }
 
 // Generate feed logs for a baby
-async function generateFeedLogs(baby, caretakers, family, startDate, endDate) {
+async function generateFeedLogs(baby, caretakers, family, startDate, endDate, currentTime = new Date()) {
   const logs = [];
   const currentDate = new Date(startDate);
   
   while (currentDate <= endDate) {
     const caretaker = randomChoice(caretakers);
+    const isToday = isSameDay(currentDate, currentTime);
     
     // 6-8 bottle feeds per day, every 2-4 hours
     const feedTimes = [2, 6, 10, 14, 18, 22]; // Base times: 2 AM, 6 AM, 10 AM, 2 PM, 6 PM, 10 PM
     
     for (const baseHour of feedTimes) {
       if (Math.random() > 0.15) { // 85% chance for each feed
-        const feedTime = generateTimeInDay(currentDate, baseHour, 45);
-        const amount = randomFloat(2, 8); // 2-8 ounces
+        const feedTime = generateTimeInDay(currentDate, baseHour, 45, isToday ? currentTime : null);
         
-        logs.push({
-          id: randomUUID(),
-          time: feedTime,
-          type: 'BOTTLE',
-          amount: Math.round(amount * 10) / 10, // Round to 1 decimal
-          unitAbbr: 'OZ',
-          babyId: baby.id,
-          caretakerId: caretaker.id,
-          familyId: family.id
-        });
+        // Only create feed log if time is not in the future
+        if (feedTime <= currentTime) {
+          const amount = randomFloat(2, 8); // 2-8 ounces
+          
+          logs.push({
+            id: randomUUID(),
+            time: feedTime,
+            type: 'BOTTLE',
+            amount: Math.round(amount * 10) / 10, // Round to 1 decimal
+            unitAbbr: 'OZ',
+            babyId: baby.id,
+            caretakerId: caretaker.id,
+            familyId: family.id
+          });
+        }
       }
     }
     
@@ -350,41 +412,45 @@ async function generateFeedLogs(baby, caretakers, family, startDate, endDate) {
 }
 
 // Generate diaper logs for a baby
-async function generateDiaperLogs(baby, caretakers, family, startDate, endDate) {
+async function generateDiaperLogs(baby, caretakers, family, startDate, endDate, currentTime = new Date()) {
   const logs = [];
   const currentDate = new Date(startDate);
   
   while (currentDate <= endDate) {
     const caretaker = randomChoice(caretakers);
+    const isToday = isSameDay(currentDate, currentTime);
     
     // 6-10 diaper changes per day
     const diaperCount = randomInt(6, 10);
     
     for (let i = 0; i < diaperCount; i++) {
       const hour = randomInt(0, 23);
-      const changeTime = generateTimeInDay(currentDate, hour, 30);
+      const changeTime = generateTimeInDay(currentDate, hour, 30, isToday ? currentTime : null);
       
-      // Determine diaper type (more wet than dirty)
-      let type;
-      const rand = Math.random();
-      if (rand < 0.6) {
-        type = 'WET';
-      } else if (rand < 0.85) {
-        type = 'DIRTY';
-      } else {
-        type = 'BOTH';
+      // Only create diaper log if time is not in the future
+      if (changeTime <= currentTime) {
+        // Determine diaper type (more wet than dirty)
+        let type;
+        const rand = Math.random();
+        if (rand < 0.6) {
+          type = 'WET';
+        } else if (rand < 0.85) {
+          type = 'DIRTY';
+        } else {
+          type = 'BOTH';
+        }
+        
+        logs.push({
+          id: randomUUID(),
+          time: changeTime,
+          type: type,
+          condition: type === 'DIRTY' || type === 'BOTH' ? randomChoice(['Normal', 'Soft', 'Hard']) : null,
+          color: type === 'DIRTY' || type === 'BOTH' ? randomChoice(['Yellow', 'Brown', 'Green']) : null,
+          babyId: baby.id,
+          caretakerId: caretaker.id,
+          familyId: family.id
+        });
       }
-      
-      logs.push({
-        id: randomUUID(),
-        time: changeTime,
-        type: type,
-        condition: type === 'DIRTY' || type === 'BOTH' ? randomChoice(['Normal', 'Soft', 'Hard']) : null,
-        color: type === 'DIRTY' || type === 'BOTH' ? randomChoice(['Yellow', 'Brown', 'Green']) : null,
-        babyId: baby.id,
-        caretakerId: caretaker.id,
-        familyId: family.id
-      });
     }
     
     currentDate.setDate(currentDate.getDate() + 1);
@@ -434,21 +500,21 @@ async function generateTestData() {
         console.log(`    Generating logs for ${baby.firstName}...`);
         
         // Generate sleep logs
-        const sleepLogs = await generateSleepLogs(baby, caretakers, family, startDate, endDate);
+        const sleepLogs = await generateSleepLogs(baby, caretakers, family, startDate, endDate, endDate);
         if (sleepLogs.length > 0) {
           await prisma.sleepLog.createMany({ data: sleepLogs });
           totalSleepLogs += sleepLogs.length;
         }
         
         // Generate feed logs
-        const feedLogs = await generateFeedLogs(baby, caretakers, family, startDate, endDate);
+        const feedLogs = await generateFeedLogs(baby, caretakers, family, startDate, endDate, endDate);
         if (feedLogs.length > 0) {
           await prisma.feedLog.createMany({ data: feedLogs });
           totalFeedLogs += feedLogs.length;
         }
         
         // Generate diaper logs
-        const diaperLogs = await generateDiaperLogs(baby, caretakers, family, startDate, endDate);
+        const diaperLogs = await generateDiaperLogs(baby, caretakers, family, startDate, endDate, endDate);
         if (diaperLogs.length > 0) {
           await prisma.diaperLog.createMany({ data: diaperLogs });
           totalDiaperLogs += diaperLogs.length;
