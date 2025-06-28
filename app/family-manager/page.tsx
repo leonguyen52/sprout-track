@@ -56,15 +56,6 @@ export default function FamilyManagerPage() {
   return (
     <div className="min-h-[calc(100vh-80px)] p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Family Management
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
-            Manage all families in the baby tracking system
-          </p>
-        </div>
-
         <Card className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">

@@ -335,9 +335,14 @@ function AppContent({ children }: { children: React.ReactNode }) {
                           Hi, {caretakerName}
                         </span>
                       )}
-                      <span className="text-white text-sm font-medium">
-                        Family Management
-                      </span>
+                      <div className="flex flex-col">
+                        <h1 className="text-white text-lg font-bold">
+                          Family Management
+                        </h1>
+                        <p className="text-white/80 text-xs">
+                          Manage all families in the baby tracking system
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center mr-4 sm:mr-6 lg:mr-8">
