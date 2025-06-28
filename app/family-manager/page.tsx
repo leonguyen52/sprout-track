@@ -25,6 +25,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { useRouter } from 'next/navigation';
+import FamilyForm from '@/src/components/forms/FamilyForm';
 
 // Types for our family data
 interface FamilyData {
@@ -59,6 +60,9 @@ export default function FamilyManagerPage() {
   const [loadingCaretakers, setLoadingCaretakers] = useState(false);
   const [slugError, setSlugError] = useState<string>('');
   const [checkingSlug, setCheckingSlug] = useState(false);
+  const [showFamilyForm, setShowFamilyForm] = useState(false);
+  const [selectedFamily, setSelectedFamily] = useState<FamilyData | null>(null);
+  const [isEditingFamily, setIsEditingFamily] = useState(false);
 
   // Fetch families data
   const fetchFamilies = async () => {
@@ -207,6 +211,25 @@ export default function FamilyManagerPage() {
     router.push(`/${family.slug}/login`);
   };
 
+  // Handle add new family
+  const handleAddFamily = () => {
+    setSelectedFamily(null);
+    setIsEditingFamily(false);
+    setShowFamilyForm(true);
+  };
+
+  // Handle family form close
+  const handleFamilyFormClose = () => {
+    setShowFamilyForm(false);
+    setSelectedFamily(null);
+    setIsEditingFamily(false);
+  };
+
+  // Handle family form success
+  const handleFamilyFormSuccess = () => {
+    fetchFamilies(); // Refresh the families list
+  };
+
   // Format date/time for display
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
@@ -238,7 +261,7 @@ export default function FamilyManagerPage() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>All Families</CardTitle>
-            <Button>
+            <Button onClick={handleAddFamily}>
               <Plus className="h-4 w-4 mr-2" />
               Add New Family
             </Button>
@@ -437,6 +460,15 @@ export default function FamilyManagerPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Family Form */}
+      <FamilyForm
+        isOpen={showFamilyForm}
+        onClose={handleFamilyFormClose}
+        isEditing={isEditingFamily}
+        family={selectedFamily}
+        onFamilyChange={handleFamilyFormSuccess}
+      />
     </div>
   );
 } 
