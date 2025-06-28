@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/src/components/ui/card";
 import {
   Table,
@@ -9,6 +9,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableSearch,
+  TablePagination,
+  TablePageSize,
 } from "@/src/components/ui/table";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
@@ -63,6 +66,33 @@ export default function FamilyManagerPage() {
   const [showFamilyForm, setShowFamilyForm] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState<FamilyData | null>(null);
   const [isEditingFamily, setIsEditingFamily] = useState(false);
+
+  // Enhanced table state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Filter families based on search term
+  const filteredFamilies = useMemo(() => {
+    if (!searchTerm) return families;
+    
+    const search = searchTerm.toLowerCase();
+    return families.filter(family =>
+      family.name.toLowerCase().includes(search) ||
+      family.slug.toLowerCase().includes(search)
+    );
+  }, [families, searchTerm]);
+
+  // Calculate pagination
+  const totalItems = filteredFamilies.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedFamilies = filteredFamilies.slice(startIndex, startIndex + pageSize);
+
+  // Reset to first page when search term or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, pageSize]);
 
   // Fetch families data
   const fetchFamilies = async () => {
@@ -268,6 +298,14 @@ export default function FamilyManagerPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Search */}
+          <TableSearch
+            value={searchTerm}
+            onSearchChange={setSearchTerm}
+            placeholder="Search families by name or slug..."
+          />
+
+          {/* Table */}
           <Table>
             <TableHeader>
               <TableRow>
@@ -282,131 +320,158 @@ export default function FamilyManagerPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {families.map((family) => {
-                const isEditing = editingId === family.id;
-                
-                return (
-                  <TableRow key={family.id}>
-                    <TableCell className="font-medium">
-                      {isEditing ? (
-                        <Input
-                          value={editingData.name || ''}
-                          onChange={(e) => setEditingData(prev => ({ ...prev, name: e.target.value }))}
-                          className="min-w-[200px]"
-                        />
-                      ) : (
-                        family.name
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {isEditing ? (
-                        <div className="space-y-1">
-                          <div className="relative">
-                            <Input
-                              value={editingData.slug || ''}
-                              onChange={(e) => setEditingData(prev => ({ ...prev, slug: e.target.value }))}
-                              className={`min-w-[150px] ${slugError ? 'border-red-500' : ''}`}
-                            />
-                            {checkingSlug && (
-                              <Loader2 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
+              {paginatedFamilies.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    {searchTerm ? 'No families found matching your search.' : 'No families found.'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedFamilies.map((family) => {
+                  const isEditing = editingId === family.id;
+                  
+                  return (
+                    <TableRow key={family.id}>
+                      <TableCell className="font-medium">
+                        {isEditing ? (
+                          <Input
+                            value={editingData.name || ''}
+                            onChange={(e) => setEditingData(prev => ({ ...prev, name: e.target.value }))}
+                            className="min-w-[200px]"
+                          />
+                        ) : (
+                          family.name
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {isEditing ? (
+                          <div className="space-y-1">
+                            <div className="relative">
+                              <Input
+                                value={editingData.slug || ''}
+                                onChange={(e) => setEditingData(prev => ({ ...prev, slug: e.target.value }))}
+                                className={`min-w-[150px] ${slugError ? 'border-red-500' : ''}`}
+                              />
+                              {checkingSlug && (
+                                <Loader2 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
+                              )}
+                            </div>
+                            {slugError && (
+                              <div className="flex items-center gap-1 text-red-600 text-xs">
+                                <AlertCircle className="h-3 w-3" />
+                                {slugError}
+                              </div>
                             )}
                           </div>
-                          {slugError && (
-                            <div className="flex items-center gap-1 text-red-600 text-xs">
-                              <AlertCircle className="h-3 w-3" />
-                              {slugError}
-                            </div>
+                        ) : (
+                          family.slug
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">{formatDateTime(family.createdAt)}</TableCell>
+                      <TableCell className="text-sm">{formatDateTime(family.updatedAt)}</TableCell>
+                      <TableCell>
+                        {isEditing ? (
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={editingData.isActive !== undefined ? editingData.isActive : family.isActive}
+                              onCheckedChange={(checked) => setEditingData(prev => ({ ...prev, isActive: !!checked }))}
+                            />
+                            <label className="text-sm">Active</label>
+                          </div>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              family.isActive
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                            }`}
+                          >
+                            {family.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>{family.caretakerCount || 0}</TableCell>
+                      <TableCell>{family.babyCount || 0}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {isEditing ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => saveFamily(family)}
+                                disabled={saving || !!slugError || checkingSlug}
+                              >
+                                {saving ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Check className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleCancelEdit}
+                                disabled={saving}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(family)}
+                                title="Edit family"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewCaretakers(family)}
+                                title="View caretakers"
+                              >
+                                <Users className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleLogin(family)}
+                                title="Login to family"
+                              >
+                                <LogIn className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                         </div>
-                      ) : (
-                        family.slug
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm">{formatDateTime(family.createdAt)}</TableCell>
-                    <TableCell className="text-sm">{formatDateTime(family.updatedAt)}</TableCell>
-                    <TableCell>
-                      {isEditing ? (
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={editingData.isActive !== undefined ? editingData.isActive : family.isActive}
-                            onCheckedChange={(checked) => setEditingData(prev => ({ ...prev, isActive: !!checked }))}
-                          />
-                          <label className="text-sm">Active</label>
-                        </div>
-                      ) : (
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            family.isActive
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-                          }`}
-                        >
-                          {family.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>{family.caretakerCount || 0}</TableCell>
-                    <TableCell>{family.babyCount || 0}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {isEditing ? (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => saveFamily(family)}
-                              disabled={saving || !!slugError || checkingSlug}
-                            >
-                              {saving ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Check className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleCancelEdit}
-                              disabled={saving}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(family)}
-                              title="Edit family"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewCaretakers(family)}
-                              title="View caretakers"
-                            >
-                              <Users className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleLogin(family)}
-                              title="Login to family"
-                            >
-                              <LogIn className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
+
+          {/* Pagination and Page Size Controls */}
+          {totalItems >= 10 && (
+            <div className="flex items-center justify-between">
+              <TablePageSize
+                pageSize={pageSize}
+                onPageSizeChange={setPageSize}
+                pageSizeOptions={[5, 10, 20, 50]}
+              />
+              
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

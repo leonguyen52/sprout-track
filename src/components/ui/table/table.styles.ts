@@ -22,4 +22,18 @@ export const tableStyles = {
   
   // Table caption
   caption: "mt-4 text-sm text-gray-500",
+
+  // Enhanced table features
+  searchContainer: "mb-6 w-full",
+  searchInput: "w-full sm:w-3/4 lg:w-1/2",
+  
+  paginationContainer: "mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 px-2",
+  paginationInfo: "text-sm text-gray-700 order-2 sm:order-1",
+  paginationControls: "flex items-center gap-1 order-1 sm:order-2",
+  paginationButton: "h-9 w-9",
+  paginationButtonCurrent: "h-9 w-9",
+  
+  pageSizeContainer: "flex items-center gap-2 order-3 sm:order-3",
+  pageSizeLabel: "text-sm text-gray-700 whitespace-nowrap",
+  pageSizeSelect: "h-8 w-20",
 } as const; 

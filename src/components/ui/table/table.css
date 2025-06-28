@@ -46,4 +46,29 @@ html.dark .table-cell-dark {
 
 html.dark .table-caption-dark {
   color: #9ca3af !important; /* gray-400 */
+}
+
+/* Enhanced table features dark mode */
+html.dark .table-search-dark {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #6b7280 !important; /* gray-500 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-search-dark::placeholder {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .table-pagination-info-dark {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-pagesize-label-dark {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-pagesize-select-dark {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #6b7280 !important; /* gray-500 */
+  color: #e5e7eb !important; /* gray-200 */
 } 
