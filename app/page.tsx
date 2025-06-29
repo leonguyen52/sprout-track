@@ -39,8 +39,8 @@ export default function HomePage() {
             // Multiple families, redirect to family selection
             router.push('/family-select');
           } else {
-            // No families, redirect to setup
-            router.push('/setup');
+            // No families - will show setup needed message in UI
+            // TODO: Redirect to setup wizard when implemented
           }
         }
       } catch (error) {
@@ -53,6 +53,23 @@ export default function HomePage() {
     checkFamilies();
   }, [router]);
 
-  // Return loading state or null as this is just a redirect page
-  return loading ? <div className="flex items-center justify-center h-screen">Loading...</div> : null;
+  // Return loading state or no families message
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+  
+  // If no families found, show setup needed message
+  if (families.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Setup Required</h2>
+          <p className="text-gray-600 mb-4">No families found. Setup wizard coming soon!</p>
+          <div className="animate-pulse text-gray-400">Please contact administrator</div>
+        </div>
+      </div>
+    );
+  }
+  
+  return null;
 }
