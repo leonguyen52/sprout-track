@@ -14,4 +14,11 @@ export interface ThemeToggleProps
    * Additional CSS class names to apply to the theme toggle
    */
   className?: string;
+  
+  /**
+   * Variant of the theme toggle
+   * - "default": Full version with helper text, backgrounds, and highlighting
+   * - "light": Simplified version with just icon, label, and hover effects
+   */
+  variant?: "default" | "light";
 }

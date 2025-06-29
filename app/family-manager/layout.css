@@ -1,13 +1,1 @@
-/* Family Manager Layout Styles */
-
-/* Theme toggle container styling */
-.theme-toggle-container {
-  background-color: #ffffff; /* white */
-  border: 1px solid #e5e7eb; /* gray-200 */
-}
-
-/* Dark mode overrides */
-html.dark .theme-toggle-container {
-  background-color: #4b5563 !important; /* gray-600 - matching side-nav */
-  border-color: #6b7280 !important; /* gray-500 - matching side-nav */
-} 
+/* Family Manager Layout Styles */ 
