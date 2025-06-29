@@ -36,8 +36,17 @@ else
     exit 1
 fi
 
-# Step 2: Install dependencies
-echo "Step 2: Installing dependencies..."
+# Step 2: Update environment configuration
+echo "Step 2: Setting up environment configuration..."
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+"$SCRIPT_DIR/env-update.sh"
+if [ $? -ne 0 ]; then
+    echo "Error: Environment setup failed! Setup aborted."
+    exit 1
+fi
+
+# Step 3: Install dependencies
+echo "Step 3: Installing dependencies..."
 npm install
 if [ $? -ne 0 ]; then
     echo "Error: npm install failed! Setup aborted."
@@ -50,8 +59,8 @@ echo "Disabling Next.js telemetry..."
 npm exec next telemetry disable
 echo "Next.js telemetry disabled."
 
-# Step 3: Generate Prisma client
-echo "Step 3: Generating Prisma client..."
+# Step 4: Generate Prisma client
+echo "Step 4: Generating Prisma client..."
 npm run prisma:generate
 if [ $? -ne 0 ]; then
     echo "Error: Prisma client generation failed! Setup aborted."
@@ -59,8 +68,8 @@ if [ $? -ne 0 ]; then
 fi
 echo "Prisma client generated successfully."
 
-# Step 4: Run database migrations
-echo "Step 4: Running database migrations..."
+# Step 5: Run database migrations
+echo "Step 5: Running database migrations..."
 npm run prisma:migrate
 if [ $? -ne 0 ]; then
     echo "Error: Prisma migrations failed! Setup aborted."
@@ -68,8 +77,8 @@ if [ $? -ne 0 ]; then
 fi
 echo "Database migrations applied successfully."
 
-# Step 5: Seed the database (creates default settings with PIN 111222)
-echo "Step 5: Seeding the database with default settings and units..."
+# Step 6: Seed the database (creates default settings with PIN 111222)
+echo "Step 6: Seeding the database with default settings and units..."
 npm run prisma:seed
 if [ $? -ne 0 ]; then
     echo "Error: Database seeding failed! Setup aborted."
@@ -77,8 +86,8 @@ if [ $? -ne 0 ]; then
 fi
 echo "Database seeded successfully with default settings (PIN: 111222) and units."
 
-# Step 6: Build the Next.js application
-echo "Step 6: Building the Next.js application..."
+# Step 7: Build the Next.js application
+echo "Step 7: Building the Next.js application..."
 npm run build
 if [ $? -ne 0 ]; then
     echo "Error: Build process failed! Setup aborted."
