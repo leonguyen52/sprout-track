@@ -744,3 +744,12 @@ model FamilySetup {
 
   @@index([createdBy])
 }
+
+// Application configuration settings
+model AppConfig {
+  id          String   @id @default(cuid())
+  adminPass   String   // Sitewide admin password
+  rootDomain  String   // Root domain for the application
+  enableHttps Boolean  @default(false) // Whether HTTPS is enabled (0/1)
+  updatedAt   DateTime @updatedAt
+}
