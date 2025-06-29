@@ -197,7 +197,7 @@ export default function FamilySelectPage() {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white family-select-container">
       <div className="w-full max-w-md mx-auto p-6">
         <div className="text-center mt-2 mb-4">
-          <h2 className="text-xl font-semibold family-select-title">Select Family</h2>
+          <h2 className="text-xl font-semibold family-select-title">Welcome to Sprout Track</h2>
           <p className="text-sm text-gray-500 family-select-description">
             Choose your family to continue to login
           </p>

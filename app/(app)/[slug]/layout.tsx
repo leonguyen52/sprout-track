@@ -297,6 +297,13 @@ function AppContent({ children }: { children: React.ReactNode }) {
         return;
       }
       
+      // Check if user is on the family root page and redirect to log-entry
+      if (pathname === `/${familySlug}` || pathname === `/${familySlug}/`) {
+        console.log('User on family root, redirecting to log-entry...');
+        router.push(`/${familySlug}/log-entry`);
+        return;
+      }
+      
       // Check for idle timeout (separate from token expiration)
       const lastActivity = parseInt(unlockTime);
       const idleTimeSeconds = parseInt(localStorage.getItem('idleTimeSeconds') || '1800', 10);
@@ -316,7 +323,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
     return () => {
       clearInterval(authCheckInterval);
     };
-  }, [mounted, router, handleLogout, familySlug]);
+  }, [mounted, router, handleLogout, familySlug, pathname]);
 
   // Check unlock status based on JWT token and extract user info
   useEffect(() => {
