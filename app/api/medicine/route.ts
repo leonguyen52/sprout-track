@@ -3,7 +3,6 @@ import prisma from '../db';
 import { ApiResponse, MedicineCreate, MedicineResponse, MedicineUpdate } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { formatForResponse } from '../utils/timezone';
-import { getFamilyIdFromRequest } from '../utils/family';
 
 /**
  * Handle POST request to create a new medicine

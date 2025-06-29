@@ -4,7 +4,6 @@ import { ApiResponse, FeedLogCreate, FeedLogResponse } from '../types';
 import { FeedType } from '@prisma/client';
 import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
-import { getFamilyIdFromRequest } from '../utils/family';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
