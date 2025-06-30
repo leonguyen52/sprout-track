@@ -148,7 +148,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
         </header>
         
         {/* Main content area - scrollable */}
-        <main className="family-manager-main">
+        <main className="family-manager-main bg-grey-200">
           {children}
         </main>
         
