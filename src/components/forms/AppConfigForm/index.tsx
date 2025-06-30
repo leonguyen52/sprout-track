@@ -239,7 +239,12 @@ export default function AppConfigForm({
   // Handle backup
   const handleBackup = async () => {
     try {
-      const response = await fetch('/api/database');
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = authToken ? {
+        'Authorization': `Bearer ${authToken}`
+      } : {};
+
+      const response = await fetch('/api/database', { headers });
       if (!response.ok) throw new Error('Backup failed');
       
       const blob = await response.blob();
@@ -270,8 +275,14 @@ export default function AppConfigForm({
       const formData = new FormData();
       formData.append('file', file);
 
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = authToken ? {
+        'Authorization': `Bearer ${authToken}`
+      } : {};
+
       const response = await fetch('/api/database', {
         method: 'POST',
+        headers,
         body: formData,
       });
 
