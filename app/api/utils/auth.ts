@@ -36,6 +36,7 @@ export interface AuthResult {
   caretakerRole?: string;
   familyId?: string | null;
   familySlug?: string | null;
+  isSysAdmin?: boolean;
   error?: string;
 }
 
@@ -83,6 +84,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           role: string;
           familyId: string | null;
           familySlug: string | null;
+          isSysAdmin?: boolean;
         };
         
         // Return authenticated user info from token
@@ -93,6 +95,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           caretakerRole: decoded.role,
           familyId: decoded.familyId,
           familySlug: decoded.familySlug,
+          isSysAdmin: decoded.isSysAdmin || false,
         };
       } catch (jwtError) {
         console.error('JWT verification error:', jwtError);
@@ -122,6 +125,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           caretakerRole: (caretaker as any).role || 'USER',
           familyId: caretaker.familyId,
           familySlug: caretaker.family?.slug,
+          isSysAdmin: false,
         };
       }
     }
@@ -211,6 +215,42 @@ export function withAdminAuth<T>(
 }
 
 /**
+ * Middleware function to require system admin authentication for API routes
+ * @param handler The API route handler function
+ * @returns A wrapped handler that checks system admin authentication before proceeding
+ */
+export function withSysAdminAuth<T>(
+  handler: (req: NextRequest) => Promise<NextResponse<ApiResponse<T>>>
+) {
+  return async (req: NextRequest): Promise<NextResponse<ApiResponse<T | null>>> => {
+    const authResult = await getAuthenticatedUser(req);
+    
+    if (!authResult.authenticated) {
+      return NextResponse.json<ApiResponse<null>>(
+        {
+          success: false,
+          error: 'Authentication required',
+        },
+        { status: 401 }
+      );
+    }
+    
+    // Check if user is a system administrator
+    if (!authResult.isSysAdmin) {
+      return NextResponse.json<ApiResponse<null>>(
+        {
+          success: false,
+          error: 'System administrator access required',
+        },
+        { status: 403 }
+      );
+    }
+    
+    return handler(req);
+  };
+}
+
+/**
  * Middleware function to attach authenticated user info to the request context
  * This allows handlers to access the authenticated user's information
  * @param handler The API route handler function that receives auth context
@@ -230,6 +270,11 @@ export function withAuthContext<T>(
         },
         { status: 401 }
       );
+    }
+    
+    // System administrators bypass family restrictions
+    if (authResult.isSysAdmin) {
+      return handler(req, authResult);
     }
     
     // Check if this is a system caretaker by looking up loginId in database

@@ -3,6 +3,7 @@ import prisma from '../db';
 import { ApiResponse } from '../types';
 import jwt from 'jsonwebtoken';
 import { checkIpLockout, recordFailedAttempt, resetFailedAttempts } from '../utils/ip-lockout';
+import { decrypt, isEncrypted } from '../utils/encryption';
 
 // Secret key for JWT signing - in production, use environment variable
 const JWT_SECRET = process.env.JWT_SECRET || 'baby-tracker-jwt-secret';
@@ -29,16 +30,103 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { loginId, securityPin, familySlug } = await req.json();
+    const { loginId, securityPin, familySlug, adminPassword } = await req.json();
 
-    if (!securityPin) {
+    if (!securityPin && !adminPassword) {
       return NextResponse.json<ApiResponse<null>>(
         {
           success: false,
-          error: 'Security PIN is required',
+          error: 'Security PIN or admin password is required',
         },
         { status: 400 }
       );
+    }
+
+    // Check for system admin authentication first
+    if (adminPassword) {
+      try {
+        const appConfig = await prisma.appConfig.findFirst();
+        
+        if (!appConfig) {
+          return NextResponse.json<ApiResponse<null>>(
+            {
+              success: false,
+              error: 'System configuration not found',
+            },
+            { status: 500 }
+          );
+        }
+
+        // Decrypt the stored admin password and compare
+        const decryptedAdminPass = isEncrypted(appConfig.adminPass) 
+          ? decrypt(appConfig.adminPass) 
+          : appConfig.adminPass;
+
+        if (adminPassword === decryptedAdminPass) {
+          // Create system admin JWT token
+          const token = jwt.sign(
+            {
+              id: 'sysadmin',
+              name: 'System Administrator',
+              type: 'SYSADMIN',
+              role: 'SYSADMIN',
+              familyId: null,
+              familySlug: null,
+              isSysAdmin: true,
+            },
+            JWT_SECRET,
+            { expiresIn: `${TOKEN_EXPIRATION}s` }
+          );
+
+          // Reset failed attempts on successful login
+          resetFailedAttempts(ip);
+
+          // Create response with system admin token
+          const response = NextResponse.json<ApiResponse<{
+            id: string;
+            name: string;
+            type: string;
+            role: string;
+            token: string;
+            familyId: string | null;
+            familySlug: string | null;
+            isSysAdmin: boolean;
+          }>>({
+            success: true,
+            data: {
+              id: 'sysadmin',
+              name: 'System Administrator',
+              type: 'SYSADMIN',
+              role: 'SYSADMIN',
+              token: token,
+              familyId: null,
+              familySlug: null,
+              isSysAdmin: true,
+            },
+          });
+
+          return response;
+        } else {
+          // Record failed attempt for invalid admin password
+          recordFailedAttempt(ip);
+          return NextResponse.json<ApiResponse<null>>(
+            {
+              success: false,
+              error: 'Invalid admin password',
+            },
+            { status: 401 }
+          );
+        }
+      } catch (error) {
+        console.error('System admin authentication error:', error);
+        return NextResponse.json<ApiResponse<null>>(
+          {
+            success: false,
+            error: 'System admin authentication failed',
+          },
+          { status: 500 }
+        );
+      }
     }
 
     // Validate family slug if provided

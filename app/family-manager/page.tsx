@@ -101,7 +101,12 @@ export default function FamilyManagerPage() {
   const fetchFamilies = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/family/manage');
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/family/manage', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
       const data = await response.json();
       
       if (data.success) {
@@ -125,7 +130,12 @@ export default function FamilyManagerPage() {
 
     setCheckingSlug(true);
     try {
-      const response = await fetch(`/api/family/by-slug/${encodeURIComponent(slug)}`);
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/family/by-slug/${encodeURIComponent(slug)}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
       const data = await response.json();
       
       if (data.success && data.data && data.data.id !== currentFamilyId) {
@@ -156,7 +166,12 @@ export default function FamilyManagerPage() {
   const fetchCaretakers = async (familyId: string) => {
     try {
       setLoadingCaretakers(true);
-      const response = await fetch(`/api/family/${familyId}/caretakers`);
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/family/${familyId}/caretakers`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
       const data = await response.json();
       
       if (data.success) {
@@ -183,10 +198,12 @@ export default function FamilyManagerPage() {
 
     try {
       setSaving(true);
+      const authToken = localStorage.getItem('authToken');
       const response = await fetch('/api/family/manage', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
           id: family.id,

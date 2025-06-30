@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../../db';
 import { ApiResponse, FamilyResponse, FamilyCreate, FamilyUpdate } from '../../types';
+import { withSysAdminAuth } from '../../utils/auth';
 
 // GET - Get all families (including inactive ones) for management
-export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse<FamilyResponse[]>>> {
+async function getHandler(req: NextRequest): Promise<NextResponse<ApiResponse<FamilyResponse[]>>> {
   try {
     const families = await prisma.family.findMany({
       orderBy: [
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse<Fa
 }
 
 // POST - Create a new family
-export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<FamilyResponse>>> {
+async function postHandler(req: NextRequest): Promise<NextResponse<ApiResponse<FamilyResponse>>> {
   try {
     const body: FamilyCreate = await req.json();
 
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<F
 }
 
 // PUT - Update an existing family
-export async function PUT(req: NextRequest): Promise<NextResponse<ApiResponse<FamilyResponse>>> {
+async function putHandler(req: NextRequest): Promise<NextResponse<ApiResponse<FamilyResponse>>> {
   try {
     const body: FamilyUpdate = await req.json();
 
@@ -167,4 +168,9 @@ export async function PUT(req: NextRequest): Promise<NextResponse<ApiResponse<Fa
       error: 'Failed to update family',
     }, { status: 500 });
   }
-} 
+}
+
+// Export handlers with sysadmin authentication
+export const GET = withSysAdminAuth(getHandler);
+export const POST = withSysAdminAuth(postHandler);
+export const PUT = withSysAdminAuth(putHandler); 

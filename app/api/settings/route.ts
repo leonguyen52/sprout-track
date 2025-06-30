@@ -6,14 +6,31 @@ import { withAuthContext, AuthResult } from '../utils/auth';
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId } = authContext;
+    const { familyId, isSysAdmin } = authContext;
 
-    if (!familyId) {
+    // System administrators need a family context for settings
+    if (!familyId && !isSysAdmin) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
 
+    // For system administrators, require familyId to be passed as query parameter
+    let targetFamilyId = familyId;
+    if (isSysAdmin) {
+      const { searchParams } = new URL(req.url);
+      const queryFamilyId = searchParams.get('familyId');
+      
+      if (!queryFamilyId) {
+        return NextResponse.json<ApiResponse<null>>({ 
+          success: false, 
+          error: 'System administrators must specify familyId parameter.' 
+        }, { status: 400 });
+      }
+      
+      targetFamilyId = queryFamilyId;
+    }
+
     let settings = await prisma.settings.findFirst({
-      where: { familyId },
+      where: { familyId: targetFamilyId },
     });
     
     if (!settings) {
@@ -25,7 +42,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
           defaultHeightUnit: 'IN',
           defaultWeightUnit: 'LB',
           defaultTempUnit: 'F',
-          familyId: familyId,
+          familyId: targetFamilyId,
         },
       });
     }
@@ -48,16 +65,33 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId } = authContext;
+    const { familyId, isSysAdmin } = authContext;
 
-    if (!familyId) {
+    // System administrators need a family context for settings
+    if (!familyId && !isSysAdmin) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
+    // For system administrators, require familyId to be passed as query parameter
+    let targetFamilyId = familyId;
+    if (isSysAdmin) {
+      const { searchParams } = new URL(req.url);
+      const queryFamilyId = searchParams.get('familyId');
+      
+      if (!queryFamilyId) {
+        return NextResponse.json<ApiResponse<null>>({ 
+          success: false, 
+          error: 'System administrators must specify familyId parameter.' 
+        }, { status: 400 });
+      }
+      
+      targetFamilyId = queryFamilyId;
     }
 
     const body = await req.json();
     
     let existingSettings = await prisma.settings.findFirst({
-      where: { familyId },
+      where: { familyId: targetFamilyId },
     });
     
     if (!existingSettings) {
@@ -94,7 +128,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
         const systemCaretaker = await prisma.caretaker.findFirst({
           where: { 
             loginId: '00',
-            familyId: familyId 
+            familyId: targetFamilyId 
           }
         });
 
