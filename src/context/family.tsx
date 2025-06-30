@@ -7,6 +7,7 @@ interface Family {
   id: string;
   name: string;
   slug: string;
+  isActive: boolean;
 }
 
 interface FamilyContextType {

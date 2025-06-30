@@ -21,7 +21,6 @@ export async function GET(
     const family = await prisma.family.findFirst({
       where: {
         slug: slug,
-        isActive: true,
       },
     });
     

@@ -12,9 +12,10 @@ import { ApiResponse } from '@/app/api/types';
 interface LoginSecurityProps {
   onUnlock: (caretakerId?: string) => void;
   familySlug?: string;
+  familyName?: string;
 }
 
-export default function LoginSecurity({ onUnlock, familySlug }: LoginSecurityProps) {
+export default function LoginSecurity({ onUnlock, familySlug, familyName }: LoginSecurityProps) {
   const { theme } = useTheme();
   const [loginId, setLoginId] = useState<string>('');
   const [pin, setPin] = useState<string>('');
@@ -23,6 +24,12 @@ export default function LoginSecurity({ onUnlock, familySlug }: LoginSecurityPro
   const [lockoutTime, setLockoutTime] = useState<number | null>(null);
   const [hasCaretakers, setHasCaretakers] = useState(false);
   const [activeInput, setActiveInput] = useState<'loginId' | 'pin'>('loginId');
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Track when component has mounted to prevent hydration issues
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Reset form when component mounts and check for server-side IP lockout
   useEffect(() => {
@@ -259,7 +266,9 @@ export default function LoginSecurity({ onUnlock, familySlug }: LoginSecurityPro
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white login-container">
       <div className="w-full max-w-md mx-auto p-6">
         <div className="text-center mt-2 mb-4">
-          <h2 className="text-xl font-semibold login-title">Security Check</h2>
+          <h2 className="text-xl font-semibold login-title">
+            {isMounted && familyName ? familyName : 'Security Check'}
+          </h2>
           <p id="pin-description" className="text-sm text-gray-500 login-description">
             {!hasCaretakers
               ? 'Please enter your system security PIN'

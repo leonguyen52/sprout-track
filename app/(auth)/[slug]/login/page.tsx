@@ -12,12 +12,12 @@ export default function LoginPage() {
   const router = useRouter();
   const params = useParams();
   const { theme } = useTheme();
-  const { family, setFamily } = useFamily();
+  const { family, loading: familyLoading } = useFamily();
   const [families, setFamilies] = useState<FamilyResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const familySlug = params?.slug as string;
 
-  // Load families for the dropdown
+  // Load families for the dropdown only
   useEffect(() => {
     const loadFamilies = async () => {
       try {
@@ -27,14 +27,6 @@ export default function LoginPage() {
           const data = await response.json();
           if (data.success && Array.isArray(data.data)) {
             setFamilies(data.data);
-            
-            // If we have a slug in the URL, find the matching family
-            if (familySlug) {
-              const matchingFamily = data.data.find((f: FamilyResponse) => f.slug === familySlug);
-              if (matchingFamily) {
-                setFamily(matchingFamily);
-              }
-            }
           }
         }
       } catch (error) {
@@ -45,7 +37,7 @@ export default function LoginPage() {
     };
 
     loadFamilies();
-  }, [familySlug, setFamily]);
+  }, []);
 
   // Handle successful authentication
   const handleUnlock = (caretakerId?: string) => {
@@ -72,6 +64,20 @@ export default function LoginPage() {
       }
     }
   }, [router, familySlug]);
+
+  // Check if family is inactive and redirect to root
+  useEffect(() => {
+    // Only check after family context has finished loading
+    if (!familyLoading) {
+      if (family && family.isActive === false) {
+        // Family exists but is inactive - redirect to root
+        router.push('/');
+      } else if (!family && familySlug) {
+        // Family not found for the given slug - redirect to root
+        router.push('/');
+      }
+    }
+  }, [family, familyLoading, familySlug, router]);
 
   // Handle family selection change
   const handleFamilyChange = (value: string) => {
@@ -105,7 +111,11 @@ export default function LoginPage() {
         </div>
       )}
       
-      <LoginSecurity onUnlock={handleUnlock} familySlug={familySlug} />
+      <LoginSecurity 
+        onUnlock={handleUnlock} 
+        familySlug={familySlug} 
+        familyName={!familyLoading && family ? family.name : undefined} 
+      />
     </div>
   );
 }
