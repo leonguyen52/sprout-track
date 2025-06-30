@@ -46,6 +46,7 @@ export default function AppConfigForm({
   const [success, setSuccess] = useState<string | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const closeTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Fetch app config data
   const fetchAppConfig = async () => {
@@ -85,6 +86,15 @@ export default function AppConfigForm({
       fetchAppConfig();
     }
   }, [isOpen]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,6 +163,7 @@ export default function AppConfigForm({
           setConfirmPassword('');
           setError(null);
           setSuccess('Password changed successfully');
+          scheduleAutoClose();
         } else {
           setError(data.error || 'Failed to update password');
         }
@@ -225,6 +236,7 @@ export default function AppConfigForm({
       if (data.success) {
         setAppConfig(data.data);
         setSuccess('App configuration updated successfully');
+        scheduleAutoClose();
       } else {
         setError(data.error || 'Failed to update app configuration');
       }
@@ -307,8 +319,27 @@ export default function AppConfigForm({
     }
   };
 
+  // Auto-close form after successful save
+  const scheduleAutoClose = () => {
+    // Clear any existing timeout
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+    }
+    
+    // Schedule auto-close after 500ms
+    closeTimeoutRef.current = setTimeout(() => {
+      handleClose();
+    }, 500);
+  };
+
   // Handle form close
   const handleClose = () => {
+    // Clear any pending auto-close timeout
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    
     setError(null);
     setSuccess(null);
     resetPasswordForm();
