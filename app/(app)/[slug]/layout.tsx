@@ -375,7 +375,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
           // Set caretaker name and admin status from token
           if (decodedPayload.name) {
             setCaretakerName(decodedPayload.name);
-            setIsAdmin(decodedPayload.role === 'ADMIN');
+            setIsAdmin(decodedPayload.role === 'ADMIN' || decodedPayload.isSysAdmin === true);
           }
         } catch (error) {
           console.error('Error parsing JWT token:', error);
@@ -530,6 +530,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
         }}
         onBabyStatusChange={fetchData}
         selectedBabyId={selectedBaby?.id || ''}
+        familyId={family?.id}
       />
       
       {/* Baby Quick Info Form */}

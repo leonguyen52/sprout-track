@@ -31,6 +31,7 @@ interface SettingsFormProps {
   onBabySelect?: (babyId: string) => void;
   onBabyStatusChange?: () => void;
   selectedBabyId?: string;
+  familyId?: string;
 }
 
 export default function SettingsForm({ 
@@ -39,6 +40,7 @@ export default function SettingsForm({
   onBabySelect,
   onBabyStatusChange,
   selectedBabyId,
+  familyId,
 }: SettingsFormProps) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [babies, setBabies] = useState<Baby[]>([]);
@@ -67,12 +69,36 @@ export default function SettingsForm({
     try {
       setLoading(true);
       
+      // Get auth token for all requests
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = authToken ? {
+        'Authorization': `Bearer ${authToken}`
+      } : {};
+      
+      // Check if user is system administrator and build query params
+      let isSysAdmin = false;
+      if (authToken) {
+        try {
+          const payload = authToken.split('.')[1];
+          const decodedPayload = JSON.parse(atob(payload));
+          isSysAdmin = decodedPayload.isSysAdmin || false;
+        } catch (error) {
+          console.error('Error parsing JWT token in SettingsForm:', error);
+        }
+      }
+      
+      // Build URLs with familyId parameter for system administrators
+      const settingsUrl = isSysAdmin && familyId ? `/api/settings?familyId=${familyId}` : '/api/settings';
+      const babiesUrl = isSysAdmin && familyId ? `/api/baby?familyId=${familyId}` : '/api/baby';
+      const caretakersUrl = isSysAdmin && familyId ? `/api/caretaker?includeInactive=true&familyId=${familyId}` : '/api/caretaker?includeInactive=true';
+      const contactsUrl = isSysAdmin && familyId ? `/api/contact?familyId=${familyId}` : '/api/contact';
+      
       const [settingsResponse, babiesResponse, unitsResponse, caretakersResponse, contactsResponse] = await Promise.all([
-        fetch(`/api/settings`),
-        fetch(`/api/baby`),
-        fetch('/api/units'),
-        fetch(`/api/caretaker?includeInactive=true`),
-        fetch(`/api/contact`)
+        fetch(settingsUrl, { headers }),
+        fetch(babiesUrl, { headers }),
+        fetch('/api/units', { headers }),
+        fetch(caretakersUrl, { headers }),
+        fetch(contactsUrl, { headers })
       ]);
 
       if (settingsResponse.ok) {
@@ -115,11 +141,29 @@ export default function SettingsForm({
 
   const handleSettingsChange = async (updates: Partial<Settings>) => {
     try {
-      const response = await fetch('/api/settings', {
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+      };
+
+      // Check if user is system administrator and build URL with familyId parameter
+      let isSysAdmin = false;
+      if (authToken) {
+        try {
+          const payload = authToken.split('.')[1];
+          const decodedPayload = JSON.parse(atob(payload));
+          isSysAdmin = decodedPayload.isSysAdmin || false;
+        } catch (error) {
+          console.error('Error parsing JWT token in handleSettingsChange:', error);
+        }
+      }
+
+      const settingsUrl = isSysAdmin && familyId ? `/api/settings?familyId=${familyId}` : '/api/settings';
+
+      const response = await fetch(settingsUrl, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(updates),
       });
 
@@ -149,7 +193,12 @@ export default function SettingsForm({
 
   const handleBackup = async () => {
     try {
-      const response = await fetch('/api/database');
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = authToken ? {
+        'Authorization': `Bearer ${authToken}`
+      } : {};
+
+      const response = await fetch('/api/database', { headers });
       if (!response.ok) throw new Error('Backup failed');
       
       const blob = await response.blob();
@@ -176,8 +225,14 @@ export default function SettingsForm({
       const formData = new FormData();
       formData.append('file', file);
 
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = authToken ? {
+        'Authorization': `Bearer ${authToken}`
+      } : {};
+
       const response = await fetch('/api/database', {
         method: 'POST',
+        headers,
         body: formData,
       });
 
