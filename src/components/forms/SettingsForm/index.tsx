@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Baby, Unit, Caretaker } from '@prisma/client';
 import { Settings } from '@/app/api/types';
-import { Settings as Plus, Edit, Download, Upload } from 'lucide-react';
+import { Settings as Plus, Edit, ExternalLink } from 'lucide-react';
 import { Contact } from '@/src/components/CalendarEvent/calendar-event.types';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -42,6 +43,7 @@ export default function SettingsForm({
   selectedBabyId,
   familyId,
 }: SettingsFormProps) {
+  const router = useRouter();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [babies, setBabies] = useState<Baby[]>([]);
   const [caretakers, setCaretakers] = useState<Caretaker[]>([]);
@@ -56,9 +58,7 @@ export default function SettingsForm({
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [localSelectedBabyId, setLocalSelectedBabyId] = useState<string>('');
   const [showChangePinModal, setShowChangePinModal] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
   const [units, setUnits] = useState<Unit[]>([]);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Only set the selected baby ID if explicitly provided
@@ -176,6 +176,10 @@ export default function SettingsForm({
     }
   };
 
+  const handleOpenFamilyManager = () => {
+    router.push('/family-manager');
+  };
+
   const handleBabyFormClose = () => {
     setShowBabyForm(false);
   };
@@ -191,77 +195,10 @@ export default function SettingsForm({
     await fetchData(); // Refresh local contacts list
   };
 
-  const handleBackup = async () => {
-    try {
-      const authToken = localStorage.getItem('authToken');
-      const headers: HeadersInit = authToken ? {
-        'Authorization': `Bearer ${authToken}`
-      } : {};
 
-      const response = await fetch('/api/database', { headers });
-      if (!response.ok) throw new Error('Backup failed');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = response.headers.get('Content-Disposition')?.split('filename=')[1].replace(/"/g, '') || 'baby-tracker-backup.db';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Backup error:', error);
-      alert('Failed to create backup');
-    }
-  };
-
-  const handleRestore = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsRestoring(true);
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const authToken = localStorage.getItem('authToken');
-      const headers: HeadersInit = authToken ? {
-        'Authorization': `Bearer ${authToken}`
-      } : {};
-
-      const response = await fetch('/api/database', {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Restore failed');
-      }
-
-      // Refresh the page to reflect the restored data
-      window.location.reload();
-    } catch (error) {
-      console.error('Restore error:', error);
-      alert('Failed to restore backup');
-    } finally {
-      setIsRestoring(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
 
   return (
     <>
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept=".db"
-        onChange={handleRestore}
-        style={{ display: 'none' }}
-      />
       <FormPage
         isOpen={isOpen}
         onClose={() => {
@@ -310,28 +247,7 @@ export default function SettingsForm({
               </div>
             </div>
             
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleBackup}
-                  className="w-full"
-                  disabled={loading}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Backup Data
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full"
-                  disabled={loading || isRestoring}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Restore Data
-                </Button>
-              </div>
-            </div>
+
 
             <div className="border-t border-slate-200 pt-6">
               <h3 className="form-label mb-4">Manage Babies</h3>
@@ -632,6 +548,24 @@ export default function SettingsForm({
                     </Select>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="form-label mb-4">System Administration</h3>
+              <div className="space-y-4">
+                <Button
+                  variant="outline"
+                  onClick={handleOpenFamilyManager}
+                  className="w-full"
+                  disabled={loading}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Family Manager
+                </Button>
+                <p className="text-sm text-gray-500">
+                  Access system-wide family management and advanced settings
+                </p>
               </div>
             </div>
           </div>

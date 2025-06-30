@@ -10,7 +10,7 @@ import {
   FormPageContent, 
   FormPageFooter 
 } from '@/src/components/ui/form-page';
-import { Settings, Loader2, Save, X } from 'lucide-react';
+import { Settings, Loader2, Save, X, Download, Upload } from 'lucide-react';
 
 interface AppConfigFormProps {
   isOpen: boolean;
@@ -44,6 +44,8 @@ export default function AppConfigForm({
   const [originalPassword, setOriginalPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Fetch app config data
   const fetchAppConfig = async () => {
@@ -234,6 +236,66 @@ export default function AppConfigForm({
     }
   };
 
+  // Handle backup
+  const handleBackup = async () => {
+    try {
+      const response = await fetch('/api/database');
+      if (!response.ok) throw new Error('Backup failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = response.headers.get('Content-Disposition')?.split('filename=')[1].replace(/"/g, '') || 'baby-tracker-backup.db';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Backup error:', error);
+      setError('Failed to create backup');
+    }
+  };
+
+  // Handle restore
+  const handleRestore = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsRestoring(true);
+      setError(null);
+      setSuccess(null);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/database', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Restore failed');
+      }
+
+      setSuccess('Database restored successfully. The page will reload to reflect changes.');
+      
+      // Refresh the page after a short delay to show the success message
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      console.error('Restore error:', error);
+      setError('Failed to restore backup');
+    } finally {
+      setIsRestoring(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   // Handle form close
   const handleClose = () => {
     setError(null);
@@ -249,6 +311,13 @@ export default function AppConfigForm({
       title="App Configuration"
       description="Manage global application settings"
     >
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".db"
+        onChange={handleRestore}
+        style={{ display: 'none' }}
+      />
       <form onSubmit={handleSubmit} className="h-full flex flex-col overflow-hidden">
         <FormPageContent className="space-y-6 overflow-y-auto flex-1 pb-24">
           {loading ? (
@@ -427,6 +496,45 @@ export default function AppConfigForm({
                       Enable secure HTTPS connections for the application
                     </p>
                   </div>
+                </div>
+              </div>
+
+              {/* Database Management Section */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Settings className="h-5 w-5 text-teal-600" />
+                  <Label className="text-lg font-semibold">
+                    Database Management
+                  </Label>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleBackup}
+                      className="w-full"
+                      disabled={loading || saving}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Backup Database
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full"
+                      disabled={loading || saving || isRestoring}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {isRestoring ? 'Restoring...' : 'Restore Database'}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Create backups of your database or restore from a previous backup. 
+                    Restoring will replace all current data.
+                  </p>
                 </div>
               </div>
 
