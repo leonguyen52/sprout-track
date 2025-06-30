@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from "@/src/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/src/components/ui/card";
 import {
   Table,
   TableBody,
@@ -25,10 +25,12 @@ import {
   X, 
   Plus,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Settings
 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import FamilyForm from '@/src/components/forms/FamilyForm';
+import AppConfigForm from '@/src/components/forms/AppConfigForm';
 
 // Types for our family data
 interface FamilyData {
@@ -66,6 +68,7 @@ export default function FamilyManagerPage() {
   const [showFamilyForm, setShowFamilyForm] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState<FamilyData | null>(null);
   const [isEditingFamily, setIsEditingFamily] = useState(false);
+  const [showAppConfigForm, setShowAppConfigForm] = useState(false);
 
   // Enhanced table state
   const [searchTerm, setSearchTerm] = useState('');
@@ -290,10 +293,13 @@ export default function FamilyManagerPage() {
       <Card className="h-full w-full rounded-none border-0">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>All Families</CardTitle>
             <Button onClick={handleAddFamily}>
               <Plus className="h-4 w-4 mr-2" />
               Add New Family
+            </Button>
+            <Button variant="outline" onClick={() => setShowAppConfigForm(true)}>
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
             </Button>
           </div>
         </CardHeader>
@@ -533,6 +539,12 @@ export default function FamilyManagerPage() {
         isEditing={isEditingFamily}
         family={selectedFamily}
         onFamilyChange={handleFamilyFormSuccess}
+      />
+
+      {/* App Config Form */}
+      <AppConfigForm
+        isOpen={showAppConfigForm}
+        onClose={() => setShowAppConfigForm(false)}
       />
     </div>
   );
