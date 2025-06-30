@@ -6,6 +6,7 @@ import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { useTheme } from '@/src/context/theme';
+import { ShareButton } from '@/src/components/ui/share-button';
 import './login-security.css';
 import { ApiResponse } from '@/app/api/types';
 
@@ -400,12 +401,22 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white login-container">
       <div className="w-full max-w-md mx-auto p-6">
         <div className="text-center mt-2 mb-4">
-          <h2 className="text-xl font-semibold login-title">
-            {adminMode 
-              ? 'System Administrator'
-              : (isMounted && familyName ? familyName : 'Security Check')
-            }
-          </h2>
+          <div className="flex items-center justify-center gap-2">
+            <h2 className="text-xl font-semibold login-title">
+              {adminMode 
+                ? 'System Administrator'
+                : (isMounted && familyName ? familyName : 'Security Check')
+              }
+            </h2>
+            {!adminMode && familySlug && familyName && (
+              <ShareButton 
+                familySlug={familySlug} 
+                familyName={familyName}
+                variant="ghost"
+                size="sm"
+              />
+            )}
+          </div>
           <p id="pin-description" className="text-sm text-gray-500 login-description">
             {adminMode
               ? 'Please enter the system administrator password'

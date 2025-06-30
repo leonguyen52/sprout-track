@@ -31,6 +31,7 @@ import {
 import { useRouter } from 'next/navigation';
 import FamilyForm from '@/src/components/forms/FamilyForm';
 import AppConfigForm from '@/src/components/forms/AppConfigForm';
+import { ShareButton } from '@/src/components/ui/share-button';
 
 // Types for our family data
 interface FamilyData {
@@ -69,6 +70,7 @@ export default function FamilyManagerPage() {
   const [selectedFamily, setSelectedFamily] = useState<FamilyData | null>(null);
   const [isEditingFamily, setIsEditingFamily] = useState(false);
   const [showAppConfigForm, setShowAppConfigForm] = useState(false);
+  const [appConfig, setAppConfig] = useState<{ rootDomain: string; enableHttps: boolean } | null>(null);
 
   // Enhanced table state
   const [searchTerm, setSearchTerm] = useState('');
@@ -96,6 +98,22 @@ export default function FamilyManagerPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, pageSize]);
+
+  // Fetch app config data
+  const fetchAppConfig = async () => {
+    try {
+      const response = await fetch('/api/app-config/public');
+      const data = await response.json();
+      
+      if (data.success) {
+        setAppConfig(data.data);
+      } else {
+        console.error('Failed to fetch app config:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching app config:', error);
+    }
+  };
 
   // Fetch families data
   const fetchFamilies = async () => {
@@ -295,6 +313,7 @@ export default function FamilyManagerPage() {
   // Initial data fetch
   useEffect(() => {
     fetchFamilies();
+    fetchAppConfig();
   }, []);
 
   if (loading) {
@@ -333,7 +352,7 @@ export default function FamilyManagerPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Family Name</TableHead>
-                <TableHead>Slug</TableHead>
+                <TableHead>Link/Slug</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Updated</TableHead>
                 <TableHead>Status</TableHead>
@@ -458,6 +477,14 @@ export default function FamilyManagerPage() {
                               >
                                 <Users className="h-4 w-4" />
                               </Button>
+                              <ShareButton
+                                familySlug={family.slug}
+                                familyName={family.name}
+                                appConfig={appConfig || undefined}
+                                variant="outline"
+                                size="sm"
+                                showText={false}
+                              />
                               <Button
                                 variant="outline"
                                 size="sm"

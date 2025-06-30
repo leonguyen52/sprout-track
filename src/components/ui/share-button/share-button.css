@@ -1,0 +1,33 @@
+/* Dark mode overrides for ShareButton component */
+html.dark .share-button-dark-outline {
+  border-color: #4b5563; /* gray-600 */
+  background-color: #1f2937; /* gray-800 */
+  color: #e5e7eb; /* gray-200 */
+}
+
+html.dark .share-button-dark-outline:hover {
+  border-color: #5eead4; /* teal-300 */
+  background-color: rgba(94, 234, 212, 0.1); /* teal-300 with opacity */
+}
+
+html.dark .share-button-dark-ghost {
+  color: #5eead4; /* teal-300 */
+}
+
+html.dark .share-button-dark-ghost:hover {
+  background-color: rgba(94, 234, 212, 0.1); /* teal-300 with opacity */
+  color: #5eead4; /* teal-300 */
+}
+
+html.dark .share-button-dark-link {
+  color: #5eead4; /* teal-300 */
+}
+
+html.dark .share-button-dark-link:hover {
+  color: #2dd4bf; /* teal-400 */
+}
+
+/* Copied state dark mode */
+html.dark .share-button-copied {
+  color: #6ee7b7; /* emerald-300 */
+} 
