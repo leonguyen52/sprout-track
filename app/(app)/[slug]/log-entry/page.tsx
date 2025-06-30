@@ -75,12 +75,14 @@ function HomeContent(): React.ReactElement {
         url += `&familyId=${family.id}`;
       }
       
+      const authToken = localStorage.getItem('authToken');
       const response = await fetch(url, {
         cache: 'no-store',
         headers: {
           'Pragma': 'no-cache',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Expires': '0'
+          'Expires': '0',
+          ...(authToken && { 'Authorization': `Bearer ${authToken}` })
         }
       });
       if (!response.ok) return;
@@ -145,12 +147,14 @@ function HomeContent(): React.ReactElement {
       }
       
       // Fetch timeline data
+      const authToken = localStorage.getItem('authToken');
       const timelineResponse = await fetch(url, {
         cache: 'no-store',
         headers: {
           'Pragma': 'no-cache',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Expires': '0'
+          'Expires': '0',
+          ...(authToken && { 'Authorization': `Bearer ${authToken}` })
         }
       });
       const timelineData = await timelineResponse.json();

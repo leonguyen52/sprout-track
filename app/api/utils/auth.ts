@@ -90,7 +90,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
         // Return authenticated user info from token
         return {
           authenticated: true,
-          caretakerId: decoded.id,
+          caretakerId: decoded.isSysAdmin ? null : decoded.id,
           caretakerType: decoded.type,
           caretakerRole: decoded.role,
           familyId: decoded.familyId,
@@ -272,9 +272,78 @@ export function withAuthContext<T>(
       );
     }
     
-    // System administrators bypass family restrictions
+    // System administrators: extract family context from URL, query params, or referer
     if (authResult.isSysAdmin) {
-      return handler(req, authResult);
+      // Try to get familyId from query parameter first
+      const { searchParams } = new URL(req.url);
+      let familyId = searchParams.get('familyId');
+      
+      // If no familyId in query params, try to extract from URL path (for family-specific routes like /[slug]/...)
+      if (!familyId) {
+        const url = new URL(req.url);
+        const pathSegments = url.pathname.split('/').filter(Boolean);
+        
+        // Check if this looks like a family route (not api, family-manager, etc.)
+        if (pathSegments.length > 0 && 
+            !pathSegments[0].startsWith('api') && 
+            !pathSegments[0].startsWith('family-manager') &&
+            !pathSegments[0].startsWith('setup')) {
+          
+          const familySlug = pathSegments[0];
+          
+          // Look up family by slug to get familyId
+          try {
+            const family = await prisma.family.findUnique({
+              where: { slug: familySlug }
+            });
+            
+            if (family) {
+              familyId = family.id;
+            }
+          } catch (error) {
+            console.error('Error looking up family by slug for sysadmin:', error);
+          }
+        }
+      }
+      
+      // If still no familyId, try to extract from referer header (for API calls from family pages)
+      if (!familyId) {
+        const referer = req.headers.get('referer');
+        if (referer) {
+          try {
+            const refererUrl = new URL(referer);
+            const refererPathSegments = refererUrl.pathname.split('/').filter(Boolean);
+            
+            // Check if referer is a family route
+            if (refererPathSegments.length > 0 && 
+                !refererPathSegments[0].startsWith('api') && 
+                !refererPathSegments[0].startsWith('family-manager') &&
+                !refererPathSegments[0].startsWith('setup')) {
+              
+              const familySlug = refererPathSegments[0];
+              
+              // Look up family by slug to get familyId
+              const family = await prisma.family.findUnique({
+                where: { slug: familySlug }
+              });
+              
+              if (family) {
+                familyId = family.id;
+              }
+            }
+          } catch (error) {
+            console.error('Error parsing referer for sysadmin family context:', error);
+          }
+        }
+      }
+      
+      // Create modified auth result with the family context
+      const modifiedAuthResult = {
+        ...authResult,
+        familyId: familyId || authResult.familyId
+      };
+      
+      return handler(req, modifiedAuthResult);
     }
     
     // Check if this is a system caretaker by looking up loginId in database

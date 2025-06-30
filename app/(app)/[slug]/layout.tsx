@@ -73,8 +73,32 @@ function AppContent({ children }: { children: React.ReactNode }) {
 
   const fetchData = async () => {
     try {
+      // Get auth token once for all requests
+      const authToken = localStorage.getItem('authToken');
+      let isSysAdmin = false;
+      
+      // Check if user is system administrator
+      if (authToken) {
+        try {
+          const payload = authToken.split('.')[1];
+          const decodedPayload = JSON.parse(atob(payload));
+          isSysAdmin = decodedPayload.isSysAdmin || false;
+        } catch (error) {
+          console.error('Error parsing JWT token:', error);
+        }
+      }
+      
       // Fetch settings
-      const settingsResponse = await fetch('/api/settings');
+      let settingsUrl = '/api/settings';
+      if (isSysAdmin && family?.id) {
+        settingsUrl += `?familyId=${family.id}`;
+      }
+      
+      const settingsResponse = await fetch(settingsUrl, {
+        headers: authToken ? {
+          'Authorization': `Bearer ${authToken}`
+        } : {}
+      });
       if (settingsResponse.ok) {
         const settingsData = await settingsResponse.json();
         if (settingsData.success && settingsData.data.familyName) {
@@ -95,8 +119,12 @@ function AppContent({ children }: { children: React.ReactNode }) {
       }
 
       // Fetch babies - the API will automatically filter by family ID from JWT token
-      const authToken = localStorage.getItem('authToken');
-      const babiesResponse = await fetch('/api/baby', {
+      let babiesUrl = '/api/baby';
+      if (isSysAdmin && family?.id) {
+        babiesUrl += `?familyId=${family.id}`;
+      }
+      
+      const babiesResponse = await fetch(babiesUrl, {
         headers: authToken ? {
           'Authorization': `Bearer ${authToken}`
         } : {}

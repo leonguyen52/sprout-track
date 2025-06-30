@@ -50,7 +50,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     }
   }, [family]);
 
-  // Load family data based on slug in URL
+  // Load family data based on slug in URL or system admin context
   useEffect(() => {
     const loadFamilyFromUrl = async () => {
       const slug = getFamilySlugFromUrl();
@@ -60,7 +60,28 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const response = await fetch(`/api/family/by-slug/${slug}`);
+        // Check if user is a system administrator
+        const authToken = localStorage.getItem('authToken');
+        let isSysAdmin = false;
+        
+        if (authToken) {
+          try {
+            const payload = authToken.split('.')[1];
+            const decodedPayload = JSON.parse(atob(payload));
+            isSysAdmin = decodedPayload.isSysAdmin || false;
+          } catch (error) {
+            console.error('Error parsing JWT token in family context:', error);
+          }
+        }
+
+        // For system administrators, we need to load family by slug since they don't have a fixed familyId
+        // For regular users, this also works as expected
+        const response = await fetch(`/api/family/by-slug/${slug}`, {
+          headers: authToken ? {
+            'Authorization': `Bearer ${authToken}`
+          } : {}
+        });
+        
         if (!response.ok) {
           throw new Error('Failed to load family data');
         }
@@ -68,6 +89,12 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
         if (data.success && data.data) {
           setFamily(data.data);
+          
+          // For system administrators, store the family context so APIs can use it
+          if (isSysAdmin && typeof window !== 'undefined') {
+            // Store the current family context for the session
+            sessionStorage.setItem('sysadmin-family-context', JSON.stringify(data.data));
+          }
         } else {
           setError(data.error || 'Failed to load family data');
         }

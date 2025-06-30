@@ -43,7 +43,12 @@ function FullLogPage() {
         url += `&familyId=${family.id}`;
       }
 
-      const response = await fetch(url);
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(url, {
+        headers: authToken ? {
+          'Authorization': `Bearer ${authToken}`
+        } : {}
+      });
       const data = await response.json();
       if (data.success) {
         setActivities(data.data);
