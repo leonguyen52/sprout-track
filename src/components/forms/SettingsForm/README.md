@@ -6,10 +6,14 @@ This directory contains form implementations that use the FormPage component.
 
 The SettingsForm component is a full-screen form that allows users to configure application settings. It includes:
 
-- Family name configuration
-- Security PIN management
-- Database backup and restore functionality
-- Baby management (add, edit, select)
+- **Family Management**: Edit family name and URL slug with validation
+- **Security Configuration**: Security PIN management
+- **Database Management**: Database backup and restore functionality  
+- **Baby Management**: Add, edit, and select babies
+- **Caretaker Management**: Add and edit caretakers
+- **Contact Management**: Add and edit contacts
+- **Units Configuration**: Set default units for measurements
+- **Debug Settings**: Toggle debug features
 
 ### Usage
 
@@ -44,6 +48,55 @@ export function MyComponent() {
 }
 ```
 
+## Family Information Management
+
+The SettingsForm now includes comprehensive family management capabilities:
+
+### Family Name Editing
+- **View Mode**: Displays current family name in a disabled input field
+- **Edit Mode**: Allows editing with inline Save/Cancel buttons
+- **Validation**: Ensures family name is not empty before saving
+
+### Family Slug/URL Editing
+- **View Mode**: Shows current slug in a disabled input with ShareButton
+- **Edit Mode**: Provides real-time validation with the following features:
+  - **Uniqueness Check**: Validates slug uniqueness across all families
+  - **Debounced Validation**: Checks uniqueness 500ms after typing stops
+  - **Visual Feedback**: Shows loading spinner during validation
+  - **Error Display**: Clear error messages for duplicate slugs
+  - **ShareButton Integration**: Easily share family login URL
+
+### API Integration
+The form uses the following endpoints:
+- `GET /api/family` - Fetch current family data
+- `PUT /api/family` - Update family name and slug
+- `GET /api/family/by-slug/[slug]` - Check slug availability
+- `GET /api/app-config/public` - Get app configuration for ShareButton
+
+### Validation Logic
+The slug validation follows the same patterns as the family-manager:
+```tsx
+// Real-time uniqueness checking with debouncing
+const checkSlugUniqueness = useCallback(async (slug: string, currentFamilyId: string) => {
+  // Skip validation for empty slugs
+  if (!slug || slug.trim() === '') return;
+  
+  // Call API to check if slug exists
+  // Show error if slug is taken by another family
+  // Clear error if slug is available
+}, []);
+
+// Debounced validation (500ms delay)
+useEffect(() => {
+  if (familyEditData.slug && family?.id) {
+    const timeoutId = setTimeout(() => {
+      checkSlugUniqueness(familyEditData.slug!, family.id);
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }
+}, [familyEditData.slug, family?.id, checkSlugUniqueness]);
+```
+
 ## Implementation Details
 
 The form components in this directory follow these patterns:
@@ -68,6 +121,27 @@ When using this component in a multi-family context, you should:
 2. Pass the family ID to the SettingsForm component
 3. The component will handle sending this ID to the API and child components
 
+### ShareButton Integration
+
+The ShareButton component is integrated into the family slug field:
+- **Placement**: Appears next to the slug input when not in edit mode
+- **Configuration**: Uses app config for proper URL generation
+- **Performance**: App config is fetched once and reused
+- **Styling**: Matches form button styling with outline variant and small size
+
+```tsx
+{family?.slug && (
+  <ShareButton
+    familySlug={family.slug}
+    familyName={family.name}
+    appConfig={appConfig || undefined}
+    variant="outline"
+    size="sm"
+    showText={false}
+  />
+)}
+```
+
 ## Mobile Considerations
 
 These form components are designed with mobile-first principles:
@@ -75,3 +149,19 @@ These form components are designed with mobile-first principles:
 - On screens above 600px, form content is left-aligned
 - All interactive elements have appropriate touch targets
 - Forms slide in from the right side of the screen with smooth animations
+- Family editing controls stack properly on small screens
+
+## Error Handling
+
+The form includes comprehensive error handling:
+- **Network Errors**: Graceful handling of API failures
+- **Validation Errors**: Clear user feedback for invalid data
+- **Loading States**: Visual indicators during save operations
+- **Slug Conflicts**: Immediate feedback for duplicate slugs
+
+## Security Considerations
+
+- **Authentication**: All family operations require valid authentication
+- **Authorization**: Users can only edit their own family data
+- **Validation**: Server-side validation prevents invalid data
+- **Debouncing**: Reduces API calls during slug validation

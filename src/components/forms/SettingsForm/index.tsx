@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Baby, Unit, Caretaker } from '@prisma/client';
 import { Settings } from '@/app/api/types';
-import { Settings as Plus, Edit, ExternalLink } from 'lucide-react';
+import { Settings as Plus, Edit, ExternalLink, AlertCircle, Loader2 } from 'lucide-react';
 import { Contact } from '@/src/components/CalendarEvent/calendar-event.types';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -21,10 +21,20 @@ import {
   FormPageContent, 
   FormPageFooter 
 } from '@/src/components/ui/form-page';
+import { ShareButton } from '@/src/components/ui/share-button';
 import BabyForm from '@/src/components/forms/BabyForm';
 import CaretakerForm from '@/src/components/forms/CaretakerForm';
 import ContactForm from '@/src/components/forms/ContactForm';
 import ChangePinModal from '@/src/components/modals/ChangePinModal';
+
+interface FamilyData {
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface SettingsFormProps {
   isOpen: boolean;
@@ -45,6 +55,7 @@ export default function SettingsForm({
 }: SettingsFormProps) {
   const router = useRouter();
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [family, setFamily] = useState<FamilyData | null>(null);
   const [babies, setBabies] = useState<Baby[]>([]);
   const [caretakers, setCaretakers] = useState<Caretaker[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -59,11 +70,60 @@ export default function SettingsForm({
   const [localSelectedBabyId, setLocalSelectedBabyId] = useState<string>('');
   const [showChangePinModal, setShowChangePinModal] = useState(false);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [appConfig, setAppConfig] = useState<{ rootDomain: string; enableHttps: boolean } | null>(null);
+
+  // Family editing state
+  const [editingFamily, setEditingFamily] = useState(false);
+  const [familyEditData, setFamilyEditData] = useState<Partial<FamilyData>>({});
+  const [slugError, setSlugError] = useState<string>('');
+  const [checkingSlug, setCheckingSlug] = useState(false);
+  const [savingFamily, setSavingFamily] = useState(false);
 
   useEffect(() => {
     // Only set the selected baby ID if explicitly provided
     setLocalSelectedBabyId(selectedBabyId || '');
   }, [selectedBabyId]);
+
+  // Check slug uniqueness
+  const checkSlugUniqueness = useCallback(async (slug: string, currentFamilyId: string) => {
+    if (!slug || slug.trim() === '') {
+      setSlugError('');
+      return;
+    }
+
+    setCheckingSlug(true);
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/family/by-slug/${encodeURIComponent(slug)}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      const data = await response.json();
+      
+      if (data.success && data.data && data.data.id !== currentFamilyId) {
+        setSlugError('This slug is already taken');
+      } else {
+        setSlugError('');
+      }
+    } catch (error) {
+      console.error('Error checking slug:', error);
+      setSlugError('Error checking slug availability');
+    } finally {
+      setCheckingSlug(false);
+    }
+  }, []);
+
+  // Debounced slug check
+  useEffect(() => {
+    if (familyEditData.slug && family?.id) {
+      const timeoutId = setTimeout(() => {
+        checkSlugUniqueness(familyEditData.slug!, family.id);
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [familyEditData.slug, family?.id, checkSlugUniqueness]);
 
   const fetchData = async () => {
     try {
@@ -92,18 +152,31 @@ export default function SettingsForm({
       const babiesUrl = isSysAdmin && familyId ? `/api/baby?familyId=${familyId}` : '/api/baby';
       const caretakersUrl = isSysAdmin && familyId ? `/api/caretaker?includeInactive=true&familyId=${familyId}` : '/api/caretaker?includeInactive=true';
       const contactsUrl = isSysAdmin && familyId ? `/api/contact?familyId=${familyId}` : '/api/contact';
+      const familyUrl = '/api/family';
       
-      const [settingsResponse, babiesResponse, unitsResponse, caretakersResponse, contactsResponse] = await Promise.all([
+      const [settingsResponse, familyResponse, babiesResponse, unitsResponse, caretakersResponse, contactsResponse, appConfigResponse] = await Promise.all([
         fetch(settingsUrl, { headers }),
+        fetch(familyUrl, { headers }),
         fetch(babiesUrl, { headers }),
         fetch('/api/units', { headers }),
         fetch(caretakersUrl, { headers }),
-        fetch(contactsUrl, { headers })
+        fetch(contactsUrl, { headers }),
+        fetch('/api/app-config/public', { headers })
       ]);
 
       if (settingsResponse.ok) {
         const settingsData = await settingsResponse.json();
         setSettings(settingsData.data);
+      }
+
+      if (familyResponse.ok) {
+        const familyData = await familyResponse.json();
+        setFamily(familyData.data);
+        // Initialize family edit data
+        setFamilyEditData({
+          name: familyData.data.name,
+          slug: familyData.data.slug,
+        });
       }
 
       if (babiesResponse.ok) {
@@ -124,6 +197,11 @@ export default function SettingsForm({
       if (contactsResponse.ok) {
         const contactsData = await contactsResponse.json();
         setContacts(contactsData.data);
+      }
+
+      if (appConfigResponse.ok) {
+        const appConfigData = await appConfigResponse.json();
+        setAppConfig(appConfigData.data);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -176,6 +254,75 @@ export default function SettingsForm({
     }
   };
 
+  const handleFamilyEdit = () => {
+    setEditingFamily(true);
+    setFamilyEditData({
+      name: family?.name || '',
+      slug: family?.slug || '',
+    });
+    setSlugError('');
+  };
+
+  const handleFamilyCancelEdit = () => {
+    setEditingFamily(false);
+    setFamilyEditData({
+      name: family?.name || '',
+      slug: family?.slug || '',
+    });
+    setSlugError('');
+  };
+
+  const handleFamilySave = async () => {
+    // Don't save if there's a slug error
+    if (slugError) {
+      alert('Please fix the slug error before saving');
+      return;
+    }
+
+    if (!familyEditData.name || !familyEditData.slug) {
+      alert('Family name and slug are required');
+      return;
+    }
+
+    try {
+      setSavingFamily(true);
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/family', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          name: familyEditData.name,
+          slug: familyEditData.slug,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setFamily(data.data);
+        setEditingFamily(false);
+        setSlugError('');
+        
+        // If slug changed, we should refresh or redirect
+        if (data.data.slug !== family?.slug) {
+          // Optionally refresh the page or show a message about the URL change
+          console.log('Family slug updated successfully');
+        }
+      } else {
+        console.error('Failed to save family:', data.error);
+        alert('Failed to save changes: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error saving family:', error);
+      alert('Error saving changes');
+    } finally {
+      setSavingFamily(false);
+    }
+  };
+
   const handleOpenFamilyManager = () => {
     router.push('/family-manager');
   };
@@ -210,18 +357,112 @@ export default function SettingsForm({
       >
         <FormPageContent>
           <div className="space-y-6">
+            {/* Family Information Section */}
             <div className="space-y-4">
+              <h3 className="form-label mb-4">Family Information</h3>
+              
               <div>
                 <Label className="form-label">Family Name</Label>
-                <Input
-                  disabled={loading}
-                  value={settings?.familyName || ''}
-                  onChange={(e) => handleSettingsChange({ familyName: e.target.value })}
-                  placeholder="Enter family name"
-                  className="w-full"
-                />
+                <div className="flex gap-2">
+                  {editingFamily ? (
+                    <>
+                      <Input
+                        value={familyEditData.name || ''}
+                        onChange={(e) => setFamilyEditData(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Enter family name"
+                        className="flex-1"
+                        disabled={savingFamily}
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={handleFamilySave}
+                        disabled={savingFamily || !!slugError || checkingSlug || !familyEditData.name || !familyEditData.slug}
+                      >
+                        {savingFamily ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          'Save'
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleFamilyCancelEdit}
+                        disabled={savingFamily}
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Input
+                        disabled
+                        value={family?.name || ''}
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={handleFamilyEdit}
+                        disabled={loading}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
               
+              <div>
+                <Label className="form-label">Link/Slug</Label>
+                <div className="flex gap-2">
+                  {editingFamily ? (
+                    <div className="flex-1 space-y-1">
+                      <div className="relative">
+                        <Input
+                          value={familyEditData.slug || ''}
+                          onChange={(e) => setFamilyEditData(prev => ({ ...prev, slug: e.target.value }))}
+                          placeholder="Enter family slug"
+                          className={`w-full ${slugError ? 'border-red-500' : ''}`}
+                          disabled={savingFamily}
+                        />
+                        {checkingSlug && (
+                          <Loader2 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
+                        )}
+                      </div>
+                      {slugError && (
+                        <div className="flex items-center gap-1 text-red-600 text-xs">
+                          <AlertCircle className="h-3 w-3" />
+                          {slugError}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <Input
+                        disabled
+                        value={family?.slug || ''}
+                        className="flex-1 font-mono"
+                      />
+                      {family?.slug && (
+                        <ShareButton
+                          familySlug={family.slug}
+                          familyName={family.name}
+                          appConfig={appConfig || undefined}
+                          variant="outline"
+                          size="sm"
+                          showText={false}
+                        />
+                      )}
+                    </>
+                  )}
+                </div>
+                {!editingFamily && (
+                  <p className="text-sm text-gray-500 mt-1">This is your family's unique URL identifier</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4">              
               <div>
                 <Label className="form-label">Security PIN</Label>
                 <div className="flex gap-2">
