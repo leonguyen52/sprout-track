@@ -7,7 +7,7 @@ import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Label } from '@/src/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/src/components/ui/card';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useTheme } from '@/src/context/theme';
 import { ApiResponse } from '@/app/api/types';
 
@@ -240,6 +240,20 @@ export default function FamilyManagerLoginPage() {
               )}
             </Button>
           </form>
+          
+          {/* Go back to home button */}
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => router.push('/')}
+              disabled={loading}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Go back to home
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
