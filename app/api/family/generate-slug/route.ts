@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../../db';
 import { generateSlug, generateSlugWithNumber } from '../../utils/slug-generator';
-import { withAuth } from '../../utils/auth';
 import type { ApiResponse } from '../../utils/auth';
 
 /**
@@ -83,5 +82,5 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<{ slu
   }
 }
 
-// Export the handler with authentication middleware
-export const GET = withAuth(handler);
+// Export the handler without authentication middleware (accessible during setup)
+export const GET = handler;

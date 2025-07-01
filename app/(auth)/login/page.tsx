@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import LoginSecurity from '@/src/components/LoginSecurity';
 import { useTheme } from '@/src/context/theme';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
@@ -9,10 +9,17 @@ import { FamilyResponse } from '@/app/api/types';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { theme } = useTheme();
   const [families, setFamilies] = useState<FamilyResponse[]>([]);
   const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Check if this is a setup flow
+  const setupType = searchParams.get('setup');
+  const setupToken = searchParams.get('token');
+  const isSetupFlow = setupType === 'true';
+  const isTokenSetupFlow = setupType === 'token' && setupToken;
 
   // Load families for the dropdown
   useEffect(() => {
@@ -43,11 +50,19 @@ export default function LoginPage() {
 
   // Handle successful authentication
   const handleUnlock = (caretakerId?: string) => {
-    // Redirect to main app after successful authentication
-    if (selectedFamily) {
-      router.push(`/${selectedFamily}/log-entry`);
+    if (isTokenSetupFlow) {
+      // Token-based setup flow
+      router.push(`/setup/${setupToken}`);
+    } else if (isSetupFlow) {
+      // Regular setup flow - always go to /setup regardless of family context
+      router.push('/setup');
     } else {
-      router.push('/log-entry');
+      // Normal login - redirect to main app
+      if (selectedFamily) {
+        router.push(`/${selectedFamily}/log-entry`);
+      } else {
+        router.push('/log-entry');
+      }
     }
   };
 
@@ -56,16 +71,24 @@ export default function LoginPage() {
     const authToken = localStorage.getItem('authToken');
     const unlockTime = localStorage.getItem('unlockTime');
     
-    // If user is authenticated, redirect to main app
-    // The app layout will handle checking for session expiration
+    // If user is authenticated, redirect appropriately
     if (authToken && unlockTime) {
-      if (selectedFamily) {
-        router.push(`/${selectedFamily}/log-entry`);
+      if (isTokenSetupFlow) {
+        // Token-based setup flow
+        router.push(`/setup/${setupToken}`);
+      } else if (isSetupFlow) {
+        // Regular setup flow - always go to /setup regardless of family context
+        router.push('/setup');
       } else {
-        router.push('/log-entry');
+        // Normal flow - redirect to main app
+        if (selectedFamily) {
+          router.push(`/${selectedFamily}/log-entry`);
+        } else {
+          router.push('/log-entry');
+        }
       }
     }
-  }, [router, selectedFamily]);
+  }, [router, selectedFamily, isSetupFlow, isTokenSetupFlow, setupToken]);
 
   // Handle family selection change
   const handleFamilyChange = (value: string) => {
@@ -74,7 +97,23 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col items-center">
-      {families.length > 1 && (
+      {/* Show setup message if this is setup flow */}
+      {(isSetupFlow || isTokenSetupFlow) && (
+        <div className="w-full max-w-md mx-auto mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h2 className="text-lg font-semibold text-blue-900 mb-2">
+            {isTokenSetupFlow ? 'Invitation Setup' : 'Initial Setup Required'}
+          </h2>
+          <p className="text-blue-700">
+            {isTokenSetupFlow 
+              ? 'Please authenticate to complete the invited family setup.'
+              : 'Please authenticate with the system PIN to complete the initial setup.'
+            }
+          </p>
+        </div>
+      )}
+      
+      {/* Only show family selector if not setup flow and multiple families exist */}
+      {!isSetupFlow && !isTokenSetupFlow && families.length > 1 && (
         <div className="w-full max-w-md mx-auto mb-4 p-4">
           <label className="block text-sm font-medium mb-2">Select Family</label>
           <Select
@@ -96,7 +135,10 @@ export default function LoginPage() {
         </div>
       )}
       
-      <LoginSecurity onUnlock={handleUnlock} />
+      <LoginSecurity 
+        onUnlock={handleUnlock} 
+        familySlug={(isSetupFlow || isTokenSetupFlow) ? undefined : selectedFamily || undefined}
+      />
     </div>
   );
 }

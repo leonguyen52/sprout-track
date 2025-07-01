@@ -5,7 +5,7 @@
 # 2. Installs dependencies
 # 3. Generates the Prisma client
 # 4. Runs database migrations (creates the database schema)
-# 5. Seeds the database with initial data (creates default settings with PIN 111222 and adds units)
+# 5. Seeds the database with initial data (creates default family, system caretaker with PIN 111222, and units)
 # 6. Builds the Next.js application
 
 # Get the project directory (one level up from the script location)
@@ -77,14 +77,14 @@ if [ $? -ne 0 ]; then
 fi
 echo "Database migrations applied successfully."
 
-# Step 6: Seed the database (creates default settings with PIN 111222)
-echo "Step 6: Seeding the database with default settings and units..."
+# Step 6: Seed the database (creates default family, system caretaker, settings, and units)
+echo "Step 6: Seeding the database with default family, system caretaker (PIN: 111222), and units..."
 npm run prisma:seed
 if [ $? -ne 0 ]; then
     echo "Error: Database seeding failed! Setup aborted."
     exit 1
 fi
-echo "Database seeded successfully with default settings (PIN: 111222) and units."
+echo "Database seeded successfully with default family, system caretaker (PIN: 111222), and units."
 
 # Step 7: Build the Next.js application
 echo "Step 7: Building the Next.js application..."
@@ -98,6 +98,9 @@ echo "Next.js application built successfully."
 echo "-------------------------------------"
 echo "Sprout Track setup completed successfully!"
 echo "Default security PIN: 111222"
+echo "Default family: My Family (my-family)"
+echo ""
+echo "Navigate to the application and use PIN 111222 to complete setup."
 echo ""
 echo "To run the development server:"
 echo "  npm run dev"

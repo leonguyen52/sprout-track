@@ -49,6 +49,13 @@ export default function RootLayout({
             // Check if we have a family slug in the token
             if (decodedPayload.familySlug) {
               console.log('Active token found, redirecting to family:', decodedPayload.familySlug);
+              
+              // Don't redirect setup pages if it's the default family - this indicates initial setup
+              if ((pathname === '/setup' || pathname.startsWith('/setup/')) && decodedPayload.familySlug === 'my-family') {
+                // During initial setup with default family, stay on setup pages
+                return;
+              }
+              
               // Redirect to the user's family URL
               if (pathname === '/' || pathname === '/login') {
                 router.push(`/${decodedPayload.familySlug}/log-entry`);

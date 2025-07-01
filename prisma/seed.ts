@@ -1,4 +1,5 @@
 import prisma from './db';
+import { randomUUID } from 'crypto';
 
 type UnitData = {
   unitAbbr: string;
@@ -7,12 +8,55 @@ type UnitData = {
 };
 
 async function main() {
+  // Check if any families exist - if not, create the initial family and system caretaker
+  const familyCount = await prisma.family.count();
+  let defaultFamilyId: string;
+
+  if (familyCount === 0) {
+    console.log('No families found. Creating initial family and system caretaker...');
+    
+    // Create the default family
+    const defaultFamily = await prisma.family.create({
+      data: {
+        name: "My Family",
+        slug: "my-family",
+        isActive: true
+      }
+    });
+    
+    defaultFamilyId = defaultFamily.id;
+    console.log(`Created default family: ${defaultFamily.name} (${defaultFamily.slug})`);
+    
+    // Create the system caretaker associated with the default family
+    const systemCaretaker = await prisma.caretaker.create({
+      data: {
+        id: randomUUID(),
+        loginId: '00',
+        name: 'system',
+        type: 'System Administrator',
+        role: 'ADMIN',
+        securityPin: '111222', // Default PIN
+        familyId: defaultFamilyId,
+        inactive: false,
+        deletedAt: null
+      }
+    });
+    
+    console.log(`Created system caretaker with loginId: ${systemCaretaker.loginId}`);
+  } else {
+    // Get the first family's ID for settings
+    const firstFamily = await prisma.family.findFirst();
+    defaultFamilyId = firstFamily!.id;
+    console.log(`Using existing family: ${firstFamily!.name} for settings`);
+  }
+
   // Ensure default settings exist with PIN 111222
   const settingsCount = await prisma.settings.count();
   if (settingsCount === 0) {
     console.log('Creating default settings with PIN: 111222');
     await prisma.settings.create({
       data: {
+        familyId: defaultFamilyId,
         familyName: "My Family",
         securityPin: "111222",
         defaultBottleUnit: "OZ",
@@ -24,6 +68,8 @@ async function main() {
         enableDebugTimezone: false
       }
     });
+  } else {
+    console.log('Default settings already exist');
   }
 
   // Define all available units with their activity types
@@ -48,6 +94,8 @@ async function main() {
 
   // Handle units separately
   await updateUnits(unitData);
+  
+  console.log('Seed script completed successfully!');
 }
 
 /**

@@ -13,16 +13,30 @@ export default function HomePage() {
     const checkFamilies = async () => {
       try {
         setLoading(true);
-        // Fetch families without authentication
-        const response = await fetch('/api/family/public-list');
-        const data = await response.json();
+        // Fetch families and check if setup is needed
+        const [familiesResponse, caretakerExistsResponse] = await Promise.all([
+          fetch('/api/family/public-list'),
+          fetch('/api/auth/caretaker-exists')
+        ]);
         
-        if (data.success && Array.isArray(data.data)) {
-          setFamilies(data.data);
+        const familiesData = await familiesResponse.json();
+        const caretakerData = await caretakerExistsResponse.json();
+        
+        if (familiesData.success && Array.isArray(familiesData.data)) {
+          const familiesList = familiesData.data;
+          setFamilies(familiesList);
           
-          // If only one family exists, redirect to that family
-          if (data.data.length === 1) {
-            const familySlug = data.data[0].slug;
+          // Check if setup is needed
+          const hasCaretakers = caretakerData.success && caretakerData.data?.exists;
+          const needsSetup = familiesList.length === 0 || 
+                            (familiesList.length === 1 && familiesList[0].slug === 'my-family' && !hasCaretakers);
+          
+          if (needsSetup) {
+            // Setup needed - redirect to login first for authentication
+            router.push('/login?setup=true');
+          } else if (familiesList.length === 1) {
+            // If only one family exists (and setup is complete), redirect to that family
+            const familySlug = familiesList[0].slug;
             
             // Check if user is already authenticated
             const authToken = localStorage.getItem('authToken');
@@ -35,12 +49,9 @@ export default function HomePage() {
               // Not authenticated, redirect to login
               router.push(`/${familySlug}/login`);
             }
-          } else if (data.data.length > 1) {
+          } else {
             // Multiple families, redirect to family selection
             router.push('/family-select');
-          } else {
-            // No families - will show setup needed message in UI
-            // TODO: Redirect to setup wizard when implemented
           }
         }
       } catch (error) {
@@ -53,23 +64,11 @@ export default function HomePage() {
     checkFamilies();
   }, [router]);
 
-  // Return loading state or no families message
+  // Return loading state - the useEffect will handle redirects
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
   
-  // If no families found, show setup needed message
-  if (families.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center p-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Setup Required</h2>
-          <p className="text-gray-600 mb-4">No families found. Setup wizard coming soon!</p>
-          <div className="animate-pulse text-gray-400">Please contact administrator</div>
-        </div>
-      </div>
-    );
-  }
-  
+  // This should not render as useEffect will redirect
   return null;
 }
