@@ -37,6 +37,7 @@ export default function AppConfigForm({
     rootDomain: '',
     enableHttps: false,
   });
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [passwordStep, setPasswordStep] = useState<'verify' | 'new' | 'confirm'>('verify');
   const [verifyPassword, setVerifyPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -65,6 +66,7 @@ export default function AppConfigForm({
           rootDomain: data.data.rootDomain || '',
           enableHttps: data.data.enableHttps || false,
         });
+        setShowPasswordChange(false);
         setPasswordStep('verify');
         setVerifyPassword('');
         setNewPassword('');
@@ -157,6 +159,7 @@ export default function AppConfigForm({
           setOriginalPassword(data.data.adminPass);
           
           // Reset password form for potential next change
+          setShowPasswordChange(false);
           setPasswordStep('verify');
           setVerifyPassword('');
           setNewPassword('');
@@ -180,6 +183,7 @@ export default function AppConfigForm({
   };
 
   const resetPasswordForm = () => {
+    setShowPasswordChange(false);
     setPasswordStep('verify');
     setVerifyPassword('');
     setNewPassword('');
@@ -380,121 +384,143 @@ export default function AppConfigForm({
 
                 <div className="space-y-4">
                   {/* Password Change Section */}
-                  <div className="space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-sm font-medium">
-                        Admin Password
-                        <span className="text-red-500 ml-1">*</span>
-                      </Label>
-                      {passwordStep !== 'verify' && (
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm"
-                          onClick={resetPasswordForm}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Admin Password
+                    </Label>
+                    
+                    {!showPasswordChange ? (
+                      <div className="flex gap-2">
+                        <Input
+                          type="password"
+                          disabled
+                          value="••••••"
+                          className="flex-1 font-mono"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowPasswordChange(true)}
+                          disabled={loading}
                         >
-                          Cancel
+                          Change Password
                         </Button>
-                      )}
-                    </div>
-
-                    {passwordStep === 'verify' && (
-                      <div className="space-y-2">
-                        <Label htmlFor="verifyPassword" className="text-sm">
-                          Current Password
-                        </Label>
-                        <div className="flex space-x-2">
-                          <Input
-                            type="password"
-                            id="verifyPassword"
-                            value={verifyPassword}
-                            onChange={(e) => {
-                              setVerifyPassword(e.target.value);
-                              setError(null);
-                              setSuccess(null);
-                            }}
-                            placeholder="Enter current password"
-                            autoComplete="current-password"
-                          />
+                      </div>
+                    ) : (
+                      <div className="space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <div className="flex justify-between items-center">
+                          <Label className="text-sm font-medium">
+                            Change Admin Password
+                          </Label>
                           <Button 
                             type="button" 
-                            onClick={handleVerifyPassword}
-                            disabled={!verifyPassword.trim()}
+                            variant="outline" 
+                            size="sm"
+                            onClick={resetPasswordForm}
                           >
-                            Continue
+                            Cancel
                           </Button>
                         </div>
+
+                        {passwordStep === 'verify' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="verifyPassword" className="text-sm">
+                              Current Password
+                            </Label>
+                            <div className="flex space-x-2">
+                              <Input
+                                type="password"
+                                id="verifyPassword"
+                                value={verifyPassword}
+                                onChange={(e) => {
+                                  setVerifyPassword(e.target.value);
+                                  setError(null);
+                                  setSuccess(null);
+                                }}
+                                placeholder="Enter current password"
+                                autoComplete="current-password"
+                              />
+                              <Button 
+                                type="button" 
+                                onClick={handleVerifyPassword}
+                                disabled={!verifyPassword.trim()}
+                              >
+                                Continue
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {passwordStep === 'new' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="newPassword" className="text-sm">
+                              New Password
+                            </Label>
+                            <div className="flex space-x-2">
+                              <Input
+                                type="password"
+                                id="newPassword"
+                                value={newPassword}
+                                onChange={(e) => {
+                                  setNewPassword(e.target.value);
+                                  setError(null);
+                                  setSuccess(null);
+                                }}
+                                placeholder="Enter new password"
+                                autoComplete="new-password"
+                              />
+                              <Button 
+                                type="button" 
+                                onClick={handleNewPassword}
+                                disabled={!newPassword.trim()}
+                              >
+                                Continue
+                              </Button>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              Password must be at least 6 characters
+                            </p>
+                          </div>
+                        )}
+
+                        {passwordStep === 'confirm' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="confirmNewPassword" className="text-sm">
+                              Confirm New Password
+                            </Label>
+                            <div className="flex space-x-2">
+                              <Input
+                                type="password"
+                                id="confirmNewPassword"
+                                value={confirmPassword}
+                                onChange={(e) => {
+                                  setConfirmPassword(e.target.value);
+                                  setError(null);
+                                  setSuccess(null);
+                                }}
+                                placeholder="Confirm new password"
+                                autoComplete="new-password"
+                              />
+                              <Button 
+                                type="button" 
+                                onClick={handleConfirmPassword}
+                                disabled={!confirmPassword.trim() || saving}
+                              >
+                                {saving ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Updating...
+                                  </>
+                                ) : (
+                                  'Update'
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
-
-                    {passwordStep === 'new' && (
-                      <div className="space-y-2">
-                        <Label htmlFor="newPassword" className="text-sm">
-                          New Password
-                        </Label>
-                        <div className="flex space-x-2">
-                          <Input
-                            type="password"
-                            id="newPassword"
-                            value={newPassword}
-                            onChange={(e) => {
-                              setNewPassword(e.target.value);
-                              setError(null);
-                              setSuccess(null);
-                            }}
-                            placeholder="Enter new password"
-                            autoComplete="new-password"
-                          />
-                          <Button 
-                            type="button" 
-                            onClick={handleNewPassword}
-                            disabled={!newPassword.trim()}
-                          >
-                            Continue
-                          </Button>
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          Password must be at least 6 characters
-                        </p>
-                      </div>
-                    )}
-
-                    {passwordStep === 'confirm' && (
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmNewPassword" className="text-sm">
-                          Confirm New Password
-                        </Label>
-                        <div className="flex space-x-2">
-                          <Input
-                            type="password"
-                            id="confirmNewPassword"
-                            value={confirmPassword}
-                            onChange={(e) => {
-                              setConfirmPassword(e.target.value);
-                              setError(null);
-                              setSuccess(null);
-                            }}
-                            placeholder="Confirm new password"
-                            autoComplete="new-password"
-                          />
-                          <Button 
-                            type="button" 
-                            onClick={handleConfirmPassword}
-                            disabled={!confirmPassword.trim() || saving}
-                          >
-                            {saving ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Updating...
-                              </>
-                            ) : (
-                              'Update'
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
+                    
                     <p className="text-xs text-gray-500">
                       This password is used for system-wide administrative access
                     </p>

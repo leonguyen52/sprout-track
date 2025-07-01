@@ -38,6 +38,8 @@ html.dark .family-manager-main {
   border-top: 1px solid #e5e7eb; /* gray-200 */
   padding: 1rem;
   box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Dark mode footer styles */
@@ -51,10 +53,6 @@ html.dark .family-manager-footer {
 .family-manager-logout-button {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 100%;
-  max-width: 200px;
-  margin: 0 auto;
   padding: 0.75rem 1rem;
   background-color: #dc2626; /* red-600 */
   color: white;
@@ -79,4 +77,4 @@ html.dark .family-manager-footer {
   margin-right: 0.5rem;
   height: 1rem;
   width: 1rem;
-} 
+}
