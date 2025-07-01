@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/prisma/db';
 import { ApiResponse } from '@/app/api/utils/auth';
 import { Family } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 interface SetupStartRequest {
   name: string;
@@ -67,6 +68,7 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
 
       const family = await tx.family.create({
         data: {
+          id: randomUUID(),
           name,
           slug,
           isActive: true,
@@ -76,6 +78,7 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
       // Create family settings
       await tx.settings.create({
         data: {
+          id: randomUUID(),
           familyId: family.id,
           familyName: name,
         },
