@@ -162,9 +162,13 @@ function HomeContent(): React.ReactElement {
       if (timelineData.success) {
         setActivities(timelineData.data);
 
-        // Update last feed time
+        // Update last feed time - only track bottle and breast feeds, not solids
         const lastFeed = timelineData.data
-          .filter((activity: ActivityType) => 'amount' in activity)
+          .filter((activity: ActivityType) => 
+            'amount' in activity && 
+            'type' in activity && 
+            (activity.type === 'BOTTLE' || activity.type === 'BREAST')
+          )
           .sort((a: FeedLogResponse, b: FeedLogResponse) => 
             new Date(b.time).getTime() - new Date(a.time).getTime()
           )[0];
