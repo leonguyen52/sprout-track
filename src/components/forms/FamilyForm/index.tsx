@@ -1,18 +1,31 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Gender } from '@prisma/client';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Label } from '@/src/components/ui/label';
-import { Checkbox } from '@/src/components/ui/checkbox';
+import { Calendar } from 'lucide-react';
+import { Calendar as CalendarComponent } from '@/src/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/src/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/src/components/ui/select';
 import { 
   FormPage, 
   FormPageContent, 
   FormPageFooter 
 } from '@/src/components/ui/form-page';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { ShareButton } from '@/src/components/ui/share-button';
+import { format } from 'date-fns';
+import { cn } from '@/src/lib/utils';
 
-interface Family {
+interface FamilyData {
   id: string;
   name: string;
   slug: string;
@@ -25,291 +38,988 @@ interface FamilyFormProps {
   isOpen: boolean;
   onClose: () => void;
   isEditing: boolean;
-  family: Family | null;
-  onFamilyChange?: () => void;
+  family: FamilyData | null;
+  onFamilyChange: () => void;
 }
 
-const defaultFormData = {
-  name: '',
-  slug: '',
-  isActive: true,
-};
+type SetupMode = 'manual' | 'token';
 
-export default function FamilyForm({
-  isOpen,
+interface CaretakerData {
+  loginId: string;
+  name: string;
+  type: string;
+  role: 'ADMIN' | 'USER';
+  securityPin: string;
+}
+
+export default function FamilyForm({ 
+  isOpen, 
   onClose,
   isEditing,
   family,
   onFamilyChange,
 }: FamilyFormProps) {
-  const [formData, setFormData] = useState(defaultFormData);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [slugValidation, setSlugValidation] = useState({
-    isChecking: false,
-    isValid: true,
-    message: '',
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [appConfig, setAppConfig] = useState<{ rootDomain: string; enableHttps: boolean } | null>(null);
+
+  // Setup mode selection
+  const [setupMode, setSetupMode] = useState<SetupMode>('manual');
+
+  // Family data
+  const [familyName, setFamilyName] = useState('');
+  const [familySlug, setFamilySlug] = useState('');
+  const [slugError, setSlugError] = useState('');
+  const [checkingSlug, setCheckingSlug] = useState(false);
+
+  // Token mode data
+  const [tokenSystemPin, setTokenSystemPin] = useState('');
+  const [generatedToken, setGeneratedToken] = useState<string | null>(null);
+
+  // Manual mode - Security setup
+  const [useSystemPin, setUseSystemPin] = useState(true);
+  const [systemPin, setSystemPin] = useState('');
+  const [confirmSystemPin, setConfirmSystemPin] = useState('');
+  const [caretakers, setCaretakers] = useState<CaretakerData[]>([]);
+  const [newCaretaker, setNewCaretaker] = useState<CaretakerData>({
+    loginId: '',
+    name: '',
+    type: '',
+    role: 'ADMIN',
+    securityPin: '',
   });
 
-  // Generate slug from name
-  const generateSlug = (name: string): string => {
+  // Manual mode - Baby setup
+  const [babyFirstName, setBabyFirstName] = useState('');
+  const [babyLastName, setBabyLastName] = useState('');
+  const [babyBirthDate, setBabyBirthDate] = useState<Date | null>(null);
+  const [babyGender, setBabyGender] = useState<Gender | ''>('');
+  const [feedWarningTime, setFeedWarningTime] = useState('02:00');
+  const [diaperWarningTime, setDiaperWarningTime] = useState('03:00');
+
+  // Error handling
+  const [error, setError] = useState('');
+
+  // Fetch app config for ShareButton
+  useEffect(() => {
+    const fetchAppConfig = async () => {
+      try {
+        const response = await fetch('/api/app-config/public');
+        const data = await response.json();
+        if (data.success) {
+          setAppConfig(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching app config:', error);
+      }
+    };
+
+    if (isOpen) {
+      fetchAppConfig();
+    }
+  }, [isOpen]);
+
+  // Reset form when opening/closing
+  useEffect(() => {
+    if (isOpen) {
+      if (isEditing && family) {
+        // For editing existing family (not implementing family editing in this form)
+        setFamilyName(family.name);
+        setFamilySlug(family.slug);
+      } else {
+        // Reset for new family
+        setSetupMode('manual');
+        setFamilyName('');
+        setFamilySlug('');
+        setSlugError('');
+        setTokenSystemPin('');
+        setGeneratedToken(null);
+        setUseSystemPin(true);
+        setSystemPin('');
+        setConfirmSystemPin('');
+        setCaretakers([]);
+        setNewCaretaker({
+          loginId: '',
+          name: '',
+          type: '',
+          role: 'ADMIN',
+          securityPin: '',
+        });
+        setBabyFirstName('');
+        setBabyLastName('');
+        setBabyBirthDate(null);
+        setBabyGender('');
+        setFeedWarningTime('02:00');
+        setDiaperWarningTime('03:00');
+        setError('');
+      }
+    }
+  }, [isOpen, isEditing, family]);
+
+  // Get auth headers for API calls
+  const getAuthHeaders = () => {
+    const authToken = localStorage.getItem('authToken');
+    return {
+      'Content-Type': 'application/json',
+      ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+    };
+  };
+
+  // Generate a unique slug
+  const generateSlug = async () => {
+    try {
+      const response = await fetch('/api/family/generate-slug', {
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+      
+      if (data.success && data.data.slug) {
+        setFamilySlug(data.data.slug);
+        setSlugError('');
+      } else {
+        setSlugError('Failed to generate unique URL');
+      }
+    } catch (error) {
+      console.error('Error generating slug:', error);
+      setSlugError('Error generating URL');
+    }
+  };
+
+  // Auto-generate slug from family name
+  const generateSlugFromName = (name: string) => {
     return name
       .toLowerCase()
-      .trim()
       .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .trim()
       .replace(/\s+/g, '-') // Replace spaces with hyphens
-      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
       .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
   };
 
-  // Reset form when form opens/closes or family changes
-  useEffect(() => {
-    if (family && isOpen) {
-      setFormData({
-        name: family.name,
-        slug: family.slug,
-        isActive: family.isActive,
-      });
-    } else if (!isOpen) {
-      setFormData(defaultFormData);
-      setSlugValidation({ isChecking: false, isValid: true, message: '' });
+  // Handle slug field click - auto-generate if empty
+  const handleSlugFieldClick = () => {
+    if (!familySlug && familyName) {
+      const autoSlug = generateSlugFromName(familyName);
+      if (autoSlug) {
+        setFamilySlug(autoSlug);
+      }
     }
-  }, [family, isOpen]);
+  };
 
-  // Auto-generate slug when name changes (only for new families)
-  useEffect(() => {
-    if (!isEditing && formData.name) {
-      const newSlug = generateSlug(formData.name);
-      setFormData(prev => ({ ...prev, slug: newSlug }));
-    }
-  }, [formData.name, isEditing]);
-
-  // Debounced slug validation
-  useEffect(() => {
-    if (!formData.slug) {
-      setSlugValidation({ isChecking: false, isValid: true, message: '' });
+  // Check slug uniqueness
+  const checkSlugUniqueness = useCallback(async (slug: string) => {
+    if (!slug || slug.trim() === '') {
+      setSlugError('');
       return;
     }
 
-    const timeoutId = setTimeout(async () => {
-      await validateSlug(formData.slug);
-    }, 500);
+    // Basic slug validation
+    const slugPattern = /^[a-z0-9-]+$/;
+    if (!slugPattern.test(slug)) {
+      setSlugError('Slug can only contain lowercase letters, numbers, and hyphens');
+      return;
+    }
 
-    return () => clearTimeout(timeoutId);
-  }, [formData.slug, family?.id]);
+    if (slug.length < 3) {
+      setSlugError('Slug must be at least 3 characters long');
+      return;
+    }
 
-  const validateSlug = async (slug: string) => {
-    if (!slug) return;
+    if (slug.length > 50) {
+      setSlugError('Slug must be less than 50 characters');
+      return;
+    }
 
-    setSlugValidation({ isChecking: true, isValid: true, message: '' });
-
+    setCheckingSlug(true);
     try {
-      const response = await fetch(`/api/family/by-slug/${encodeURIComponent(slug)}`);
+      const response = await fetch(`/api/family/by-slug/${encodeURIComponent(slug)}`, {
+        headers: getAuthHeaders(),
+      });
       const data = await response.json();
-
-      if (response.ok && data.success && data.family) {
-        // Slug exists - check if it's the current family being edited
-        const isCurrentFamily = family?.id === data.family.id;
-        
-        if (isCurrentFamily) {
-          setSlugValidation({ isChecking: false, isValid: true, message: '' });
-        } else {
-          setSlugValidation({ 
-            isChecking: false, 
-            isValid: false, 
-            message: 'This slug is already taken by another family' 
-          });
-        }
-      } else if (response.status === 404) {
-        // Slug doesn't exist - it's available
-        setSlugValidation({ isChecking: false, isValid: true, message: '' });
+      
+      if (data.success && data.data) {
+        setSlugError('This URL is already taken');
       } else {
-        // Some other error
-        setSlugValidation({ 
-          isChecking: false, 
-          isValid: true, 
-          message: 'Unable to validate slug' 
-        });
+        setSlugError('');
       }
     } catch (error) {
-      console.error('Error validating slug:', error);
-      setSlugValidation({ 
-        isChecking: false, 
-        isValid: true, 
-        message: 'Unable to validate slug' 
-      });
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData(prev => ({ ...prev, isActive: checked }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting || !slugValidation.isValid) return;
-
-    // Basic validation
-    if (!formData.name.trim()) {
-      alert('Please enter a family name');
-      return;
-    }
-
-    if (!formData.slug.trim()) {
-      alert('Please enter a family slug');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      
-      const payload = {
-        name: formData.name.trim(),
-        slug: formData.slug.trim(),
-        isActive: formData.isActive,
-        ...(isEditing && family ? { id: family.id } : {}),
-      };
-
-      const url = '/api/family/manage';
-      const method = isEditing ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        if (onFamilyChange) {
-          onFamilyChange();
-        }
-        onClose();
-      } else {
-        alert(`Error: ${data.error || 'Failed to save family'}`);
-      }
-    } catch (error) {
-      console.error('Error saving family:', error);
-      alert('An unexpected error occurred. Please try again.');
+      console.error('Error checking slug:', error);
+      setSlugError('Error checking URL availability');
     } finally {
-      setIsSubmitting(false);
+      setCheckingSlug(false);
+    }
+  }, []);
+
+  // Debounced slug check
+  useEffect(() => {
+    if (familySlug) {
+      const timeoutId = setTimeout(() => {
+        checkSlugUniqueness(familySlug);
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [familySlug, checkSlugUniqueness]);
+
+  // Add caretaker to list
+  const addCaretaker = () => {
+    // Validate caretaker
+    if (newCaretaker.loginId.length !== 2) {
+      setError('Login ID must be exactly 2 digits');
+      return;
+    }
+    
+    if (!/^\d+$/.test(newCaretaker.loginId)) {
+      setError('Login ID must contain only digits');
+      return;
+    }
+    
+    if (newCaretaker.loginId === '00') {
+      setError('Login ID "00" is reserved for system use');
+      return;
+    }
+    
+    if (caretakers.some(c => c.loginId === newCaretaker.loginId)) {
+      setError('This Login ID is already taken');
+      return;
+    }
+    
+    if (!newCaretaker.name.trim()) {
+      setError('Please enter caretaker name');
+      return;
+    }
+    
+    if (newCaretaker.securityPin.length < 6 || newCaretaker.securityPin.length > 10) {
+      setError('PIN must be between 6 and 10 digits');
+      return;
+    }
+    
+    setCaretakers([...caretakers, { ...newCaretaker }]);
+    setNewCaretaker({
+      loginId: '',
+      name: '',
+      type: '',
+      role: 'USER',
+      securityPin: '',
+    });
+    setError('');
+  };
+
+  // Remove caretaker from list
+  const removeCaretaker = (index: number) => {
+    const updatedCaretakers = [...caretakers];
+    updatedCaretakers.splice(index, 1);
+    setCaretakers(updatedCaretakers);
+  };
+
+  // Generate setup token
+  const handleGenerateToken = async () => {
+    setError('');
+    
+    // Validate token mode inputs
+    if (!familyName.trim()) {
+      setError('Please enter a family name');
+      return;
+    }
+
+    if (!familySlug.trim()) {
+      setError('Please enter a family URL');
+      return;
+    }
+
+    // Force slug validation before proceeding
+    if (familySlug) {
+      await checkSlugUniqueness(familySlug);
+    }
+
+    if (slugError) {
+      setError('Please fix the URL error before proceeding');
+      return;
+    }
+
+    if (tokenSystemPin.length < 6 || tokenSystemPin.length > 10) {
+      setError('System PIN must be between 6 and 10 digits');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const response = await fetch('/api/family/create-setup-link', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Create the full setup URL with family information as query parameters
+        const baseUrl = window.location.origin;
+        const setupUrl = `${baseUrl}/setup/${data.data.token}?name=${encodeURIComponent(familyName)}&slug=${encodeURIComponent(familySlug)}&pin=${encodeURIComponent(tokenSystemPin)}`;
+        
+        setGeneratedToken(setupUrl);
+        onFamilyChange();
+      } else {
+        setError(data.error || 'Failed to generate setup token');
+      }
+    } catch (error) {
+      console.error('Error generating setup token:', error);
+      setError('Failed to generate setup token. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle manual family creation
+  const handleManualSave = async () => {
+    setError('');
+    
+    // Validate family data
+    if (!familyName.trim()) {
+      setError('Please enter a family name');
+      return;
+    }
+
+    if (!familySlug.trim()) {
+      setError('Please enter a family URL');
+      return;
+    }
+
+    // Force slug validation before proceeding
+    if (familySlug) {
+      await checkSlugUniqueness(familySlug);
+    }
+
+    if (slugError) {
+      setError('Please fix the URL error before proceeding');
+      return;
+    }
+
+    // Validate security setup
+    if (useSystemPin) {
+      if (systemPin.length < 6 || systemPin.length > 10) {
+        setError('PIN must be between 6 and 10 digits');
+        return;
+      }
+      
+      if (systemPin !== confirmSystemPin) {
+        setError('PINs do not match');
+        return;
+      }
+    } else {
+      if (caretakers.length === 0) {
+        setError('Please add at least one caretaker');
+        return;
+      }
+    }
+
+    // Validate baby information
+    if (!babyFirstName.trim()) {
+      setError('Please enter baby\'s first name');
+      return;
+    }
+    
+    if (!babyLastName.trim()) {
+      setError('Please enter baby\'s last name');
+      return;
+    }
+    
+    if (!babyBirthDate) {
+      setError('Please enter baby\'s birth date');
+      return;
+    }
+    
+    if (!babyGender) {
+      setError('Please select baby\'s gender');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Create family using the admin manual creation endpoint
+      const familyResponse = await fetch('/api/family/manage', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          name: familyName,
+          slug: familySlug,
+          isActive: true,
+        }),
+      });
+
+      const familyData = await familyResponse.json();
+      
+      if (!familyData.success) {
+        throw new Error(familyData.error || 'Failed to create family');
+      }
+
+      const createdFamilyId = familyData.data.id;
+
+      // Create initial settings for the new family
+      const initialSettingsResponse = await fetch(`/api/settings?familyId=${createdFamilyId}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      if (!initialSettingsResponse.ok) {
+        throw new Error('Failed to create initial settings');
+      }
+
+      // Save security settings
+      if (useSystemPin) {
+        const settingsResponse = await fetch(`/api/settings?familyId=${createdFamilyId}`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            familyName: familyName, // Set the actual family name
+            securityPin: systemPin,
+          }),
+        });
+        
+        if (!settingsResponse.ok) {
+          throw new Error('Failed to save security PIN');
+        }
+      } else {
+        // Save caretakers
+        for (const caretaker of caretakers) {
+          const caretakerResponse = await fetch('/api/caretaker', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              ...caretaker,
+              familyId: createdFamilyId,
+            }),
+          });
+          
+          if (!caretakerResponse.ok) {
+            throw new Error(`Failed to save caretaker: ${caretaker.name}`);
+          }
+        }
+
+        // Update settings with the actual family name (when using individual caretakers)
+        const settingsResponse = await fetch(`/api/settings?familyId=${createdFamilyId}`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            familyName: familyName, // Set the actual family name
+          }),
+        });
+        
+        if (!settingsResponse.ok) {
+          throw new Error('Failed to update family name in settings');
+        }
+      }
+
+      // Save baby information
+      const babyResponse = await fetch('/api/baby/create', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          firstName: babyFirstName,
+          lastName: babyLastName,
+          birthDate: babyBirthDate.toISOString(),
+          gender: babyGender,
+          feedWarningTime,
+          diaperWarningTime,
+          familyId: createdFamilyId,
+        }),
+      });
+      
+      if (!babyResponse.ok) {
+        throw new Error('Failed to save baby information');
+      }
+
+      // Success - close form and refresh
+      onFamilyChange();
+      onClose();
+    } catch (error) {
+      console.error('Error creating family:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create family. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <FormPage 
-      isOpen={isOpen} 
+    <FormPage
+      isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Edit Family' : 'Add New Family'}
-      description={isEditing 
-        ? "Update the family information" 
-        : "Create a new family to start tracking"
-      }
+      description={isEditing ? 'Edit family information' : 'Create a new family by choosing your preferred setup method'}
     >
-      <form onSubmit={handleSubmit} className="h-full flex flex-col overflow-hidden">
-        <FormPageContent>
-          <div className="space-y-6">
-            {/* Family Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="form-label">
-                Family Name
-                <span className="text-red-500 ml-1">*</span>
-              </Label>
+      <FormPageContent>
+        <div className="space-y-6">
+          {/* Setup Mode Selection (only for new families) */}
+          {!isEditing && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Setup Method</h3>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="manual"
+                    checked={setupMode === 'manual'}
+                    onChange={() => setSetupMode('manual')}
+                    className="h-4 w-4 text-teal-600 focus:ring-teal-500"
+                  />
+                  <label htmlFor="manual" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Add family manually (complete setup now)
+                  </label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="token"
+                    checked={setupMode === 'token'}
+                    onChange={() => setSetupMode('token')}
+                    className="h-4 w-4 text-teal-600 focus:ring-teal-500"
+                  />
+                  <label htmlFor="token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Generate setup invitation (let family complete their own setup)
+                  </label>
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {setupMode === 'manual' 
+                  ? 'You will configure all family details, security, and add the first baby now.'
+                  : 'You will create a secure invitation link that the family can use to complete their own setup.'
+                }
+              </p>
+            </div>
+          )}
+
+          {/* Family Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Family Information</h3>
+            
+            <div>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Family Name</Label>
               <Input
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
+                value={familyName}
+                onChange={(e) => setFamilyName(e.target.value)}
                 placeholder="Enter family name"
-                required
-                disabled={isSubmitting}
+                disabled={loading}
               />
             </div>
 
-            {/* Family Slug */}
-            <div className="space-y-2">
-              <Label htmlFor="slug" className="form-label">
-                Family Slug
-                <span className="text-red-500 ml-1">*</span>
-              </Label>
-              <div className="relative">
+            <div>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Family URL</Label>
+              <div className="flex gap-2">
                 <Input
-                  id="slug"
-                  name="slug"
-                  value={formData.slug}
-                  onChange={handleInputChange}
-                  placeholder="Enter family slug"
-                  required
-                  disabled={isSubmitting}
-                  className={`pr-8 ${!slugValidation.isValid ? 'border-red-500' : ''}`}
+                  value={familySlug}
+                  onChange={(e) => setFamilySlug(e.target.value.toLowerCase())}
+                  onClick={handleSlugFieldClick}
+                  placeholder="family-url"
+                  className={cn(
+                    slugError ? 'border-red-500' : '',
+                    checkingSlug ? 'border-blue-400' : '',
+                    !slugError && familySlug && !checkingSlug ? 'border-green-500' : ''
+                  )}
+                  disabled={loading || checkingSlug}
                 />
-                {slugValidation.isChecking && (
-                  <div className="absolute right-2 top-2.5">
-                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={generateSlug}
+                  disabled={loading || checkingSlug}
+                >
+                  Generate
+                </Button>
+              </div>
+              {slugError && (
+                <p className="text-red-600 text-sm mt-1">{slugError}</p>
+              )}
+              {checkingSlug && (
+                <p className="text-blue-600 text-sm mt-1">Checking availability...</p>
+              )}
+              {!slugError && familySlug && !checkingSlug && (
+                <p className="text-green-600 text-sm mt-1">URL is available</p>
+              )}
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Your family will be accessible at: /{familySlug || 'your-family-url'}
+              </p>
+            </div>
+          </div>
+
+          {/* Token Mode - System PIN */}
+          {!isEditing && setupMode === 'token' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Setup Token Configuration</h3>
+              
+              <div>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">System PIN (6-10 digits)</Label>
+                <Input
+                  type="password"
+                  value={tokenSystemPin}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    if (value.length <= 10) {
+                      setTokenSystemPin(value);
+                    }
+                  }}
+                  placeholder="Enter system PIN for this family"
+                  disabled={loading}
+                  minLength={6}
+                  maxLength={10}
+                />
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  This PIN will be used for initial access during family setup. The family can change it later.
+                </p>
+              </div>
+
+              {generatedToken && (
+                <div className="space-y-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+                  <h4 className="text-md font-semibold text-green-800 dark:text-green-200">Setup Token Generated!</h4>
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    Share this link with the family to let them complete their setup:
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <ShareButton
+                      familySlug={`setup/${generatedToken}`}
+                      familyName={`${familyName} Setup`}
+                      appConfig={appConfig || undefined}
+                      variant="outline"
+                      size="sm"
+                      showText={true}
+                    />
                   </div>
-                )}
-              </div>
-              <div className="text-xs text-gray-500">
-                This will be used in the URL (e.g., /{formData.slug || 'family-slug'}/login)
-              </div>
-              {!slugValidation.isValid && slugValidation.message && (
-                <div className="flex items-center text-xs text-red-500">
-                  <AlertCircle className="h-3 w-3 mr-1" />
-                  {slugValidation.message}
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    This setup link will expire in 7 days and can only be used once.
+                  </p>
                 </div>
               )}
             </div>
+          )}
 
-            {/* Active Status (only for editing) */}
-            {isEditing && (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={handleCheckboxChange}
-                  disabled={isSubmitting}
-                />
-                <Label htmlFor="isActive" className="form-label cursor-pointer">
-                  Active family
-                </Label>
+          {/* Manual Mode - Security Setup */}
+          {!isEditing && setupMode === 'manual' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Security Setup</h3>
+              
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="systemPin"
+                    checked={useSystemPin}
+                    onChange={() => setUseSystemPin(true)}
+                    className="h-4 w-4 text-teal-600 focus:ring-teal-500"
+                  />
+                  <label htmlFor="systemPin" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Use system-wide PIN
+                  </label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="caretakers"
+                    checked={!useSystemPin}
+                    onChange={() => setUseSystemPin(false)}
+                    className="h-4 w-4 text-teal-600 focus:ring-teal-500"
+                  />
+                  <label htmlFor="caretakers" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Add caretakers with individual PINs
+                  </label>
+                </div>
               </div>
-            )}
-          </div>
-        </FormPageContent>
 
-        <FormPageFooter>
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || !slugValidation.isValid || slugValidation.isChecking}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Saving...
-                </>
+              {useSystemPin ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">System PIN (6-10 digits)</Label>
+                    <Input
+                      type="password"
+                      value={systemPin}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        if (value.length <= 10) {
+                          setSystemPin(value);
+                        }
+                      }}
+                      placeholder="Enter PIN"
+                      disabled={loading}
+                      minLength={6}
+                      maxLength={10}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm PIN</Label>
+                    <Input
+                      type="password"
+                      value={confirmSystemPin}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        if (value.length <= 10) {
+                          setConfirmSystemPin(value);
+                        }
+                      }}
+                      placeholder="Confirm PIN"
+                      disabled={loading}
+                      minLength={6}
+                      maxLength={10}
+                    />
+                  </div>
+                </div>
               ) : (
-                isEditing ? 'Update' : 'Create'
+                <div className="space-y-4">
+                  <div className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200">Add Caretaker</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Login ID (2 digits)</Label>
+                        <Input
+                          value={newCaretaker.loginId}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '');
+                            if (value.length <= 2) {
+                              setNewCaretaker({ ...newCaretaker, loginId: value });
+                            }
+                          }}
+                          placeholder="e.g., 01, 12, 99"
+                          disabled={loading}
+                          maxLength={2}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</Label>
+                        <Select
+                          value={newCaretaker.role}
+                          onValueChange={(value) => 
+                            setNewCaretaker({ 
+                              ...newCaretaker, 
+                              role: value as 'ADMIN' | 'USER' 
+                            })
+                          }
+                          disabled={loading || caretakers.length === 0}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ADMIN">Admin</SelectItem>
+                            <SelectItem value="USER">User</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</Label>
+                      <Input
+                        value={newCaretaker.name}
+                        onChange={(e) => 
+                          setNewCaretaker({ ...newCaretaker, name: e.target.value })
+                        }
+                        placeholder="Full name"
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type (Optional)</Label>
+                        <Input
+                          value={newCaretaker.type}
+                          onChange={(e) => 
+                            setNewCaretaker({ ...newCaretaker, type: e.target.value })
+                          }
+                          placeholder="Parent, Nanny, etc."
+                          disabled={loading}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">PIN (6-10 digits)</Label>
+                        <Input
+                          type="password"
+                          value={newCaretaker.securityPin}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '');
+                            if (value.length <= 10) {
+                              setNewCaretaker({ ...newCaretaker, securityPin: value });
+                            }
+                          }}
+                          placeholder="PIN"
+                          disabled={loading}
+                          minLength={6}
+                          maxLength={10}
+                        />
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={addCaretaker}
+                      disabled={loading}
+                      className="w-full"
+                    >
+                      Add Caretaker
+                    </Button>
+                  </div>
+                  
+                  {caretakers.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200">Caretakers</h4>
+                      <ul className="space-y-2">
+                        {caretakers.map((caretaker, index) => (
+                          <li 
+                            key={index} 
+                            className="flex justify-between items-center bg-gray-50 dark:bg-gray-800 p-2 rounded"
+                          >
+                            <div>
+                              <span className="font-medium">{caretaker.name}</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                ({caretaker.loginId}) - {caretaker.role}
+                              </span>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => removeCaretaker(index)}
+                              disabled={loading}
+                            >
+                              Remove
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               )}
-            </Button>
-          </div>
-        </FormPageFooter>
-      </form>
+            </div>
+          )}
+
+          {/* Manual Mode - Baby Setup */}
+          {!isEditing && setupMode === 'manual' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Baby Information</h3>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name</Label>
+                  <Input
+                    value={babyFirstName}
+                    onChange={(e) => setBabyFirstName(e.target.value)}
+                    placeholder="First name"
+                    disabled={loading}
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name</Label>
+                  <Input
+                    value={babyLastName}
+                    onChange={(e) => setBabyLastName(e.target.value)}
+                    placeholder="Last name"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Birth Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !babyBirthDate && "text-gray-400"
+                      )}
+                      disabled={loading}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {babyBirthDate ? format(babyBirthDate, "PPP") : "Select date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-[200]" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={babyBirthDate || undefined}
+                      onSelect={(date: Date | undefined) => {
+                        if (date) setBabyBirthDate(date);
+                      }}
+                      maxDate={new Date()}
+                      initialFocus
+                      className="rounded-md border"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gender</Label>
+                <Select
+                  value={babyGender}
+                  onValueChange={(value) => setBabyGender(value as Gender)}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MALE">Male</SelectItem>
+                    <SelectItem value="FEMALE">Female</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Feed Warning Time</Label>
+                  <Input
+                    type="text"
+                    pattern="[0-9]{2}:[0-9]{2}"
+                    value={feedWarningTime}
+                    onChange={(e) => setFeedWarningTime(e.target.value)}
+                    placeholder="02:00"
+                    disabled={loading}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Format: hh:mm</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Diaper Warning Time</Label>
+                  <Input
+                    type="text"
+                    pattern="[0-9]{2}:[0-9]{2}"
+                    value={diaperWarningTime}
+                    onChange={(e) => setDiaperWarningTime(e.target.value)}
+                    placeholder="03:00"
+                    disabled={loading}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Format: hh:mm</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Error message */}
+          {error && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded text-red-600 dark:text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+        </div>
+      </FormPageContent>
+      
+      <FormPageFooter>
+        <Button variant="outline" onClick={onClose} disabled={loading}>
+          Cancel
+        </Button>
+        {!isEditing && setupMode === 'token' ? (
+          <Button 
+            onClick={handleGenerateToken} 
+            disabled={loading || !familyName || !familySlug || !!slugError || !tokenSystemPin}
+          >
+            {loading ? 'Generating...' : 'Generate Setup Token'}
+          </Button>
+        ) : (
+          <Button 
+            onClick={handleManualSave} 
+            disabled={loading || !familyName || !familySlug || !!slugError}
+          >
+            {loading ? 'Saving...' : 'Save Family'}
+          </Button>
+        )}
+      </FormPageFooter>
     </FormPage>
   );
 } 

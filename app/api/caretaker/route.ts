@@ -6,16 +6,37 @@ import { formatForResponse } from '../utils/timezone';
 
 async function postHandler(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId: userFamilyId, caretakerRole } = authContext;
+    const { familyId: userFamilyId, caretakerRole, isSysAdmin } = authContext;
 
-    if (!userFamilyId) {
+    // System administrators need a family context for caretakers
+    if (!userFamilyId && !isSysAdmin) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
-    if (caretakerRole !== 'ADMIN') {
+    if (!isSysAdmin && caretakerRole !== 'ADMIN') {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Only admins can create caretakers.' }, { status: 403 });
     }
 
-    const body: CaretakerCreate = await req.json();
+    const requestBody = await req.json();
+    const { familyId: bodyFamilyId, ...caretakerData } = requestBody;
+    const body: CaretakerCreate = caretakerData;
+
+    // For system administrators, require familyId to be passed as query parameter or in body
+    let targetFamilyId = userFamilyId;
+    if (isSysAdmin) {
+      const { searchParams } = new URL(req.url);
+      const queryFamilyId = searchParams.get('familyId');
+      
+      if (bodyFamilyId) {
+        targetFamilyId = bodyFamilyId;
+      } else if (queryFamilyId) {
+        targetFamilyId = queryFamilyId;
+      } else if (!userFamilyId) {
+        return NextResponse.json<ApiResponse<null>>({ 
+          success: false, 
+          error: 'System administrators must specify familyId parameter or in request body.' 
+        }, { status: 400 });
+      }
+    }
 
     // Prevent creating system caretaker through API
     if (body.loginId === '00' || body.type === 'System Administrator') {
@@ -32,7 +53,7 @@ async function postHandler(req: NextRequest, authContext: AuthResult) {
       where: {
         loginId: body.loginId,
         deletedAt: null,
-        familyId: userFamilyId,
+        familyId: targetFamilyId,
       },
     });
 
@@ -49,7 +70,7 @@ async function postHandler(req: NextRequest, authContext: AuthResult) {
     const caretaker = await prisma.caretaker.create({
       data: {
         ...body,
-        familyId: userFamilyId,
+        familyId: targetFamilyId,
       },
     });
 
