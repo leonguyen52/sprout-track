@@ -143,8 +143,8 @@ export default function SetupPageWithToken({ params }: SetupPageWithTokenProps) 
 
   const handleSetupComplete = (family: { id: string; name: string; slug: string }) => {
     console.log('Token-based setup completed for family:', family);
-    // Redirect to the newly created family
-    router.push(`/${family.slug}/log-entry`);
+    // Redirect to the newly created family's login page (user was logged out)
+    router.push(`/${family.slug}/login`);
   };
 
   if (isLoading) {

@@ -141,17 +141,34 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token }) => {
         
         try {
           setLoading(true);
-          // Save system PIN to settings for the created family
-          const response = await fetch(`/api/settings?familyId=${createdFamily?.id}`, {
-            method: 'PUT',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-              securityPin: systemPin,
-            }),
-          });
           
-          if (!response.ok) {
-            throw new Error('Failed to save security PIN');
+          // Save system PIN to settings and update system caretaker
+          const [settingsResponse, caretakerResponse] = await Promise.all([
+            // Update settings
+            fetch(`/api/settings?familyId=${createdFamily?.id}`, {
+              method: 'PUT',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                securityPin: systemPin,
+              }),
+            }),
+            // Update system caretaker's PIN
+            fetch('/api/caretaker', {
+              method: 'PUT',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                id: localStorage.getItem('caretakerId'), // System caretaker ID from auth
+                securityPin: systemPin,
+              }),
+            })
+          ]);
+          
+          if (!settingsResponse.ok) {
+            throw new Error('Failed to save security PIN to settings');
+          }
+          
+          if (!caretakerResponse.ok) {
+            throw new Error('Failed to update system caretaker PIN');
           }
           
           setStage(3);
@@ -235,8 +252,13 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token }) => {
           throw new Error('Failed to save baby information');
         }
         
-        // Setup complete - pass the family data to the callback
+        // Setup complete - logout and pass the family data to the callback
         if (createdFamily) {
+          // Clear authentication tokens to force re-login with new family context
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('unlockTime');
+          localStorage.removeItem('caretakerId');
+          
           onComplete(createdFamily);
         }
       } catch (error) {
@@ -258,7 +280,25 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token }) => {
   const addCaretaker = () => {
     // Validate caretaker
     if (newCaretaker.loginId.length !== 2) {
-      setError('Login ID must be exactly 2 characters');
+      setError('Login ID must be exactly 2 digits');
+      return;
+    }
+    
+    // Check if login ID contains only digits
+    if (!/^\d+$/.test(newCaretaker.loginId)) {
+      setError('Login ID must contain only digits');
+      return;
+    }
+    
+    // Check if login ID is "00" (reserved)
+    if (newCaretaker.loginId === '00') {
+      setError('Login ID "00" is reserved for system use');
+      return;
+    }
+    
+    // Check if login ID is already taken
+    if (caretakers.some(c => c.loginId === newCaretaker.loginId)) {
+      setError('This Login ID is already taken');
       return;
     }
     

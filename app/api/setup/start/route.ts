@@ -53,38 +53,68 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
       return NextResponse.json({ success: false, error: 'That URL is already taken' }, { status: 409 });
     }
 
-    const newFamily = await prisma.$transaction(async (tx) => {
-      // If this is initial setup (no token and only default family exists), 
-      // deactivate the default family first
+    const updatedFamily = await prisma.$transaction(async (tx) => {
+      let family;
+
       if (!token) {
+        // Initial setup - modify the existing default family instead of creating new one
         const families = await tx.family.findMany();
         if (families.length === 1 && families[0].slug === 'my-family') {
-          await tx.family.update({
+          // Update the existing default family
+          family = await tx.family.update({
             where: { id: families[0].id },
-            data: { isActive: false },
+            data: {
+              name,
+              slug,
+              isActive: true,
+            },
+          });
+
+          // Update the existing settings for this family
+          await tx.settings.updateMany({
+            where: { familyId: family.id },
+            data: {
+              familyName: name,
+            },
+          });
+        } else {
+          // Fallback: create new family if default doesn't exist
+          family = await tx.family.create({
+            data: {
+              id: randomUUID(),
+              name,
+              slug,
+              isActive: true,
+            },
+          });
+
+          await tx.settings.create({
+            data: {
+              id: randomUUID(),
+              familyId: family.id,
+              familyName: name,
+            },
           });
         }
-      }
+      } else {
+        // Token-based setup - create new family
+        family = await tx.family.create({
+          data: {
+            id: randomUUID(),
+            name,
+            slug,
+            isActive: true,
+          },
+        });
 
-      const family = await tx.family.create({
-        data: {
-          id: randomUUID(),
-          name,
-          slug,
-          isActive: true,
-        },
-      });
+        await tx.settings.create({
+          data: {
+            id: randomUUID(),
+            familyId: family.id,
+            familyName: name,
+          },
+        });
 
-      // Create family settings
-      await tx.settings.create({
-        data: {
-          id: randomUUID(),
-          familyId: family.id,
-          familyName: name,
-        },
-      });
-
-      if (token) {
         // Mark the invitation token as used
         await tx.familySetup.update({
           where: { token },
@@ -95,7 +125,7 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
       return family;
     });
 
-    return NextResponse.json({ success: true, data: newFamily });
+    return NextResponse.json({ success: true, data: updatedFamily });
   } catch (error) {
     console.error('Error starting setup:', error);
     return NextResponse.json({ success: false, error: 'Error starting setup' }, { status: 500 });

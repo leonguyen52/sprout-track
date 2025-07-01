@@ -96,15 +96,15 @@ const FamilySetupStage: React.FC<FamilySetupStageProps> = ({
       .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
   };
 
-  // Auto-generate slug when family name changes (if slug is empty or auto-generated)
-  useEffect(() => {
-    if (familyName && !familySlug) {
+  // Handle slug field click - auto-generate if empty
+  const handleSlugFieldClick = () => {
+    if (!familySlug && familyName) {
       const autoSlug = generateSlugFromName(familyName);
       if (autoSlug) {
         setFamilySlug(autoSlug);
       }
     }
-  }, [familyName, familySlug, setFamilySlug]);
+  };
 
   // Debounced slug validation
   useEffect(() => {
@@ -159,6 +159,7 @@ const FamilySetupStage: React.FC<FamilySetupStageProps> = ({
                 id="familySlug"
                 value={familySlug}
                 onChange={(e) => setFamilySlug(e.target.value.toLowerCase())}
+                onClick={handleSlugFieldClick}
                 placeholder="family-url"
                 className={cn(
                   styles.formInput, 

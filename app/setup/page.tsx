@@ -134,8 +134,8 @@ export default function SetupPage() {
 
   const handleSetupComplete = (family: { id: string; name: string; slug: string }) => {
     console.log('Setup completed for family:', family);
-    // Redirect to the newly created family
-    router.push(`/${family.slug}/log-entry`);
+    // Redirect to the newly created family's login page (user was logged out)
+    router.push(`/${family.slug}/login`);
   };
 
   if (isLoading) {

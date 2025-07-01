@@ -90,24 +90,7 @@ async function putHandler(req: NextRequest, authContext: AuthResult) {
     const body: CaretakerUpdate = await req.json();
     const { id, ...updateData } = body;
 
-    // Check if this is the system caretaker
-    const isSystemCaretaker = await prisma.caretaker.findFirst({
-      where: { 
-        id,
-        loginId: '00',
-        familyId: userFamilyId 
-      }
-    });
-
-    if (isSystemCaretaker) {
-      return NextResponse.json<ApiResponse<CaretakerResponse>>(
-        {
-          success: false,
-          error: 'System caretaker cannot be modified.',
-        },
-        { status: 403 }
-      );
-    }
+    // Note: System caretaker can be updated (e.g., for PIN changes during setup)
 
     const existingCaretaker = await prisma.caretaker.findFirst({
       where: { 
