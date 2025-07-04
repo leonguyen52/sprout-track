@@ -40,7 +40,28 @@ async function handler(
       actualCaretakerId = systemCaretaker.id;
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
+    // Generate a shorter token (6 hex characters = 3 bytes)
+    let token = '';
+    let tokenExists = true;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    // Ensure token uniqueness
+    while (tokenExists && attempts < maxAttempts) {
+      token = crypto.randomBytes(3).toString('hex'); // 6 hex characters
+      
+      const existingToken = await prisma.familySetup.findUnique({
+        where: { token },
+      });
+      
+      tokenExists = !!existingToken;
+      attempts++;
+    }
+
+    if (tokenExists || !token) {
+      return NextResponse.json({ success: false, error: 'Unable to generate unique token' }, { status: 500 });
+    }
+
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
 
     await prisma.familySetup.create({

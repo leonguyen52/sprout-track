@@ -73,7 +73,6 @@ export default function FamilyForm({
   const [checkingSlug, setCheckingSlug] = useState(false);
 
   // Token mode data
-  const [tokenSystemPin, setTokenSystemPin] = useState('');
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
 
   // Manual mode - Security setup
@@ -132,7 +131,6 @@ export default function FamilyForm({
         setFamilyName('');
         setFamilySlug('');
         setSlugError('');
-        setTokenSystemPin('');
         setGeneratedToken(null);
         setUseSystemPin(true);
         setSystemPin('');
@@ -312,36 +310,10 @@ export default function FamilyForm({
     setCaretakers(updatedCaretakers);
   };
 
-  // Generate setup token
+  // Generate setup token (simplified - no family details required)
   const handleGenerateToken = async () => {
     setError('');
     
-    // Validate token mode inputs
-    if (!familyName.trim()) {
-      setError('Please enter a family name');
-      return;
-    }
-
-    if (!familySlug.trim()) {
-      setError('Please enter a family URL');
-      return;
-    }
-
-    // Force slug validation before proceeding
-    if (familySlug) {
-      await checkSlugUniqueness(familySlug);
-    }
-
-    if (slugError) {
-      setError('Please fix the URL error before proceeding');
-      return;
-    }
-
-    if (tokenSystemPin.length < 6 || tokenSystemPin.length > 10) {
-      setError('System PIN must be between 6 and 10 digits');
-      return;
-    }
-
     try {
       setLoading(true);
       
@@ -353,11 +325,7 @@ export default function FamilyForm({
       const data = await response.json();
       
       if (data.success) {
-        // Create the full setup URL with family information as query parameters
-        const baseUrl = window.location.origin;
-        const setupUrl = `${baseUrl}/setup/${data.data.token}?name=${encodeURIComponent(familyName)}&slug=${encodeURIComponent(familySlug)}&pin=${encodeURIComponent(tokenSystemPin)}`;
-        
-        setGeneratedToken(setupUrl);
+        setGeneratedToken(data.data.setupUrl);
         onFamilyChange();
       } else {
         setError(data.error || 'Failed to generate setup token');
@@ -584,102 +552,38 @@ export default function FamilyForm({
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {setupMode === 'manual' 
                   ? 'You will configure all family details, security, and add the first baby now.'
-                  : 'You will create a secure invitation link that the family can use to complete their own setup.'
+                  : 'You will create a secure invitation link that the family can use to set up their own name, PIN, caretakers, and baby information.'
                 }
               </p>
             </div>
           )}
 
-          {/* Family Information Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Family Information</h3>
-            
-            <div>
-              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Family Name</Label>
-              <Input
-                value={familyName}
-                onChange={(e) => setFamilyName(e.target.value)}
-                placeholder="Enter family name"
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Family URL</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={familySlug}
-                  onChange={(e) => setFamilySlug(e.target.value.toLowerCase())}
-                  onClick={handleSlugFieldClick}
-                  placeholder="family-url"
-                  className={cn(
-                    slugError ? 'border-red-500' : '',
-                    checkingSlug ? 'border-blue-400' : '',
-                    !slugError && familySlug && !checkingSlug ? 'border-green-500' : ''
-                  )}
-                  disabled={loading || checkingSlug}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={generateSlug}
-                  disabled={loading || checkingSlug}
-                >
-                  Generate
-                </Button>
-              </div>
-              {slugError && (
-                <p className="text-red-600 text-sm mt-1">{slugError}</p>
-              )}
-              {checkingSlug && (
-                <p className="text-blue-600 text-sm mt-1">Checking availability...</p>
-              )}
-              {!slugError && familySlug && !checkingSlug && (
-                <p className="text-green-600 text-sm mt-1">URL is available</p>
-              )}
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Your family will be accessible at: /{familySlug || 'your-family-url'}
-              </p>
-            </div>
-          </div>
-
-          {/* Token Mode - System PIN */}
+          {/* Token Mode - Simple Token Generation */}
           {!isEditing && setupMode === 'token' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Setup Token Configuration</h3>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Generate Setup Invitation</h3>
               
-              <div>
-                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">System PIN (6-10 digits)</Label>
-                <Input
-                  type="password"
-                  value={tokenSystemPin}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '');
-                    if (value.length <= 10) {
-                      setTokenSystemPin(value);
-                    }
-                  }}
-                  placeholder="Enter system PIN for this family"
-                  disabled={loading}
-                  minLength={6}
-                  maxLength={10}
-                />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  This PIN will be used for initial access during family setup. The family can change it later.
-                </p>
-              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Create a setup invitation link that families can use to configure their own:
+              </p>
+              <ul className="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside ml-4 space-y-1">
+                <li>Family name and URL</li>
+                <li>Security PIN or individual caretaker accounts</li>
+                <li>Baby information</li>
+              </ul>
 
               {generatedToken && (
                 <div className="space-y-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
-                  <h4 className="text-md font-semibold text-green-800 dark:text-green-200">Setup Token Generated!</h4>
+                  <h4 className="text-md font-semibold text-green-800 dark:text-green-200">Setup Invitation Generated!</h4>
                   <p className="text-sm text-green-700 dark:text-green-300">
                     Share this link with the family to let them complete their setup:
                   </p>
                   <div className="flex items-center gap-2">
                     <ShareButton
-                      familySlug={`setup/${generatedToken}`}
-                      familyName={`${familyName} Setup`}
+                      familySlug={generatedToken.replace(/^\//, '')} // Remove leading slash
+                      familyName="Family Setup Invitation"
                       appConfig={appConfig || undefined}
+                      urlSuffix="" // Don't add /login to setup URLs
                       variant="outline"
                       size="sm"
                       showText={true}
@@ -690,6 +594,61 @@ export default function FamilyForm({
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Manual Mode - Family Information Section */}
+          {!isEditing && setupMode === 'manual' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Family Information</h3>
+              
+              <div>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Family Name</Label>
+                <Input
+                  value={familyName}
+                  onChange={(e) => setFamilyName(e.target.value)}
+                  placeholder="Enter family name"
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Family URL</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={familySlug}
+                    onChange={(e) => setFamilySlug(e.target.value.toLowerCase())}
+                    onClick={handleSlugFieldClick}
+                    placeholder="family-url"
+                    className={cn(
+                      slugError ? 'border-red-500' : '',
+                      checkingSlug ? 'border-blue-400' : '',
+                      !slugError && familySlug && !checkingSlug ? 'border-green-500' : ''
+                    )}
+                    disabled={loading || checkingSlug}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={generateSlug}
+                    disabled={loading || checkingSlug}
+                  >
+                    Generate
+                  </Button>
+                </div>
+                {slugError && (
+                  <p className="text-red-600 text-sm mt-1">{slugError}</p>
+                )}
+                {checkingSlug && (
+                  <p className="text-blue-600 text-sm mt-1">Checking availability...</p>
+                )}
+                {!slugError && familySlug && !checkingSlug && (
+                  <p className="text-green-600 text-sm mt-1">URL is available</p>
+                )}
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Your family will be accessible at: /{familySlug || 'your-family-url'}
+                </p>
+              </div>
             </div>
           )}
 
@@ -1007,9 +966,9 @@ export default function FamilyForm({
         {!isEditing && setupMode === 'token' ? (
           <Button 
             onClick={handleGenerateToken} 
-            disabled={loading || !familyName || !familySlug || !!slugError || !tokenSystemPin}
+            disabled={loading}
           >
-            {loading ? 'Generating...' : 'Generate Setup Token'}
+            {loading ? 'Generating...' : 'Generate Setup Invitation'}
           </Button>
         ) : (
           <Button 

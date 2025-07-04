@@ -5,6 +5,7 @@ A specialized button component for sharing family login URLs with cross-platform
 ## Features
 
 - Automatic URL generation using app configuration (domain, HTTPS settings)
+- Configurable URL suffix for different types of sharing (login, setup, etc.)
 - Native Web Share API support for mobile devices
 - Fallback to clipboard copy for desktop browsers
 - Visual feedback for successful copy operations
@@ -23,6 +24,7 @@ The ShareButton component accepts all standard HTML button attributes plus the f
 | `familySlug` | `string` | required | The family slug used to generate the share URL |
 | `familyName` | `string` | `undefined` | Optional family name for share content and accessibility |
 | `appConfig` | `{ rootDomain: string; enableHttps: boolean }` | `undefined` | Optional app config to avoid API calls (performance optimization) |
+| `urlSuffix` | `string` | `"/login"` | Optional URL suffix to append to the path. Use `""` for no suffix (e.g., setup tokens) |
 | `variant` | `'default' \| 'outline' \| 'ghost' \| 'link'` | `'ghost'` | Visual style variant of the button |
 | `size` | `'default' \| 'sm' \| 'lg' \| 'icon'` | `'sm'` | Size variant of the button |
 | `showText` | `boolean` | `true` | Whether to show the text label next to the icon |
@@ -31,7 +33,7 @@ The ShareButton component accepts all standard HTML button attributes plus the f
 
 ## Usage Examples
 
-### Basic ShareButton
+### Basic ShareButton (Family Login)
 
 ```tsx
 import { ShareButton } from "@/components/ui/share-button"
@@ -41,6 +43,27 @@ export function MyComponent() {
     <ShareButton 
       familySlug="my-family-slug"
       familyName="The Smith Family"
+      // urlSuffix="/login" is the default
+    />
+  )
+}
+```
+
+### Setup Token Sharing
+
+```tsx
+import { ShareButton } from "@/components/ui/share-button"
+
+export function SetupInvitation() {
+  const setupToken = "abc123";
+  
+  return (
+    <ShareButton 
+      familySlug={`setup/${setupToken}`}
+      familyName="Family Setup Invitation"
+      urlSuffix="" // Don't add /login for setup URLs
+      variant="outline"
+      showText={true}
     />
   )
 }
@@ -171,7 +194,15 @@ The ShareButton component automatically:
 2. **Without appConfig prop**: Fetches app configuration from `/api/app-config/public`
 3. Uses `rootDomain` and `enableHttps` settings to build the complete URL
 4. Falls back to current domain if API is unavailable
-5. Generates URLs in format: `{protocol}://{domain}/{familySlug}/login`
+5. Generates URLs in format: `{protocol}://{domain}/{familySlug}{urlSuffix}`
+
+### URL Types
+
+The component supports different URL types via the `urlSuffix` prop:
+
+- **Family Login URLs** (default): `urlSuffix="/login"` → `https://domain.com/family-slug/login`
+- **Setup Token URLs**: `urlSuffix=""` → `https://domain.com/setup/abc123`
+- **Custom URLs**: `urlSuffix="/dashboard"` → `https://domain.com/family-slug/dashboard`
 
 ### Performance Optimization
 

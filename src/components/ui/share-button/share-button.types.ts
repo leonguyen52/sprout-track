@@ -31,6 +31,17 @@ export interface ShareButtonProps
   };
   
   /**
+   * Optional URL suffix to append to the path
+   * 
+   * @default "/login" - For family login URLs
+   * @example 
+   * - "/login" - Family login URLs (default)
+   * - "" - Direct URLs without suffix (e.g., for setup tokens)
+   * - "/dashboard" - Custom suffix
+   */
+  urlSuffix?: string;
+  
+  /**
    * Whether to show the text label next to the icon
    *
    * @default true

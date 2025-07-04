@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
   TableSearch,
+  TableTabs,
   TablePagination,
   TablePageSize,
 } from "@/src/components/ui/table";
@@ -26,7 +27,11 @@ import {
   Plus,
   Loader2,
   AlertCircle,
-  Settings
+  Settings,
+  Trash2,
+  Clock,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import FamilyForm from '@/src/components/forms/FamilyForm';
@@ -54,9 +59,32 @@ interface CaretakerData {
   inactive: boolean;
 }
 
+interface FamilySetupInvite {
+  id: string;
+  token: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+  isExpired: boolean;
+  isUsed: boolean;
+  familyId: string | null;
+  createdBy: string;
+  creator: {
+    id: string;
+    name: string;
+    loginId: string;
+  } | null;
+  family: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+}
+
 export default function FamilyManagerPage() {
   const router = useRouter();
   const [families, setFamilies] = useState<FamilyData[]>([]);
+  const [invites, setInvites] = useState<FamilySetupInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<Partial<FamilyData>>({});
@@ -71,33 +99,63 @@ export default function FamilyManagerPage() {
   const [isEditingFamily, setIsEditingFamily] = useState(false);
   const [showAppConfigForm, setShowAppConfigForm] = useState(false);
   const [appConfig, setAppConfig] = useState<{ rootDomain: string; enableHttps: boolean } | null>(null);
+  const [deletingInviteId, setDeletingInviteId] = useState<string | null>(null);
 
-  // Enhanced table state
+  // Tab and table state
+  const [activeTab, setActiveTab] = useState('families');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Filter families based on search term
-  const filteredFamilies = useMemo(() => {
-    if (!searchTerm) return families;
+  // Define tabs with counts
+  const tabs = useMemo(() => [
+    { 
+      id: 'families', 
+      label: 'Families',
+      count: families.length 
+    },
+    { 
+      id: 'invites', 
+      label: 'Active Invites',
+      count: invites.filter(invite => !invite.isExpired && !invite.isUsed).length 
+    },
+  ], [families.length, invites]);
+
+  // Get current data based on active tab
+  const currentData = useMemo(() => {
+    return activeTab === 'families' ? families : invites;
+  }, [activeTab, families, invites]);
+
+  // Filter data based on search term
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return currentData;
     
     const search = searchTerm.toLowerCase();
-    return families.filter(family =>
-      family.name.toLowerCase().includes(search) ||
-      family.slug.toLowerCase().includes(search)
-    );
-  }, [families, searchTerm]);
+    
+    if (activeTab === 'families') {
+      return (currentData as FamilyData[]).filter(family =>
+        family.name.toLowerCase().includes(search) ||
+        family.slug.toLowerCase().includes(search)
+      );
+    } else {
+      return (currentData as FamilySetupInvite[]).filter(invite =>
+        invite.token.toLowerCase().includes(search) ||
+        invite.creator?.name.toLowerCase().includes(search) ||
+        invite.family?.name.toLowerCase().includes(search)
+      );
+    }
+  }, [currentData, searchTerm, activeTab]);
 
   // Calculate pagination
-  const totalItems = filteredFamilies.length;
+  const totalItems = filteredData.length;
   const totalPages = Math.ceil(totalItems / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
-  const paginatedFamilies = filteredFamilies.slice(startIndex, startIndex + pageSize);
+  const paginatedData = filteredData.slice(startIndex, startIndex + pageSize);
 
-  // Reset to first page when search term or page size changes
+  // Reset to first page when search term, tab, or page size changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, pageSize]);
+  }, [searchTerm, activeTab, pageSize]);
 
   // Fetch app config data
   const fetchAppConfig = async () => {
@@ -118,7 +176,6 @@ export default function FamilyManagerPage() {
   // Fetch families data
   const fetchFamilies = async () => {
     try {
-      setLoading(true);
       const authToken = localStorage.getItem('authToken');
       const response = await fetch('/api/family/manage', {
         headers: {
@@ -134,8 +191,27 @@ export default function FamilyManagerPage() {
       }
     } catch (error) {
       console.error('Error fetching families:', error);
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  // Fetch invites data
+  const fetchInvites = async () => {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/family/setup-invites', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setInvites(data.data);
+      } else {
+        console.error('Failed to fetch invites:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching invites:', error);
     }
   };
 
@@ -203,6 +279,34 @@ export default function FamilyManagerPage() {
       setSelectedFamilyCaretakers([]);
     } finally {
       setLoadingCaretakers(false);
+    }
+  };
+
+  // Delete/revoke invite
+  const deleteInvite = async (inviteId: string) => {
+    try {
+      setDeletingInviteId(inviteId);
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/family/setup-invites?id=${inviteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        await fetchInvites(); // Refresh the invites list
+      } else {
+        console.error('Failed to delete invite:', data.error);
+        alert('Failed to delete invite: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error deleting invite:', error);
+      alert('Error deleting invite');
+    } finally {
+      setDeletingInviteId(null);
     }
   };
 
@@ -296,6 +400,7 @@ export default function FamilyManagerPage() {
   // Handle family form success
   const handleFamilyFormSuccess = () => {
     fetchFamilies(); // Refresh the families list
+    fetchInvites(); // Refresh the invites list in case a new invite was created
   };
 
   // Format date/time for display
@@ -312,8 +417,17 @@ export default function FamilyManagerPage() {
 
   // Initial data fetch
   useEffect(() => {
-    fetchFamilies();
-    fetchAppConfig();
+    const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchFamilies(),
+        fetchInvites(),
+        fetchAppConfig()
+      ]);
+      setLoading(false);
+    };
+    
+    fetchData();
   }, []);
 
   if (loading) {
@@ -340,36 +454,57 @@ export default function FamilyManagerPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Tabs */}
+          <TableTabs
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+
           {/* Search */}
           <TableSearch
             value={searchTerm}
             onSearchChange={setSearchTerm}
-            placeholder="Search families by name or slug..."
+            placeholder={activeTab === 'families' ? "Search families by name or slug..." : "Search invites by token, creator, or family..."}
           />
 
           {/* Table */}
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Family Name</TableHead>
-                <TableHead>Link/Slug</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Members</TableHead>
-                <TableHead>Babies</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                {activeTab === 'families' ? (
+                  <>
+                    <TableHead>Family Name</TableHead>
+                    <TableHead>Link/Slug</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Updated</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Members</TableHead>
+                    <TableHead>Babies</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </>
+                ) : (
+                  <>
+                    <TableHead>Token</TableHead>
+                    <TableHead>Created By</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Expires</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Family</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedFamilies.length === 0 ? (
+              {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                    {searchTerm ? 'No families found matching your search.' : 'No families found.'}
+                  <TableCell colSpan={activeTab === 'families' ? 8 : 7} className="text-center py-8 text-gray-500">
+                    {searchTerm ? `No ${activeTab} found matching your search.` : `No ${activeTab} found.`}
                   </TableCell>
                 </TableRow>
-              ) : (
-                paginatedFamilies.map((family) => {
+              ) : activeTab === 'families' ? (
+                (paginatedData as FamilyData[]).map((family) => {
                   const isEditing = editingId === family.id;
                   
                   return (
@@ -500,6 +635,85 @@ export default function FamilyManagerPage() {
                     </TableRow>
                   );
                 })
+              ) : (
+                (paginatedData as FamilySetupInvite[]).map((invite) => (
+                  <TableRow key={invite.id}>
+                    <TableCell className="font-mono text-sm">
+                      {invite.token.substring(0, 16)}...
+                    </TableCell>
+                    <TableCell>
+                      {invite.creator ? (
+                        <div>
+                          <div className="font-medium">{invite.creator.name}</div>
+                          <div className="text-xs text-gray-500">ID: {invite.creator.loginId}</div>
+                        </div>
+                      ) : (
+                        'Unknown'
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">{formatDateTime(invite.createdAt)}</TableCell>
+                    <TableCell className="text-sm">{formatDateTime(invite.expiresAt)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {invite.isUsed ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Used
+                          </span>
+                        ) : invite.isExpired ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Expired
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Active
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {invite.family ? (
+                        <div>
+                          <div className="font-medium">{invite.family.name}</div>
+                          <div className="text-xs text-gray-500">/{invite.family.slug}</div>
+                        </div>
+                      ) : (
+                        'Not created yet'
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {!invite.isUsed && (
+                          <>
+                            <ShareButton
+                              familySlug={`setup/${invite.token}`}
+                              familyName="Family Setup Invitation"
+                              appConfig={appConfig || undefined}
+                              variant="outline"
+                              size="sm"
+                              showText={false}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteInvite(invite.id)}
+                              disabled={deletingInviteId === invite.id}
+                              title="Revoke invite"
+                            >
+                              {deletingInviteId === invite.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>

@@ -35,7 +35,7 @@ import "./share-button.css"
  * ```
  */
 const ShareButton = React.forwardRef<HTMLButtonElement, ShareButtonProps>(
-  ({ className, variant, size, asChild = false, familySlug, familyName, appConfig, showText = true, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, familySlug, familyName, appConfig, urlSuffix = "/login", showText = true, ...props }, ref) => {
     const { theme } = useTheme();
     const [copied, setCopied] = React.useState(false);
     const [shareUrl, setShareUrl] = React.useState<string>('');
@@ -57,7 +57,7 @@ const ShareButton = React.forwardRef<HTMLButtonElement, ShareButtonProps>(
           if (appConfig) {
             const { rootDomain, enableHttps } = appConfig;
             const protocol = enableHttps ? 'https' : 'http';
-            const url = `${protocol}://${rootDomain}/${familySlug}/login`;
+            const url = `${protocol}://${rootDomain}/${familySlug}${urlSuffix}`;
             setShareUrl(url);
           } else {
             // Fallback to API call if no config passed
@@ -67,13 +67,13 @@ const ShareButton = React.forwardRef<HTMLButtonElement, ShareButtonProps>(
             if (data.success) {
               const { rootDomain, enableHttps } = data.data;
               const protocol = enableHttps ? 'https' : 'http';
-              const url = `${protocol}://${rootDomain}/${familySlug}/login`;
+              const url = `${protocol}://${rootDomain}/${familySlug}${urlSuffix}`;
               setShareUrl(url);
             } else {
               // Fallback to current domain if API fails
               const currentDomain = window.location.host;
               const currentProtocol = window.location.protocol;
-              const url = `${currentProtocol}//${currentDomain}/${familySlug}/login`;
+              const url = `${currentProtocol}//${currentDomain}/${familySlug}${urlSuffix}`;
               setShareUrl(url);
             }
           }
@@ -82,7 +82,7 @@ const ShareButton = React.forwardRef<HTMLButtonElement, ShareButtonProps>(
           // Fallback to current domain
           const currentDomain = window.location.host;
           const currentProtocol = window.location.protocol;
-          const url = `${currentProtocol}//${currentDomain}/${familySlug}/login`;
+          const url = `${currentProtocol}//${currentDomain}/${familySlug}${urlSuffix}`;
           setShareUrl(url);
         }
       };
@@ -90,7 +90,7 @@ const ShareButton = React.forwardRef<HTMLButtonElement, ShareButtonProps>(
       if (familySlug) {
         generateShareUrl();
       }
-    }, [familySlug, appConfig]);
+    }, [familySlug, appConfig, urlSuffix]);
 
     const handleShare = async () => {
       if (!shareUrl) return;
