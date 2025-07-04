@@ -96,4 +96,34 @@ html.dark .table-page-btn[data-current="true"]:hover {
   border-color: #0f766e !important; /* teal-700 */
 }
 
+/* Tab dark mode styles */
+html.dark .table-tabs-list-dark {
+  background-color: #374151 !important; /* gray-700 */
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .table-tabs-trigger-dark {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .table-tabs-trigger-dark[data-state="active"] {
+  background-color: #4b5563 !important; /* gray-600 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-tabs-trigger-dark:hover:not([data-state="active"]) {
+  background-color: #4b5563 !important; /* gray-600 */
+  color: #d1d5db !important; /* gray-300 */
+}
+
+html.dark .table-tab-badge-dark {
+  background-color: #6b7280 !important; /* gray-500 */
+  color: #d1d5db !important; /* gray-300 */
+}
+
+html.dark .table-tab-badge-active-dark {
+  background-color: #14b8a6 !important; /* teal-500 */
+  color: #ffffff !important; /* white */
+}
+
  

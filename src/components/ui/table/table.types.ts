@@ -181,6 +181,61 @@ export interface TablePageSizeProps {
 }
 
 /**
+ * Tab definition for TableTabs component
+ */
+export interface TableTab {
+  /**
+   * Unique identifier for the tab
+   */
+  id: string;
+  
+  /**
+   * Display label for the tab
+   */
+  label: string;
+  
+  /**
+   * Optional badge count to display
+   */
+  count?: number;
+  
+  /**
+   * Whether the tab is disabled
+   */
+  disabled?: boolean;
+}
+
+/**
+ * Props for the TableTabs component
+ */
+export interface TableTabsProps {
+  /**
+   * Array of tab definitions
+   */
+  tabs: TableTab[];
+  
+  /**
+   * Currently active tab ID
+   */
+  activeTab: string;
+  
+  /**
+   * Callback when tab changes
+   */
+  onTabChange: (tabId: string) => void;
+  
+  /**
+   * Additional CSS classes
+   */
+  className?: string;
+  
+  /**
+   * Whether tabs are disabled
+   */
+  disabled?: boolean;
+}
+
+/**
  * Configuration for enhanced table features
  */
 export interface TableEnhancedConfig {
@@ -200,6 +255,11 @@ export interface TableEnhancedConfig {
   pageSize?: boolean;
   
   /**
+   * Enable tabs
+   */
+  tabs?: boolean;
+  
+  /**
    * Default page size
    */
   defaultPageSize?: number;
@@ -213,4 +273,12 @@ export interface TableEnhancedConfig {
    * Search placeholder text
    */
   searchPlaceholder?: string;
+  
+  /**
+   * Tab configuration
+   */
+  tabConfig?: {
+    tabs: TableTab[];
+    defaultTab?: string;
+  };
 } 

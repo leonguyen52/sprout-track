@@ -19,6 +19,7 @@ import {
   TableSearchProps,
   TablePaginationProps,
   TablePageSizeProps,
+  TableTabsProps,
 } from "./table.types";
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(
@@ -158,6 +159,47 @@ const TableSearch = React.forwardRef<HTMLInputElement, TableSearchProps>(
   }
 );
 TableSearch.displayName = "TableSearch";
+
+const TableTabs = React.forwardRef<HTMLDivElement, TableTabsProps>(
+  ({ tabs, activeTab, onTabChange, className, disabled, ...props }, ref) => {
+    const { theme } = useTheme();
+    
+    return (
+      <div
+        ref={ref}
+        className={cn(tableStyles.tabsContainer, className)}
+        {...props}
+      >
+        <div className={cn(tableStyles.tabsList, "table-tabs-list-dark")}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => !disabled && !tab.disabled && onTabChange(tab.id)}
+              disabled={disabled || tab.disabled}
+              data-state={activeTab === tab.id ? "active" : "inactive"}
+              className={cn(
+                tableStyles.tabsTrigger,
+                "table-tabs-trigger-dark"
+              )}
+            >
+              {tab.label}
+              {typeof tab.count === 'number' && (
+                <span className={cn(
+                  activeTab === tab.id ? tableStyles.tabBadgeActive : tableStyles.tabBadge,
+                  activeTab === tab.id ? "table-tab-badge-active-dark" : "table-tab-badge-dark"
+                )}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+);
+TableTabs.displayName = "TableTabs";
 
 const TablePagination = React.forwardRef<HTMLDivElement, TablePaginationProps>(
   ({ currentPage, totalPages, totalItems, pageSize, onPageChange, className, disabled, ...props }, ref) => {
@@ -315,6 +357,7 @@ export {
   TableCell,
   TableCaption,
   TableSearch,
+  TableTabs,
   TablePagination,
   TablePageSize,
 }; 
