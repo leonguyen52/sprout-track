@@ -22,6 +22,16 @@ Authentication is managed through JWT tokens stored in localStorage with fallbac
 5. API routes use middleware functions to verify the token before processing requests
 6. When a user logs out, the token is invalidated by adding it to a server-side blacklist
 
+### System Authentication for Families Without Caretakers
+
+For families that have no regular caretakers (excluding system caretakers), the system uses a special authentication flow:
+
+1. When no caretakers exist for a family, the system checks the family's settings PIN
+2. If the PIN matches, the system automatically creates or uses a system caretaker (loginId '00') for that family
+3. System caretakers are created on-demand during authentication if they don't exist
+4. Family settings are also created on-demand with default values if they don't exist
+5. This ensures every family has both settings and a system caretaker for authentication purposes
+
 ## Authentication Utilities
 
 The authentication system is centralized in `/app/api/utils/auth.ts` and provides the following utilities:

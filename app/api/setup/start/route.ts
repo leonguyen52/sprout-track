@@ -83,6 +83,20 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
           },
         });
 
+        // Create system caretaker for the family
+        await tx.caretaker.create({
+          data: {
+            id: randomUUID(),
+            loginId: '00',
+            name: 'system',
+            type: 'System Administrator',
+            role: 'ADMIN',
+            securityPin: '111222', // Default PIN
+            familyId: family.id,
+            inactive: false,
+          },
+        });
+
         // Mark the invitation token as used
         await tx.familySetup.update({
           where: { token },
@@ -123,6 +137,20 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
               familyName: name,
             },
           });
+
+          // Create system caretaker for the family
+          await tx.caretaker.create({
+            data: {
+              id: randomUUID(),
+              loginId: '00',
+              name: 'system',
+              type: 'System Administrator',
+              role: 'ADMIN',
+              securityPin: '111222', // Default PIN
+              familyId: family.id,
+              inactive: false,
+            },
+          });
         } else {
           // SCENARIO 1: Brand new setup - update existing default family or create new one
           const families = await tx.family.findMany();
@@ -161,6 +189,20 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
                 id: randomUUID(),
                 familyId: family.id,
                 familyName: name,
+              },
+            });
+
+            // Create system caretaker for the family
+            await tx.caretaker.create({
+              data: {
+                id: randomUUID(),
+                loginId: '00',
+                name: 'system',
+                type: 'System Administrator',
+                role: 'ADMIN',
+                securityPin: '111222', // Default PIN
+                familyId: family.id,
+                inactive: false,
               },
             });
           }

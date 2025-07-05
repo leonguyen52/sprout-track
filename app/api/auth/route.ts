@@ -4,6 +4,7 @@ import { ApiResponse } from '../types';
 import jwt from 'jsonwebtoken';
 import { checkIpLockout, recordFailedAttempt, resetFailedAttempts } from '../utils/ip-lockout';
 import { decrypt, isEncrypted } from '../utils/encryption';
+import { randomUUID } from 'crypto';
 
 // Secret key for JWT signing - in production, use environment variable
 const JWT_SECRET = process.env.JWT_SECRET || 'baby-tracker-jwt-secret';
@@ -164,13 +165,31 @@ export async function POST(req: NextRequest) {
     // If no caretakers exist, use system PIN from settings
     if (caretakerCount === 0) {
       // Check system PIN - if family is specified, get settings for that family
-      const settings = targetFamily 
+      let settings = targetFamily 
         ? await prisma.settings.findFirst({ where: { familyId: targetFamily.id } })
         : await prisma.settings.findFirst();
       
+      // If no settings exist for the family, create default settings
+      if (!settings && targetFamily) {
+        settings = await prisma.settings.create({
+          data: {
+            id: randomUUID(),
+            familyId: targetFamily.id,
+            familyName: targetFamily.name,
+            securityPin: '111222', // Default PIN
+            defaultBottleUnit: 'OZ',
+            defaultSolidsUnit: 'TBSP',
+            defaultHeightUnit: 'IN',
+            defaultWeightUnit: 'LB',
+            defaultTempUnit: 'F',
+          },
+        });
+        console.log(`Created default settings for family ${targetFamily.name}`);
+      }
+      
       if (settings && settings.securityPin === securityPin) {
         // Find the system caretaker to get family information
-        const systemCaretaker = await prisma.caretaker.findFirst({
+        let systemCaretaker = await prisma.caretaker.findFirst({
           where: {
             loginId: '00',
             deletedAt: null,
@@ -181,6 +200,26 @@ export async function POST(req: NextRequest) {
             family: true,
           },
         });
+        
+        // If no system caretaker exists, create one
+        if (!systemCaretaker && targetFamily) {
+          systemCaretaker = await prisma.caretaker.create({
+            data: {
+              id: randomUUID(),
+              loginId: '00',
+              name: 'system',
+              type: 'System Administrator',
+              role: 'ADMIN',
+              securityPin: settings.securityPin,
+              familyId: targetFamily.id,
+              inactive: false,
+            },
+            include: {
+              family: true,
+            },
+          });
+          console.log(`Created system caretaker for family ${targetFamily.name}`);
+        }
         
         if (systemCaretaker) {
           // Create JWT token for system caretaker with actual caretaker data
@@ -235,11 +274,11 @@ export async function POST(req: NextRequest) {
           
           return response;
         } else {
-          // Fallback if system caretaker doesn't exist
+          // This should not happen now since we create system caretakers on-demand
           return NextResponse.json<ApiResponse<null>>(
             {
               success: false,
-              error: 'System caretaker not found. Please contact administrator.',
+              error: 'System caretaker could not be created. Please contact administrator.',
             },
             { status: 500 }
           );
