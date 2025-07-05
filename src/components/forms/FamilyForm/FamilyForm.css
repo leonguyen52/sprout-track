@@ -1,0 +1,15 @@
+/* FamilyForm Dark Mode Styles */
+
+/* Radio button labels - match the label component dark mode colors */
+html.dark .family-form-radio-label {
+  color: #e5e7eb !important; /* gray-200 - matches label.css */
+}
+
+html.dark .family-form-radio-label:hover {
+  color: #f3f4f6 !important; /* gray-100 - slightly lighter on hover */
+}
+
+/* For disabled radio buttons */
+html.dark .family-form-radio-label.disabled {
+  color: #9ca3af !important; /* gray-400 - matches label.css disabled state */
+} 

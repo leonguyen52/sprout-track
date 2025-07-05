@@ -24,6 +24,7 @@ import {
 import { ShareButton } from '@/src/components/ui/share-button';
 import { format } from 'date-fns';
 import { cn } from '@/src/lib/utils';
+import './FamilyForm.css';
 
 interface FamilyData {
   id: string;
@@ -544,7 +545,7 @@ export default function FamilyForm({
                     onChange={() => setSetupMode('manual')}
                     className="h-4 w-4 text-teal-600 focus:ring-teal-500"
                   />
-                  <label htmlFor="manual" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="manual" className="text-sm font-medium text-gray-700 dark:text-gray-300 family-form-radio-label">
                     Add family manually (complete setup now)
                   </label>
                 </div>
@@ -557,7 +558,7 @@ export default function FamilyForm({
                     onChange={() => setSetupMode('token')}
                     className="h-4 w-4 text-teal-600 focus:ring-teal-500"
                   />
-                  <label htmlFor="token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="token" className="text-sm font-medium text-gray-700 dark:text-gray-300 family-form-radio-label">
                     Generate setup invitation (let family complete their own setup)
                   </label>
                 </div>
@@ -707,7 +708,7 @@ export default function FamilyForm({
                     onChange={() => setUseSystemPin(true)}
                     className="h-4 w-4 text-teal-600 focus:ring-teal-500"
                   />
-                  <label htmlFor="systemPin" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="systemPin" className="text-sm font-medium text-gray-700 dark:text-gray-300 family-form-radio-label">
                     Use system-wide PIN
                   </label>
                 </div>
@@ -720,7 +721,7 @@ export default function FamilyForm({
                     onChange={() => setUseSystemPin(false)}
                     className="h-4 w-4 text-teal-600 focus:ring-teal-500"
                   />
-                  <label htmlFor="caretakers" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="caretakers" className="text-sm font-medium text-gray-700 dark:text-gray-300 family-form-radio-label">
                     Add caretakers with individual PINs
                   </label>
                 </div>

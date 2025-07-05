@@ -24,7 +24,7 @@
 
 /* Main content area - scrollable between header and footer */
 html.dark .family-manager-main {
-  background-color: #374151; /* gray-700 */
+  background-color: rgba(31, 41, 55, 0.95); /* gray-800 with opacity - matches card.css */
 }
 
 /* Fixed footer bar at bottom */
@@ -77,4 +77,33 @@ html.dark .family-manager-footer {
   margin-right: 0.5rem;
   height: 1rem;
   width: 1rem;
+}
+
+/* Family Manager Login Page Dark Mode Styles */
+
+/* Override the gradient background for dark mode */
+html.dark .family-manager-login-background {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important; /* dark gray gradient */
+}
+
+/* Ensure login card text is visible in dark mode */
+html.dark .family-manager-login-card {
+  background-color: rgba(31, 41, 55, 0.95) !important; /* gray-800 with opacity */
+  border-color: #4b5563 !important; /* gray-600 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+/* Login form error text */
+html.dark .family-manager-login-error {
+  color: #fca5a5 !important; /* red-300 for better contrast */
+}
+
+/* Login form description text */
+html.dark .family-manager-login-description {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* Login form border separator */
+html.dark .family-manager-login-separator {
+  border-color: #4b5563 !important; /* gray-600 */
 }

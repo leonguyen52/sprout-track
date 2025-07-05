@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Card, CardHeader, CardContent } from "@/src/components/ui/card";
+
 import {
   Table,
   TableBody,
@@ -439,259 +439,181 @@ export default function FamilyManagerPage() {
   }
 
   return (
-    <div className="h-full w-full">
-      <Card className="h-full w-full rounded-none border-0">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <Button onClick={handleAddFamily}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Family
-            </Button>
-            <Button variant="outline" onClick={() => setShowAppConfigForm(true)}>
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Tabs */}
-          <TableTabs
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
+    <div className="h-full w-full p-6">
+      <div className="flex justify-between items-center mb-6">
+        <Button onClick={handleAddFamily}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add New Family
+        </Button>
+        <Button variant="outline" onClick={() => setShowAppConfigForm(true)}>
+          <Settings className="h-4 w-4 mr-2" />
+          Settings
+        </Button>
+      </div>
 
-          {/* Search */}
-          <TableSearch
-            value={searchTerm}
-            onSearchChange={setSearchTerm}
-            placeholder={activeTab === 'families' ? "Search families by name or slug..." : "Search invites by token, creator, or family..."}
-          />
+      <div className="space-y-6">
+        {/* Tabs */}
+        <TableTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
-          {/* Table */}
-          <Table>
-            <TableHeader>
+        {/* Search */}
+        <TableSearch
+          value={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder={activeTab === 'families' ? "Search families by name or slug..." : "Search invites by token, creator, or family..."}
+        />
+
+        {/* Table */}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {activeTab === 'families' ? (
+                <>
+                  <TableHead>Family Name</TableHead>
+                  <TableHead>Link/Slug</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Updated</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Members</TableHead>
+                  <TableHead>Babies</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </>
+              ) : (
+                <>
+                  <TableHead>Token</TableHead>
+                  <TableHead>Created By</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Expires</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Family</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedData.length === 0 ? (
               <TableRow>
-                {activeTab === 'families' ? (
-                  <>
-                    <TableHead>Family Name</TableHead>
-                    <TableHead>Link/Slug</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Updated</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Members</TableHead>
-                    <TableHead>Babies</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </>
-                ) : (
-                  <>
-                    <TableHead>Token</TableHead>
-                    <TableHead>Created By</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Expires</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Family</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </>
-                )}
+                <TableCell colSpan={activeTab === 'families' ? 8 : 7} className="text-center py-8 text-gray-500">
+                  {searchTerm ? `No ${activeTab} found matching your search.` : `No ${activeTab} found.`}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={activeTab === 'families' ? 8 : 7} className="text-center py-8 text-gray-500">
-                    {searchTerm ? `No ${activeTab} found matching your search.` : `No ${activeTab} found.`}
-                  </TableCell>
-                </TableRow>
-              ) : activeTab === 'families' ? (
-                (paginatedData as FamilyData[]).map((family) => {
-                  const isEditing = editingId === family.id;
-                  
-                  return (
-                    <TableRow key={family.id}>
-                      <TableCell className="font-medium">
-                        {isEditing ? (
-                          <Input
-                            value={editingData.name || ''}
-                            onChange={(e) => setEditingData(prev => ({ ...prev, name: e.target.value }))}
-                            className="min-w-[200px]"
-                          />
-                        ) : (
-                          family.name
-                        )}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {isEditing ? (
-                          <div className="space-y-1">
-                            <div className="relative">
-                              <Input
-                                value={editingData.slug || ''}
-                                onChange={(e) => setEditingData(prev => ({ ...prev, slug: e.target.value }))}
-                                className={`min-w-[150px] ${slugError ? 'border-red-500' : ''}`}
-                              />
-                              {checkingSlug && (
-                                <Loader2 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
-                              )}
-                            </div>
-                            {slugError && (
-                              <div className="flex items-center gap-1 text-red-600 text-xs">
-                                <AlertCircle className="h-3 w-3" />
-                                {slugError}
-                              </div>
+            ) : activeTab === 'families' ? (
+              (paginatedData as FamilyData[]).map((family) => {
+                const isEditing = editingId === family.id;
+                
+                return (
+                  <TableRow key={family.id}>
+                    <TableCell className="font-medium">
+                      {isEditing ? (
+                        <Input
+                          value={editingData.name || ''}
+                          onChange={(e) => setEditingData(prev => ({ ...prev, name: e.target.value }))}
+                          className="min-w-[200px]"
+                        />
+                      ) : (
+                        family.name
+                      )}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {isEditing ? (
+                        <div className="space-y-1">
+                          <div className="relative">
+                            <Input
+                              value={editingData.slug || ''}
+                              onChange={(e) => setEditingData(prev => ({ ...prev, slug: e.target.value }))}
+                              className={`min-w-[150px] ${slugError ? 'border-red-500' : ''}`}
+                            />
+                            {checkingSlug && (
+                              <Loader2 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
                             )}
                           </div>
-                        ) : (
-                          family.slug
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm">{formatDateTime(family.createdAt)}</TableCell>
-                      <TableCell className="text-sm">{formatDateTime(family.updatedAt)}</TableCell>
-                      <TableCell>
-                        {isEditing ? (
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={editingData.isActive !== undefined ? editingData.isActive : family.isActive}
-                              onCheckedChange={(checked) => setEditingData(prev => ({ ...prev, isActive: !!checked }))}
-                            />
-                            <label className="text-sm">Active</label>
-                          </div>
-                        ) : (
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              family.isActive
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-                            }`}
-                          >
-                            {family.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>{family.caretakerCount || 0}</TableCell>
-                      <TableCell>{family.babyCount || 0}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {isEditing ? (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => saveFamily(family)}
-                                disabled={saving || !!slugError || checkingSlug}
-                              >
-                                {saving ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Check className="h-4 w-4" />
-                                )}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleCancelEdit}
-                                disabled={saving}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEdit(family)}
-                                title="Edit family"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewCaretakers(family)}
-                                title="View caretakers"
-                              >
-                                <Users className="h-4 w-4" />
-                              </Button>
-                              <ShareButton
-                                familySlug={family.slug}
-                                familyName={family.name}
-                                appConfig={appConfig || undefined}
-                                variant="outline"
-                                size="sm"
-                                showText={false}
-                              />
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleLogin(family)}
-                                title="Login to family"
-                              >
-                                <LogIn className="h-4 w-4" />
-                              </Button>
-                            </>
+                          {slugError && (
+                            <div className="flex items-center gap-1 text-red-600 text-xs">
+                              <AlertCircle className="h-3 w-3" />
+                              {slugError}
+                            </div>
                           )}
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                (paginatedData as FamilySetupInvite[]).map((invite) => (
-                  <TableRow key={invite.id}>
-                    <TableCell className="font-mono text-sm">
-                      {invite.token.substring(0, 16)}...
-                    </TableCell>
-                    <TableCell>
-                      {invite.creator ? (
-                        <div>
-                          <div className="font-medium">{invite.creator.name}</div>
-                          <div className="text-xs text-gray-500">ID: {invite.creator.loginId}</div>
-                        </div>
                       ) : (
-                        'Unknown'
+                        family.slug
                       )}
                     </TableCell>
-                    <TableCell className="text-sm">{formatDateTime(invite.createdAt)}</TableCell>
-                    <TableCell className="text-sm">{formatDateTime(invite.expiresAt)}</TableCell>
+                    <TableCell className="text-sm">{formatDateTime(family.createdAt)}</TableCell>
+                    <TableCell className="text-sm">{formatDateTime(family.updatedAt)}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        {invite.isUsed ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Used
-                          </span>
-                        ) : invite.isExpired ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Expired
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                            <Clock className="h-3 w-3 mr-1" />
-                            Active
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {invite.family ? (
-                        <div>
-                          <div className="font-medium">{invite.family.name}</div>
-                          <div className="text-xs text-gray-500">/{invite.family.slug}</div>
+                      {isEditing ? (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={editingData.isActive !== undefined ? editingData.isActive : family.isActive}
+                            onCheckedChange={(checked) => setEditingData(prev => ({ ...prev, isActive: !!checked }))}
+                          />
+                          <label className="text-sm">Active</label>
                         </div>
                       ) : (
-                        'Not created yet'
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            family.isActive
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                          }`}
+                        >
+                          {family.isActive ? 'Active' : 'Inactive'}
+                        </span>
                       )}
                     </TableCell>
+                    <TableCell>{family.caretakerCount || 0}</TableCell>
+                    <TableCell>{family.babyCount || 0}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        {!invite.isUsed && (
+                        {isEditing ? (
                           <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => saveFamily(family)}
+                              disabled={saving || !!slugError || checkingSlug}
+                            >
+                              {saving ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleCancelEdit}
+                              disabled={saving}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(family)}
+                              title="Edit family"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewCaretakers(family)}
+                              title="View caretakers"
+                            >
+                              <Users className="h-4 w-4" />
+                            </Button>
                             <ShareButton
-                              familySlug={`setup/${invite.token}`}
-                              familyName="Family Setup Invitation"
+                              familySlug={family.slug}
+                              familyName={family.name}
                               appConfig={appConfig || undefined}
-                              urlSuffix=""
                               variant="outline"
                               size="sm"
                               showText={false}
@@ -699,46 +621,121 @@ export default function FamilyManagerPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => deleteInvite(invite.id)}
-                              disabled={deletingInviteId === invite.id}
-                              title="Revoke invite"
+                              onClick={() => handleLogin(family)}
+                              title="Login to family"
                             >
-                              {deletingInviteId === invite.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
+                              <LogIn className="h-4 w-4" />
                             </Button>
                           </>
                         )}
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                );
+              })
+            ) : (
+              (paginatedData as FamilySetupInvite[]).map((invite) => (
+                <TableRow key={invite.id}>
+                  <TableCell className="font-mono text-sm">
+                    {invite.token.substring(0, 16)}...
+                  </TableCell>
+                  <TableCell>
+                    {invite.creator ? (
+                      <div>
+                        <div className="font-medium">{invite.creator.name}</div>
+                        <div className="text-xs text-gray-500">ID: {invite.creator.loginId}</div>
+                      </div>
+                    ) : (
+                      'Unknown'
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">{formatDateTime(invite.createdAt)}</TableCell>
+                  <TableCell className="text-sm">{formatDateTime(invite.expiresAt)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {invite.isUsed ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Used
+                        </span>
+                      ) : invite.isExpired ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Expired
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Active
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {invite.family ? (
+                      <div>
+                        <div className="font-medium">{invite.family.name}</div>
+                        <div className="text-xs text-gray-500">/{invite.family.slug}</div>
+                      </div>
+                    ) : (
+                      'Not created yet'
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      {!invite.isUsed && (
+                        <>
+                          <ShareButton
+                            familySlug={`setup/${invite.token}`}
+                            familyName="Family Setup Invitation"
+                            appConfig={appConfig || undefined}
+                            urlSuffix=""
+                            variant="outline"
+                            size="sm"
+                            showText={false}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteInvite(invite.id)}
+                            disabled={deletingInviteId === invite.id}
+                            title="Revoke invite"
+                          >
+                            {deletingInviteId === invite.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
 
-          {/* Pagination and Page Size Controls */}
-          {totalItems >= 10 && (
-            <div className="flex items-center justify-between">
-              <TablePageSize
-                pageSize={pageSize}
-                onPageSizeChange={setPageSize}
-                pageSizeOptions={[5, 10, 20, 50]}
-              />
-              
-              <TablePagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={totalItems}
-                pageSize={pageSize}
-                onPageChange={setCurrentPage}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {/* Pagination and Page Size Controls */}
+        {totalItems >= 10 && (
+          <div className="flex items-center justify-between">
+            <TablePageSize
+              pageSize={pageSize}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={[5, 10, 20, 50]}
+            />
+            
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Caretakers Dialog */}
       <Dialog open={caretakersDialogOpen} onOpenChange={setCaretakersDialogOpen}>
