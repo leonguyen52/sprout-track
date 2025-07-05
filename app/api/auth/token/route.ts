@@ -62,14 +62,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<T
     }
 
     // Create JWT token for setup session
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      console.error('JWT_SECRET environment variable is not set');
-      return NextResponse.json({
-        success: false,
-        error: 'Server configuration error',
-      }, { status: 500 });
-    }
+    const jwtSecret = process.env.JWT_SECRET || 'baby-tracker-jwt-secret';
 
     const expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
     const authToken = jwt.sign(

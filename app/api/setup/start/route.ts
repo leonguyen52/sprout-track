@@ -28,29 +28,29 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
   // Check for setup token authentication
   let setupTokenData = null;
   if (token) {
-    // Handle setup token validation for token-based setup
-    if (authResult.caretakerRole !== 'ADMIN' && !authResult.isSysAdmin) {
-      // For token setup, we need to check if this is a valid setup token auth
-      // This would be handled by a different auth flow, but for now require admin
-      return NextResponse.json({ success: false, error: 'Insufficient permissions for setup' }, { status: 403 });
+    // For setup token auth, verify the token matches the one in the JWT
+    if (authResult.isSetupAuth && authResult.setupToken === token) {
+      // Valid setup token authentication
+      setupTokenData = await prisma.familySetup.findUnique({
+        where: { token },
+      });
+      
+      if (!setupTokenData || setupTokenData.expiresAt < new Date() || setupTokenData.familyId) {
+        return NextResponse.json({ success: false, error: 'Invalid or expired setup token' }, { status: 403 });
+      }
+    } else if (!authResult.isSysAdmin && authResult.caretakerRole !== 'ADMIN') {
+      // Token provided but user doesn't have permission or wrong token in auth
+      return NextResponse.json({ success: false, error: 'Invalid setup token authentication' }, { status: 403 });
+    } else {
+      // Admin/sysadmin using token for some reason - validate it exists
+      setupTokenData = await prisma.familySetup.findUnique({
+        where: { token },
+      });
+      
+      if (!setupTokenData || setupTokenData.expiresAt < new Date() || setupTokenData.familyId) {
+        return NextResponse.json({ success: false, error: 'Invalid or expired setup token' }, { status: 403 });
+      }
     }
-    
-    setupTokenData = await prisma.familySetup.findUnique({
-      where: { token },
-    });
-    
-    if (!setupTokenData || setupTokenData.expiresAt < new Date() || setupTokenData.familyId) {
-      return NextResponse.json({ success: false, error: 'Invalid or expired setup token' }, { status: 403 });
-    }
-  }
-
-  // Check if user has permission to create families
-  const canCreateFamily = authResult.isSysAdmin || 
-                          authResult.caretakerRole === 'ADMIN' || 
-                          setupTokenData;
-
-  if (!canCreateFamily) {
-    return NextResponse.json({ success: false, error: 'Insufficient permissions to create families' }, { status: 403 });
   }
 
   try {

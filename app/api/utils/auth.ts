@@ -37,6 +37,8 @@ export interface AuthResult {
   familyId?: string | null;
   familySlug?: string | null;
   isSysAdmin?: boolean;
+  isSetupAuth?: boolean;
+  setupToken?: string;
   error?: string;
 }
 
@@ -77,7 +79,25 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
       
       try {
         // Verify and decode the token
-        const decoded = jwt.verify(token, JWT_SECRET) as {
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        
+        // Handle setup authentication tokens
+        if (decoded.isSetupAuth && decoded.setupToken) {
+          return {
+            authenticated: true,
+            caretakerId: null,
+            caretakerType: 'Setup',
+            caretakerRole: 'ADMIN', // Setup auth tokens have admin privileges for family creation
+            familyId: null,
+            familySlug: null,
+            isSysAdmin: false,
+            isSetupAuth: true,
+            setupToken: decoded.setupToken,
+          };
+        }
+        
+        // Handle regular user/admin tokens
+        const regularDecoded = decoded as {
           id: string;
           name: string;
           type: string | null;
@@ -90,12 +110,12 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
         // Return authenticated user info from token
         return {
           authenticated: true,
-          caretakerId: decoded.isSysAdmin ? null : decoded.id,
-          caretakerType: decoded.type,
-          caretakerRole: decoded.role,
-          familyId: decoded.familyId,
-          familySlug: decoded.familySlug,
-          isSysAdmin: decoded.isSysAdmin || false,
+          caretakerId: regularDecoded.isSysAdmin ? null : regularDecoded.id,
+          caretakerType: regularDecoded.type,
+          caretakerRole: regularDecoded.role,
+          familyId: regularDecoded.familyId,
+          familySlug: regularDecoded.familySlug,
+          isSysAdmin: regularDecoded.isSysAdmin || false,
         };
       } catch (jwtError) {
         console.error('JWT verification error:', jwtError);
