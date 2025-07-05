@@ -6,23 +6,24 @@ import { withAuthContext, AuthResult } from '../utils/auth';
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId, isSysAdmin } = authContext;
+    const { familyId, isSysAdmin, isSetupAuth } = authContext;
 
-    // System administrators need a family context for settings
-    if (!familyId && !isSysAdmin) {
+    // System administrators and setup auth need a family context for settings
+    if (!familyId && !isSysAdmin && !isSetupAuth) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
 
-    // For system administrators, require familyId to be passed as query parameter
+    // For system administrators and setup auth, require familyId to be passed as query parameter
     let targetFamilyId = familyId;
-    if (isSysAdmin) {
+    if (isSysAdmin || isSetupAuth) {
       const { searchParams } = new URL(req.url);
       const queryFamilyId = searchParams.get('familyId');
       
       if (!queryFamilyId) {
+        const userType = isSysAdmin ? 'System administrators' : 'Setup authentication';
         return NextResponse.json<ApiResponse<null>>({ 
           success: false, 
-          error: 'System administrators must specify familyId parameter.' 
+          error: `${userType} must specify familyId parameter.` 
         }, { status: 400 });
       }
       
@@ -65,23 +66,24 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId, isSysAdmin } = authContext;
+    const { familyId, isSysAdmin, isSetupAuth } = authContext;
 
-    // System administrators need a family context for settings
-    if (!familyId && !isSysAdmin) {
+    // System administrators and setup auth need a family context for settings
+    if (!familyId && !isSysAdmin && !isSetupAuth) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
 
-    // For system administrators, require familyId to be passed as query parameter
+    // For system administrators and setup auth, require familyId to be passed as query parameter
     let targetFamilyId = familyId;
-    if (isSysAdmin) {
+    if (isSysAdmin || isSetupAuth) {
       const { searchParams } = new URL(req.url);
       const queryFamilyId = searchParams.get('familyId');
       
       if (!queryFamilyId) {
+        const userType = isSysAdmin ? 'System administrators' : 'Setup authentication';
         return NextResponse.json<ApiResponse<null>>({ 
           success: false, 
-          error: 'System administrators must specify familyId parameter.' 
+          error: `${userType} must specify familyId parameter.` 
         }, { status: 400 });
       }
       

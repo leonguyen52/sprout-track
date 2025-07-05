@@ -151,17 +151,22 @@ export async function POST(req: NextRequest) {
     }
 
     // Count active caretakers (excluding system caretaker)
+    // If family is specified, only count caretakers for that family
     const caretakerCount = await prisma.caretaker.count({
       where: {
         deletedAt: null,
         loginId: { not: '00' }, // Exclude system caretaker
+        // If family slug is provided, only count caretakers in that family
+        ...(targetFamily ? { familyId: targetFamily.id } : {}),
       },
     });
 
     // If no caretakers exist, use system PIN from settings
     if (caretakerCount === 0) {
-      // Check system PIN
-      const settings = await prisma.settings.findFirst();
+      // Check system PIN - if family is specified, get settings for that family
+      const settings = targetFamily 
+        ? await prisma.settings.findFirst({ where: { familyId: targetFamily.id } })
+        : await prisma.settings.findFirst();
       
       if (settings && settings.securityPin === securityPin) {
         // Find the system caretaker to get family information

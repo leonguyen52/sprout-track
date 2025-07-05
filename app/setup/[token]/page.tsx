@@ -131,28 +131,12 @@ export default function SetupPageWithToken({ params }: SetupPageWithTokenProps) 
           return;
         }
         
-        // Validate the setup token
-        const response = await fetch(`/api/setup/validate-token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token: tokenParam }),
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            setIsValidToken(true);
-          } else {
-            setError(data.error || 'Invalid setup token');
-          }
-        } else {
-          setError('Failed to validate setup token');
-        }
+        // If we reach here, user is authenticated with token-based auth
+        // No need to validate token again - trust the JWT authentication
+        setIsValidToken(true);
       } catch (error) {
-        console.error('Error resolving params or validating token:', error);
-        setError('Failed to validate setup token');
+        console.error('Error resolving params or setting up token page:', error);
+        setError('Failed to initialize setup page');
       } finally {
         setIsLoading(false);
       }

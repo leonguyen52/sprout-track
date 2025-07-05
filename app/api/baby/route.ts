@@ -7,18 +7,27 @@ import { withAuthContext, AuthResult } from '../utils/auth';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId: userFamilyId } = authContext;
-    if (!userFamilyId) {
-      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    const { familyId: userFamilyId, isSetupAuth } = authContext;
+    
+    const requestBody = await req.json();
+    const { familyId: bodyFamilyId, ...babyData } = requestBody;
+    const body: BabyCreate = babyData;
+    
+    // Determine target family ID - prefer auth context, but allow body override for setup auth
+    let targetFamilyId = userFamilyId;
+    if (!userFamilyId && isSetupAuth && bodyFamilyId) {
+      targetFamilyId = bodyFamilyId;
     }
     
-    const body: BabyCreate = await req.json();
+    if (!targetFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
 
     const baby = await prisma.baby.create({
       data: {
         ...body,
         birthDate: toUTC(body.birthDate),
-        familyId: userFamilyId, // Set family ID from trusted context
+        familyId: targetFamilyId, // Set family ID from trusted context or setup auth
       },
     });
 

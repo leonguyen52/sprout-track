@@ -6,13 +6,13 @@ import { formatForResponse } from '../utils/timezone';
 
 async function postHandler(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId: userFamilyId, caretakerRole, isSysAdmin } = authContext;
+    const { familyId: userFamilyId, caretakerRole, isSysAdmin, isSetupAuth } = authContext;
 
-    // System administrators need a family context for caretakers
-    if (!userFamilyId && !isSysAdmin) {
+    // System administrators and setup auth need a family context for caretakers
+    if (!userFamilyId && !isSysAdmin && !isSetupAuth) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
-    if (!isSysAdmin && caretakerRole !== 'ADMIN') {
+    if (!isSysAdmin && !isSetupAuth && caretakerRole !== 'ADMIN') {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Only admins can create caretakers.' }, { status: 403 });
     }
 
@@ -20,9 +20,9 @@ async function postHandler(req: NextRequest, authContext: AuthResult) {
     const { familyId: bodyFamilyId, ...caretakerData } = requestBody;
     const body: CaretakerCreate = caretakerData;
 
-    // For system administrators, require familyId to be passed as query parameter or in body
+    // For system administrators and setup auth, require familyId to be passed as query parameter or in body
     let targetFamilyId = userFamilyId;
-    if (isSysAdmin) {
+    if (isSysAdmin || isSetupAuth) {
       const { searchParams } = new URL(req.url);
       const queryFamilyId = searchParams.get('familyId');
       
@@ -31,9 +31,10 @@ async function postHandler(req: NextRequest, authContext: AuthResult) {
       } else if (queryFamilyId) {
         targetFamilyId = queryFamilyId;
       } else if (!userFamilyId) {
+        const userType = isSysAdmin ? 'System administrators' : 'Setup authentication';
         return NextResponse.json<ApiResponse<null>>({ 
           success: false, 
-          error: 'System administrators must specify familyId parameter or in request body.' 
+          error: `${userType} must specify familyId parameter or in request body.` 
         }, { status: 400 });
       }
     }

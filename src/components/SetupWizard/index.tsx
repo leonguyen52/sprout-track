@@ -142,33 +142,38 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token }) => {
         try {
           setLoading(true);
           
-          // Save system PIN to settings and update system caretaker
-          const [settingsResponse, caretakerResponse] = await Promise.all([
-            // Update settings
-            fetch(`/api/settings?familyId=${createdFamily?.id}`, {
-              method: 'PUT',
-              headers: getAuthHeaders(),
-              body: JSON.stringify({
-                securityPin: systemPin,
-              }),
+          // Save system PIN to settings (this will also update system caretaker automatically)
+          const settingsResponse = await fetch(`/api/settings?familyId=${createdFamily?.id}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              securityPin: systemPin,
             }),
-            // Update system caretaker's PIN
-            fetch('/api/caretaker', {
-              method: 'PUT',
-              headers: getAuthHeaders(),
-              body: JSON.stringify({
-                id: localStorage.getItem('caretakerId'), // System caretaker ID from auth
-                securityPin: systemPin,
-              }),
-            })
-          ]);
+          });
           
           if (!settingsResponse.ok) {
             throw new Error('Failed to save security PIN to settings');
           }
           
-          if (!caretakerResponse.ok) {
-            throw new Error('Failed to update system caretaker PIN');
+          // For token-based auth, skip system caretaker update since:
+          // 1. We don't have a caretakerId in localStorage
+          // 2. The settings API already handles updating the system caretaker
+          const caretakerId = localStorage.getItem('caretakerId');
+          if (caretakerId) {
+            // Only update system caretaker if we have a caretaker ID (non-token auth)
+            const caretakerResponse = await fetch('/api/caretaker', {
+              method: 'PUT',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                id: caretakerId,
+                securityPin: systemPin,
+              }),
+            });
+            
+            if (!caretakerResponse.ok) {
+              console.warn('Failed to update system caretaker PIN (non-fatal)');
+              // Don't fail the setup for this - settings API already handles it
+            }
           }
           
           setStage(3);
@@ -194,6 +199,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token }) => {
               headers: getAuthHeaders(),
               body: JSON.stringify({
                 ...caretaker,
+                familyId: createdFamily?.id, // Ensure familyId is included for token-based auth
               }),
             });
             
@@ -245,6 +251,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token }) => {
             gender: babyGender,
             feedWarningTime,
             diaperWarningTime,
+            familyId: createdFamily?.id, // Ensure familyId is included for token-based auth
           }),
         });
         
