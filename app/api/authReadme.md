@@ -32,6 +32,16 @@ For families that have no regular caretakers (excluding system caretakers), the 
 4. Family settings are also created on-demand with default values if they don't exist
 5. This ensures every family has both settings and a system caretaker for authentication purposes
 
+### System Administrator Authentication
+
+System administrators have elevated permissions across the entire application:
+
+1. Authenticate using the system admin password through `/api/auth` with `adminPassword` field
+2. Receive a JWT token with `isSysAdmin: true` flag
+3. Can access family-specific routes by providing `familyId` parameter
+4. Can create, manage, and access any family in the system
+5. Have admin-level access to all `withAdminAuth` protected routes
+
 ## Authentication Utilities
 
 The authentication system is centralized in `/app/api/utils/auth.ts` and provides the following utilities:
@@ -79,7 +89,7 @@ const response = await fetch('/api/protected-route', {
 
 ### Admin-Only Authentication
 
-For routes that should only be accessible to admin users:
+For routes that should only be accessible to admin users, system administrators, or system caretakers:
 
 ```typescript
 import { withAdminAuth, ApiResponse } from '../utils/auth';
@@ -92,6 +102,11 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<any>>
 export const GET = withAdminAuth(handler);
 export const POST = withAdminAuth(handler);
 ```
+
+The `withAdminAuth` middleware allows access for:
+- Users with `caretakerRole: 'ADMIN'`
+- System caretakers (loginId '00')
+- System administrators (`isSysAdmin: true`)
 
 ### Accessing User Information
 

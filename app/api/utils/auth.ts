@@ -203,7 +203,7 @@ export function withAdminAuth<T>(
       );
     }
     
-    // Check if user is an admin by role or if they're a system caretaker
+    // Check if user is an admin by role, system admin, or system caretaker
     let isSystemCaretaker = false;
     if (authResult.caretakerId) {
       try {
@@ -220,7 +220,8 @@ export function withAdminAuth<T>(
       }
     }
     
-    if (authResult.caretakerRole !== 'ADMIN' && !isSystemCaretaker) {
+    // Allow access for: ADMIN role, system caretakers, or system administrators
+    if (authResult.caretakerRole !== 'ADMIN' && !isSystemCaretaker && !authResult.isSysAdmin) {
       return NextResponse.json<ApiResponse<null>>(
         {
           success: false,

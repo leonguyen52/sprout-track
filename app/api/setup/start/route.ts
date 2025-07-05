@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/prisma/db';
 import { ApiResponse, withAdminAuth, getAuthenticatedUser } from '@/app/api/utils/auth';
 import { Family } from '@prisma/client';
-import { randomUUID } from 'crypto';
 
 interface SetupStartRequest {
   name: string;
@@ -67,7 +66,6 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
         // Create new family
         const family = await tx.family.create({
           data: {
-            id: randomUUID(),
             name,
             slug,
             isActive: true,
@@ -77,7 +75,6 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
         // Create settings for the family
         await tx.settings.create({
           data: {
-            id: randomUUID(),
             familyId: family.id,
             familyName: name,
           },
@@ -86,7 +83,6 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
         // Create system caretaker for the family
         await tx.caretaker.create({
           data: {
-            id: randomUUID(),
             loginId: '00',
             name: 'system',
             type: 'System Administrator',
@@ -123,7 +119,6 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
           // SCENARIO 2: Sysadmin creating a new family (from FamilyForm)
           family = await tx.family.create({
             data: {
-              id: randomUUID(),
               name,
               slug,
               isActive: true,
@@ -132,7 +127,6 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
 
           await tx.settings.create({
             data: {
-              id: randomUUID(),
               familyId: family.id,
               familyName: name,
             },
@@ -141,7 +135,6 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
           // Create system caretaker for the family
           await tx.caretaker.create({
             data: {
-              id: randomUUID(),
               loginId: '00',
               name: 'system',
               type: 'System Administrator',
@@ -177,7 +170,6 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
             // Fallback: create new family if default doesn't exist
             family = await tx.family.create({
               data: {
-                id: randomUUID(),
                 name,
                 slug,
                 isActive: true,
@@ -186,7 +178,6 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
 
             await tx.settings.create({
               data: {
-                id: randomUUID(),
                 familyId: family.id,
                 familyName: name,
               },
@@ -195,7 +186,6 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
             // Create system caretaker for the family
             await tx.caretaker.create({
               data: {
-                id: randomUUID(),
                 loginId: '00',
                 name: 'system',
                 type: 'System Administrator',
