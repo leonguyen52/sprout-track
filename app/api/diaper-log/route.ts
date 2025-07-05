@@ -6,15 +6,29 @@ import { toUTC, formatForResponse } from '../utils/timezone';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: DiaperLogCreate = await req.json();
+
+    const baby = await prisma.baby.findFirst({
+      where: { id: body.babyId, familyId: userFamilyId },
+    });
+
+    if (!baby) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
+    }
     
-    // Convert time to UTC for storage
     const timeUTC = toUTC(body.time);
+    
     const diaperLog = await prisma.diaperLog.create({
       data: {
         ...body,
         time: timeUTC,
-        caretakerId: authContext.caretakerId,
+        caretakerId: caretakerId,
+        familyId: userFamilyId,
       },
     });
 
@@ -45,6 +59,11 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const body: Partial<DiaperLogCreate> = await req.json();
@@ -59,15 +78,15 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingDiaperLog = await prisma.diaperLog.findUnique({
-      where: { id },
+    const existingDiaperLog = await prisma.diaperLog.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingDiaperLog) {
       return NextResponse.json<ApiResponse<DiaperLogResponse>>(
         {
           success: false,
-          error: 'Diaper log not found',
+          error: 'Diaper log not found or access denied',
         },
         { status: 404 }
       );
@@ -110,32 +129,27 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const babyId = searchParams.get('babyId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    const queryParams = {
-      ...(babyId && { babyId }),
-      ...(startDate && endDate && {
-        time: {
-          gte: toUTC(startDate),
-          lte: toUTC(endDate),
-        },
-      }),
-    };
-
     if (id) {
-      const diaperLog = await prisma.diaperLog.findUnique({
-        where: { id },
+      const diaperLog = await prisma.diaperLog.findFirst({
+        where: { id, familyId: userFamilyId },
       });
 
       if (!diaperLog) {
         return NextResponse.json<ApiResponse<DiaperLogResponse>>(
           {
             success: false,
-            error: 'Diaper log not found',
+            error: 'Diaper log not found or access denied',
           },
           { status: 404 }
         );
@@ -157,7 +171,16 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     }
 
     const diaperLogs = await prisma.diaperLog.findMany({
-      where: queryParams,
+      where: {
+        familyId: userFamilyId,
+        ...(babyId && { babyId }),
+        ...(startDate && endDate && {
+          time: {
+            gte: toUTC(startDate),
+            lte: toUTC(endDate),
+          },
+        }),
+      },
       orderBy: {
         time: 'desc',
       },
@@ -190,6 +213,11 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -200,6 +228,20 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
           error: 'Diaper log ID is required',
         },
         { status: 400 }
+      );
+    }
+
+    const existingDiaperLog = await prisma.diaperLog.findFirst({
+      where: { id, familyId: userFamilyId },
+    });
+
+    if (!existingDiaperLog) {
+      return NextResponse.json<ApiResponse<void>>(
+        {
+          success: false,
+          error: 'Diaper log not found or access denied',
+        },
+        { status: 404 }
       );
     }
 

@@ -6,7 +6,20 @@ import { toUTC, formatForResponse, calculateDurationMinutes } from '../utils/tim
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: PumpLogCreate = await req.json();
+
+    const baby = await prisma.baby.findFirst({
+      where: { id: body.babyId, familyId: userFamilyId },
+    });
+
+    if (!baby) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
+    }
     
     // Convert times to UTC for storage
     const startTimeUTC = toUTC(body.startTime);
@@ -35,7 +48,8 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         totalAmount,
         unitAbbr: body.unitAbbr,
         notes: body.notes,
-        caretakerId: authContext.caretakerId,
+        caretakerId: caretakerId,
+        familyId: userFamilyId,
       },
     });
 
@@ -67,6 +81,11 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const body: Partial<PumpLogCreate> = await req.json();
@@ -81,15 +100,15 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingPumpLog = await prisma.pumpLog.findUnique({
-      where: { id },
+    const existingPumpLog = await prisma.pumpLog.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingPumpLog) {
       return NextResponse.json<ApiResponse<PumpLogResponse>>(
         {
           success: false,
-          error: 'Pump log not found',
+          error: 'Pump log not found or access denied',
         },
         { status: 404 }
       );
@@ -167,13 +186,19 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const babyId = searchParams.get('babyId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
-
+    
     const queryParams: any = {
+      familyId: userFamilyId,
       ...(babyId && { babyId }),
     };
     
@@ -187,15 +212,18 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
     // If ID is provided, fetch a single pump log
     if (id) {
-      const pumpLog = await prisma.pumpLog.findUnique({
-        where: { id },
+      const pumpLog = await prisma.pumpLog.findFirst({
+        where: { 
+          id,
+          familyId: userFamilyId,
+        },
       });
 
       if (!pumpLog) {
         return NextResponse.json<ApiResponse<PumpLogResponse>>(
           {
             success: false,
-            error: 'Pump log not found',
+            error: 'Pump log not found or access denied',
           },
           { status: 404 }
         );
@@ -253,6 +281,11 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -266,15 +299,15 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingPumpLog = await prisma.pumpLog.findUnique({
-      where: { id },
+    const existingPumpLog = await prisma.pumpLog.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingPumpLog) {
       return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
-          error: 'Pump log not found',
+          error: 'Pump log not found or access denied',
         },
         { status: 404 }
       );

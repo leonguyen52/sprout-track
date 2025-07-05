@@ -12,16 +12,19 @@ A form component for recording and editing breast pumping activities in the Baby
 - Handles both creation and editing of pump records
 - Follows the application's form design pattern
 - Supports dark mode with appropriate styling
+- Multi-family support with family ID association
 
 ## Usage
 
 ```tsx
 import PumpForm from '@/src/components/forms/PumpForm';
+import { useFamily } from '@/src/context/family'; // Import family context
 import { useState } from 'react';
 
 function ParentComponent() {
   const [showPumpForm, setShowPumpForm] = useState(false);
   const [selectedBaby, setSelectedBaby] = useState({ id: 'baby-id' });
+  const { family } = useFamily(); // Get current family from context
   
   return (
     <>
@@ -34,6 +37,7 @@ function ParentComponent() {
         onClose={() => setShowPumpForm(false)}
         babyId={selectedBaby?.id}
         initialTime={new Date().toISOString()}
+        familyId={family?.id} // Pass the current family ID
         onSuccess={() => {
           // Refresh data or show success message
         }}
@@ -59,6 +63,7 @@ Main component for recording breast pumping activities.
 | `initialTime` | `string` | Initial time value for the form (ISO format) | Required |
 | `activity` | `PumpLogResponse` | Existing activity data (for edit mode) | `undefined` |
 | `onSuccess` | `() => void` | Optional callback function called after successful submission | `undefined` |
+| `familyId` | `string` | The ID of the family this pump record belongs to (for multi-family support) | `undefined` |
 
 ## Form Fields
 
@@ -111,6 +116,18 @@ The form submits data to the `/api/pump-log` endpoint, using:
 - PUT with an ID parameter for updating existing records
 
 The form includes the authentication token in the request headers for secure API access.
+
+### Multi-Family Support
+
+The component supports multi-family functionality by:
+- Accepting a `familyId` prop to associate the pump record with a specific family
+- Including the family ID in the API request payload
+- The API endpoint also extracts the family ID from request headers as a fallback
+
+When using this component in a multi-family context, you should:
+1. Import and use the family context to get the current family ID
+2. Pass the family ID to the PumpForm component
+3. The component will handle sending this ID to the API
 
 ## Cross-Platform Considerations
 

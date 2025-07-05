@@ -288,7 +288,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
       // Explicitly include typicalDoseSize even if it's undefined
       typicalDoseSize: formData.typicalDoseSize,
       // Ensure contactIds has no duplicates
-      contactIds: formData.contactIds ? Array.from(new Set(formData.contactIds)) : []
+      contactIds: formData.contactIds ? Array.from(new Set(formData.contactIds)) : [],
     };
     
     // Log the form data being sent

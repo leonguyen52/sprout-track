@@ -1,0 +1,129 @@
+/* Dark mode overrides for Table component */
+html.dark .table-dark {
+  background-color: #4b5563 !important; /* gray-600 - matches side-nav */
+  border-color: #6b7280 !important; /* gray-500 - matches side-nav borders */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-header-dark {
+  background-color: #374151 !important; /* gray-700 - slightly darker than main */
+}
+
+html.dark .table-header-dark tr {
+  border-color: #6b7280 !important; /* gray-500 - matches side-nav borders */
+}
+
+html.dark .table-body-dark tr {
+  border-color: #6b7280 !important; /* gray-500 - matches side-nav borders */
+}
+
+html.dark .table-body-dark tr:hover {
+  background-color: #374151 !important; /* gray-700 - matches side-nav hover */
+}
+
+html.dark .table-body-dark tr[data-state="selected"] {
+  background-color: #1f2937 !important; /* gray-800 - matches side-nav active */
+  color: #5eead4 !important; /* teal-300 - matches side-nav accent */
+}
+
+html.dark .table-footer-dark {
+  background-color: #374151 !important; /* gray-700 */
+}
+
+html.dark .table-footer-dark tr {
+  border-color: #6b7280 !important; /* gray-500 - matches side-nav borders */
+}
+
+html.dark .table-head-dark {
+  background: #374151 !important; /* gray-700 - slightly darker than main - overrides gradient */
+  background-image: none !important; /* Remove any gradient */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-cell-dark {
+  color: #e5e7eb !important; /* gray-200 - matches side-nav text */
+}
+
+html.dark .table-caption-dark {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* Enhanced table features dark mode */
+html.dark .table-search-dark {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #6b7280 !important; /* gray-500 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-search-dark::placeholder {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .table-pagination-info-dark {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-pagesize-label-dark {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-pagesize-select-dark {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #6b7280 !important; /* gray-500 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+/* Page buttons dark mode styling to match Select component */
+html.dark .table-page-btn[data-current="false"] {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #6b7280 !important; /* gray-500 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-page-btn[data-current="false"]:hover {
+  background-color: #4b5563 !important; /* gray-600 */
+}
+
+/* Current page button keeps its teal styling in dark mode */
+html.dark .table-page-btn[data-current="true"] {
+  background-color: #0d9488 !important; /* teal-600 */
+  border-color: #0d9488 !important; /* teal-600 */
+  color: #ffffff !important; /* white */
+}
+
+html.dark .table-page-btn[data-current="true"]:hover {
+  background-color: #0f766e !important; /* teal-700 */
+  border-color: #0f766e !important; /* teal-700 */
+}
+
+/* Tab dark mode styles */
+html.dark .table-tabs-list-dark {
+  background-color: #374151 !important; /* gray-700 */
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .table-tabs-trigger-dark {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .table-tabs-trigger-dark[data-state="active"] {
+  background-color: #4b5563 !important; /* gray-600 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .table-tabs-trigger-dark:hover:not([data-state="active"]) {
+  background-color: #4b5563 !important; /* gray-600 */
+  color: #d1d5db !important; /* gray-300 */
+}
+
+html.dark .table-tab-badge-dark {
+  background-color: #6b7280 !important; /* gray-500 */
+  color: #d1d5db !important; /* gray-300 */
+}
+
+html.dark .table-tab-badge-active-dark {
+  background-color: #14b8a6 !important; /* teal-500 */
+  color: #ffffff !important; /* white */
+}
+
+ 

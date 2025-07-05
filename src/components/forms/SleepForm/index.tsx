@@ -102,8 +102,9 @@ export default function SleepForm({
           try {
             // Get auth token from localStorage
             const authToken = localStorage.getItem('authToken');
+            const url = `/api/sleep-log?babyId=${babyId}`;
 
-            const response = await fetch(`/api/sleep-log?babyId=${babyId}`, {
+            const response = await fetch(url, {
               headers: {
                 'Authorization': authToken ? `Bearer ${authToken}` : ''
               }
@@ -265,8 +266,9 @@ export default function SleepForm({
         // Ending sleep - update existing record
         // Get auth token from localStorage
         const authToken = localStorage.getItem('authToken');
+        const url = `/api/sleep-log?babyId=${babyId}`;
 
-        const sleepResponse = await fetch(`/api/sleep-log?babyId=${babyId}`, {
+        const sleepResponse = await fetch(url, {
           headers: {
             'Authorization': authToken ? `Bearer ${authToken}` : ''
           }

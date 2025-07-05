@@ -1,37 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
 import { ApiResponse, CaretakerCreate, CaretakerUpdate, CaretakerResponse } from '../types';
-import { withAdminAuth } from '../utils/auth';
+import { withAuthContext, AuthResult } from '../utils/auth';
 import { formatForResponse } from '../utils/timezone';
 
-async function postHandler(req: NextRequest) {
+async function postHandler(req: NextRequest, authContext: AuthResult) {
   try {
-    const body: CaretakerCreate = await req.json();
+    const { familyId: userFamilyId, caretakerRole, isSysAdmin, isSetupAuth } = authContext;
 
-    // Check if loginId is already in use
+    // System administrators and setup auth need a family context for caretakers
+    if (!userFamilyId && !isSysAdmin && !isSetupAuth) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+    if (!isSysAdmin && !isSetupAuth && caretakerRole !== 'ADMIN') {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Only admins can create caretakers.' }, { status: 403 });
+    }
+
+    const requestBody = await req.json();
+    const { familyId: bodyFamilyId, ...caretakerData } = requestBody;
+    const body: CaretakerCreate = caretakerData;
+
+    // For system administrators and setup auth, require familyId to be passed as query parameter or in body
+    let targetFamilyId = userFamilyId;
+    if (isSysAdmin || isSetupAuth) {
+      const { searchParams } = new URL(req.url);
+      const queryFamilyId = searchParams.get('familyId');
+      
+      if (bodyFamilyId) {
+        targetFamilyId = bodyFamilyId;
+      } else if (queryFamilyId) {
+        targetFamilyId = queryFamilyId;
+      } else if (!userFamilyId) {
+        const userType = isSysAdmin ? 'System administrators' : 'Setup authentication';
+        return NextResponse.json<ApiResponse<null>>({ 
+          success: false, 
+          error: `${userType} must specify familyId parameter or in request body.` 
+        }, { status: 400 });
+      }
+    }
+
+    // Prevent creating system caretaker through API
+    if (body.loginId === '00' || body.type === 'System Administrator') {
+      return NextResponse.json<ApiResponse<CaretakerResponse>>(
+        {
+          success: false,
+          error: 'System caretaker cannot be created through this API.',
+        },
+        { status: 403 }
+      );
+    }
+
     const existingCaretaker = await prisma.caretaker.findFirst({
       where: {
-        // Using type assertion to handle new field that TypeScript doesn't know about yet
         loginId: body.loginId,
         deletedAt: null,
-      } as any,
+        familyId: targetFamilyId,
+      },
     });
 
     if (existingCaretaker) {
       return NextResponse.json<ApiResponse<CaretakerResponse>>(
         {
           success: false,
-          error: 'Login ID is already in use. Please choose a different one.',
+          error: 'Login ID is already in use in this family. Please choose a different one.',
         },
         { status: 400 }
       );
     }
 
     const caretaker = await prisma.caretaker.create({
-      data: body,
+      data: {
+        ...body,
+        familyId: targetFamilyId,
+      },
     });
 
-    // Format response with ISO strings
     const response: CaretakerResponse = {
       ...caretaker,
       createdAt: formatForResponse(caretaker.createdAt) || '',
@@ -55,41 +98,54 @@ async function postHandler(req: NextRequest) {
   }
 }
 
-async function putHandler(req: NextRequest) {
+async function putHandler(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerRole } = authContext;
+
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+    if (caretakerRole !== 'ADMIN') {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Only admins can update caretakers.' }, { status: 403 });
+    }
+
     const body: CaretakerUpdate = await req.json();
     const { id, ...updateData } = body;
 
-    const existingCaretaker = await prisma.caretaker.findUnique({
-      where: { id },
+    // Note: System caretaker can be updated (e.g., for PIN changes during setup)
+
+    const existingCaretaker = await prisma.caretaker.findFirst({
+      where: { 
+        id, 
+        familyId: userFamilyId,
+      },
     });
 
     if (!existingCaretaker) {
       return NextResponse.json<ApiResponse<CaretakerResponse>>(
         {
           success: false,
-          error: 'Caretaker not found',
+          error: 'Caretaker not found or access denied.',
         },
         { status: 404 }
       );
     }
 
-    // If loginId is being updated, check if it's already in use by another caretaker
     if (updateData.loginId) {
       const duplicateLoginId = await prisma.caretaker.findFirst({
         where: {
-          // Using type assertion to handle new field that TypeScript doesn't know about yet
           loginId: updateData.loginId,
           id: { not: id },
           deletedAt: null,
-        } as any,
+          familyId: userFamilyId,
+        },
       });
 
       if (duplicateLoginId) {
         return NextResponse.json<ApiResponse<CaretakerResponse>>(
           {
             success: false,
-            error: 'Login ID is already in use. Please choose a different one.',
+            error: 'Login ID is already in use in this family. Please choose a different one.',
           },
           { status: 400 }
         );
@@ -98,10 +154,12 @@ async function putHandler(req: NextRequest) {
 
     const caretaker = await prisma.caretaker.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...updateData,
+        familyId: userFamilyId,
+      },
     });
 
-    // Format response with ISO strings
     const response: CaretakerResponse = {
       ...caretaker,
       createdAt: formatForResponse(caretaker.createdAt) || '',
@@ -125,66 +183,90 @@ async function putHandler(req: NextRequest) {
   }
 }
 
-async function deleteHandler(req: NextRequest) {
+async function deleteHandler(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerRole } = authContext;
+
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+    if (caretakerRole !== 'ADMIN') {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Only admins can delete caretakers.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json<ApiResponse>(
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Caretaker ID is required' }, { status: 400 });
+    }
+
+    // Check if this is the system caretaker
+    const isSystemCaretaker = await prisma.caretaker.findFirst({
+      where: { 
+        id,
+        loginId: '00',
+        familyId: userFamilyId 
+      }
+    });
+
+    if (isSystemCaretaker) {
+      return NextResponse.json<ApiResponse<null>>(
         {
           success: false,
-          error: 'Caretaker ID is required',
+          error: 'System caretaker cannot be deleted.',
         },
-        { status: 400 }
+        { status: 403 }
       );
     }
 
-    // Soft delete by setting deletedAt
+    const existingCaretaker = await prisma.caretaker.findFirst({
+      where: { id, familyId: userFamilyId },
+    });
+
+    if (!existingCaretaker) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Caretaker not found or access denied.' }, { status: 404 });
+    }
+
     await prisma.caretaker.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
 
-    return NextResponse.json<ApiResponse>({
-      success: true,
-    });
+    return NextResponse.json<ApiResponse<null>>({ success: true, data: null });
   } catch (error) {
     console.error('Error deleting caretaker:', error);
-    return NextResponse.json<ApiResponse>(
-      {
-        success: false,
-        error: 'Failed to delete caretaker',
-      },
-      { status: 500 }
-    );
+    return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Failed to delete caretaker' }, { status: 500 });
   }
 }
 
-async function getHandler(req: NextRequest) {
+async function getHandler(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
     if (id) {
-      const caretaker = await prisma.caretaker.findUnique({
+      const caretaker = await prisma.caretaker.findFirst({
         where: { 
           id,
           deletedAt: null,
+          familyId: userFamilyId,
         },
       });
 
       if (!caretaker) {
         return NextResponse.json<ApiResponse<CaretakerResponse>>(
-          {
-            success: false,
-            error: 'Caretaker not found',
-          },
+          { success: false, error: 'Caretaker not found or access denied.' },
           { status: 404 }
         );
       }
 
-      // Format response with ISO strings
       const response: CaretakerResponse = {
         ...caretaker,
         createdAt: formatForResponse(caretaker.createdAt) || '',
@@ -192,27 +274,21 @@ async function getHandler(req: NextRequest) {
         deletedAt: formatForResponse(caretaker.deletedAt),
       };
 
-      return NextResponse.json<ApiResponse<CaretakerResponse>>({
-        success: true,
-        data: response,
-      });
+      return NextResponse.json<ApiResponse<CaretakerResponse>>({ success: true, data: response });
     }
 
-    // Get query parameter for including inactive caretakers
-    const includeInactive = searchParams.get('includeInactive') === 'true';
-    
     const caretakers = await prisma.caretaker.findMany({
       where: {
         deletedAt: null,
-        ...(includeInactive ? {} : { inactive: false }),
+        familyId: userFamilyId,
+        loginId: { not: '00' }, // Exclude system caretaker from lists
       },
       orderBy: {
         name: 'asc',
       },
     });
 
-    // Format response with ISO strings
-    const response: CaretakerResponse[] = caretakers.map((caretaker) => ({
+    const response: CaretakerResponse[] = caretakers.map(caretaker => ({
       ...caretaker,
       createdAt: formatForResponse(caretaker.createdAt) || '',
       updatedAt: formatForResponse(caretaker.updatedAt) || '',
@@ -235,10 +311,7 @@ async function getHandler(req: NextRequest) {
   }
 }
 
-// Export the handlers with appropriate authentication
-// Use type assertions to handle both single and array response types
-// All caretaker operations now require admin authentication
-export const GET = withAdminAuth(getHandler as any);
-export const POST = withAdminAuth(postHandler as any);
-export const PUT = withAdminAuth(putHandler as any);
-export const DELETE = withAdminAuth(deleteHandler as any);
+export const POST = withAuthContext(postHandler as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>);
+export const GET = withAuthContext(getHandler as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>);
+export const PUT = withAuthContext(putHandler as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>);
+export const DELETE = withAuthContext(deleteHandler as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>);

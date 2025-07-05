@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MeasurementType } from '@prisma/client';
 import { MeasurementResponse, MeasurementCreate } from '@/app/api/types';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -243,7 +242,7 @@ export default function MeasurementForm({
       }
       
       // Create an array of measurements to save
-      const measurements: MeasurementCreate[] = [];
+      const measurements: Omit<MeasurementCreate, 'familyId'>[] = [];
       
       // Add height measurement if value is provided
       if (formData.height.value) {

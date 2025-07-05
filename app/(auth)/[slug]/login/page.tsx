@@ -1,0 +1,121 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import LoginSecurity from '@/src/components/LoginSecurity';
+import { useTheme } from '@/src/context/theme';
+import { useFamily } from '@/src/context/family';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
+import { FamilyResponse } from '@/app/api/types';
+
+export default function LoginPage() {
+  const router = useRouter();
+  const params = useParams();
+  const { theme } = useTheme();
+  const { family, loading: familyLoading } = useFamily();
+  const [families, setFamilies] = useState<FamilyResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const familySlug = params?.slug as string;
+
+  // Load families for the dropdown only
+  useEffect(() => {
+    const loadFamilies = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/family/public-list');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.data)) {
+            setFamilies(data.data);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading families:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFamilies();
+  }, []);
+
+  // Handle successful authentication
+  const handleUnlock = (caretakerId?: string) => {
+    // Redirect to main app after successful authentication
+    if (familySlug) {
+      router.push(`/${familySlug}/log-entry`);
+    } else {
+      router.push('/log-entry');
+    }
+  };
+
+  // Check if already authenticated on page load
+  useEffect(() => {
+    const authToken = localStorage.getItem('authToken');
+    const unlockTime = localStorage.getItem('unlockTime');
+    
+    // If user is authenticated, redirect to main app
+    // The app layout will handle checking for session expiration
+    if (authToken && unlockTime) {
+      if (familySlug) {
+        router.push(`/${familySlug}/log-entry`);
+      } else {
+        router.push('/log-entry');
+      }
+    }
+  }, [router, familySlug]);
+
+  // Check if family is inactive and redirect to root
+  useEffect(() => {
+    // Only check after family context has finished loading
+    if (!familyLoading) {
+      if (family && family.isActive === false) {
+        // Family exists but is inactive - redirect to root
+        router.push('/');
+      } else if (!family && familySlug) {
+        // Family not found for the given slug - redirect to root
+        router.push('/');
+      }
+    }
+  }, [family, familyLoading, familySlug, router]);
+
+  // Handle family selection change
+  const handleFamilyChange = (value: string) => {
+    const selectedFamily = families.find(f => f.slug === value);
+    if (selectedFamily) {
+      router.push(`/${selectedFamily.slug}/login`);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center">
+      {families.length > 1 && (
+        <div className="w-full max-w-md mx-auto mb-4 p-4">
+          <label className="block text-sm font-medium mb-2">Select Family</label>
+          <Select
+            value={familySlug || ''}
+            onValueChange={handleFamilyChange}
+            disabled={loading}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a family" />
+            </SelectTrigger>
+            <SelectContent>
+              {families.map((f) => (
+                <SelectItem key={f.id} value={f.slug}>
+                  {f.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      
+      <LoginSecurity 
+        onUnlock={handleUnlock} 
+        familySlug={familySlug} 
+        familyName={!familyLoading && family ? family.name : undefined} 
+      />
+    </div>
+  );
+}

@@ -31,7 +31,7 @@ export default function BathForm({
   activity,
   onSuccess,
 }: BathFormProps) {
-  const { formatDate, toUTCString } = useTimezone();
+  const { toUTCString } = useTimezone();
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime

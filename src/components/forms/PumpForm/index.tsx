@@ -43,6 +43,7 @@ export default function PumpForm({
   onSuccess,
 }: PumpFormProps) {
   const { formatDate, toUTCString } = useTimezone();
+  const { theme } = useTheme();
   const [selectedStartDateTime, setSelectedStartDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime
@@ -78,7 +79,6 @@ export default function PumpForm({
     }
   });
   
-  const { theme } = useTheme();
   const [formData, setFormData] = useState({
     startTime: initialTime,
     endTime: '',

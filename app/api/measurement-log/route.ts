@@ -6,15 +6,30 @@ import { toUTC, formatForResponse } from '../utils/timezone';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: MeasurementCreate = await req.json();
+
+    const baby = await prisma.baby.findFirst({
+      where: { id: body.babyId, familyId: userFamilyId },
+    });
+
+    if (!baby) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
+    }
     
     // Convert date to UTC for storage
     const dateUTC = toUTC(body.date);
+    
     const measurement = await prisma.measurement.create({
       data: {
         ...body,
         date: dateUTC,
-        caretakerId: authContext.caretakerId,
+        caretakerId: caretakerId,
+        familyId: userFamilyId, // Use trusted familyId from token
       },
     });
 
@@ -45,6 +60,11 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const body: Partial<MeasurementCreate> = await req.json();
@@ -59,28 +79,32 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingMeasurement = await prisma.measurement.findUnique({
-      where: { id },
+    // Check if measurement exists and belongs to the family
+    const existingMeasurement = await prisma.measurement.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingMeasurement) {
       return NextResponse.json<ApiResponse<MeasurementResponse>>(
         {
           success: false,
-          error: 'Measurement not found',
+          error: 'Measurement not found or access denied',
         },
         { status: 404 }
       );
     }
 
-    // Convert date to UTC if provided
-    const data = body.date
-      ? { ...body, date: toUTC(body.date) }
-      : body;
+    // Prepare update data, converting date to UTC if present
+    const updateData: any = { ...body };
+    if (body.date) {
+      updateData.date = toUTC(body.date);
+    }
+    // Ensure familyId cannot be changed
+    delete updateData.familyId;
 
     const measurement = await prisma.measurement.update({
       where: { id },
-      data,
+      data: updateData,
     });
 
     // Format dates as ISO strings for response
@@ -110,34 +134,31 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const babyId = searchParams.get('babyId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const type = searchParams.get('type');
-
-    const queryParams: any = {
-      ...(babyId && { babyId }),
-      ...(type && { type }),
-      ...(startDate && endDate && {
-        date: {
-          gte: toUTC(startDate),
-          lte: toUTC(endDate),
-        },
-      }),
-    };
-
+    
     if (id) {
-      const measurement = await prisma.measurement.findUnique({
-        where: { id },
+      const measurement = await prisma.measurement.findFirst({
+        where: { 
+          id,
+          familyId: userFamilyId,
+        },
       });
 
       if (!measurement) {
         return NextResponse.json<ApiResponse<MeasurementResponse>>(
           {
             success: false,
-            error: 'Measurement not found',
+            error: 'Measurement not found or access denied',
           },
           { status: 404 }
         );
@@ -157,6 +178,18 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
         data: response,
       });
     }
+
+    const queryParams: any = {
+      familyId: userFamilyId,
+      ...(babyId && { babyId }),
+      ...(type && { type }),
+      ...(startDate && endDate && {
+        date: {
+          gte: toUTC(startDate),
+          lte: toUTC(endDate),
+        },
+      }),
+    };
 
     const measurements = await prisma.measurement.findMany({
       where: queryParams,
@@ -215,6 +248,11 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -228,15 +266,16 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingMeasurement = await prisma.measurement.findUnique({
-      where: { id },
+    // Check if measurement exists and belongs to the family
+    const existingMeasurement = await prisma.measurement.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingMeasurement) {
       return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
-          error: 'Measurement not found',
+          error: 'Measurement not found or access denied',
         },
         { status: 404 }
       );

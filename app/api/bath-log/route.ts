@@ -6,18 +6,31 @@ import { toUTC, formatForResponse } from '../utils/timezone';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: BathLogCreate = await req.json();
+
+    const baby = await prisma.baby.findFirst({
+      where: { id: body.babyId, familyId: userFamilyId },
+    });
+
+    if (!baby) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
+    }
     
-    // Convert time to UTC for storage
     const timeUTC = toUTC(body.time);
     
     const bathLog = await prisma.bathLog.create({
       data: {
         ...body,
         time: timeUTC,
-        caretakerId: authContext.caretakerId,
-        soapUsed: body.soapUsed ?? true, // Default to true if not provided
-        shampooUsed: body.shampooUsed ?? true, // Default to true if not provided
+        caretakerId: caretakerId,
+        soapUsed: body.soapUsed ?? true,
+        shampooUsed: body.shampooUsed ?? true,
+        familyId: userFamilyId,
       },
     });
 
@@ -48,6 +61,11 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const body: Partial<BathLogCreate> = await req.json();
@@ -62,15 +80,15 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingBathLog = await prisma.bathLog.findUnique({
-      where: { id },
+    const existingBathLog = await prisma.bathLog.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingBathLog) {
       return NextResponse.json<ApiResponse<BathLogResponse>>(
         {
           success: false,
-          error: 'Bath log not found',
+          error: 'Bath log not found or access denied',
         },
         { status: 404 }
       );
@@ -116,32 +134,27 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const babyId = searchParams.get('babyId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    const queryParams = {
-      ...(babyId && { babyId }),
-      ...(startDate && endDate && {
-        time: {
-          gte: toUTC(startDate),
-          lte: toUTC(endDate),
-        },
-      }),
-    };
-
     if (id) {
-      const bathLog = await prisma.bathLog.findUnique({
-        where: { id },
+      const bathLog = await prisma.bathLog.findFirst({
+        where: { id, familyId: userFamilyId },
       });
 
       if (!bathLog) {
         return NextResponse.json<ApiResponse<BathLogResponse>>(
           {
             success: false,
-            error: 'Bath log not found',
+            error: 'Bath log not found or access denied',
           },
           { status: 404 }
         );
@@ -163,7 +176,16 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     }
 
     const bathLogs = await prisma.bathLog.findMany({
-      where: queryParams,
+      where: {
+        familyId: userFamilyId,
+        ...(babyId && { babyId }),
+        ...(startDate && endDate && {
+          time: {
+            gte: toUTC(startDate),
+            lte: toUTC(endDate),
+          },
+        }),
+      },
       orderBy: {
         time: 'desc',
       },
@@ -196,6 +218,11 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -209,15 +236,15 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingBathLog = await prisma.bathLog.findUnique({
-      where: { id },
+    const existingBathLog = await prisma.bathLog.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingBathLog) {
       return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
-          error: 'Bath log not found',
+          error: 'Bath log not found or access denied',
         },
         { status: 404 }
       );

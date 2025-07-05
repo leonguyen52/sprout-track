@@ -37,7 +37,8 @@ export default function DiaperForm({
   activity,
   onSuccess,
 }: DiaperFormProps) {
-  const { formatDate, toUTCString } = useTimezone();
+  const { toUTCString } = useTimezone();
+  
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime

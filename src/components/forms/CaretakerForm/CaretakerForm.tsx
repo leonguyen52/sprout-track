@@ -78,7 +78,8 @@ export default function CaretakerForm({
     if (!isEditing && isOpen) {
       const checkFirstCaretaker = async () => {
         try {
-          const response = await fetch('/api/caretaker');
+          // The backend will automatically scope this to the user's family
+          const response = await fetch(`/api/caretaker`);
           if (response.ok) {
             const data = await response.json();
             const isFirst = !data.data || data.data.length === 0;
@@ -155,7 +156,7 @@ export default function CaretakerForm({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save caretaker');
+        throw new Error(errorData.error || 'Failed to save caretaker');
       }
 
       if (onCaretakerChange) {

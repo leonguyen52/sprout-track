@@ -10,6 +10,7 @@ A form component for creating and editing diaper change records for a baby. This
 - Conditional fields based on diaper type
 - Form validation for required fields
 - Responsive design
+- Multi-family support with family ID association
 
 ## Props
 
@@ -21,15 +22,18 @@ A form component for creating and editing diaper change records for a baby. This
 | `initialTime` | string | Yes | Initial time value for the form (ISO format) |
 | `activity` | DiaperLogResponse | No | Existing diaper change record data (for edit mode) |
 | `onSuccess` | () => void | No | Optional callback function called after successful submission |
+| `familyId` | string | No | The ID of the family this diaper change record belongs to (for multi-family support) |
 
 ## Usage
 
 ```tsx
 import DiaperForm from '@/src/components/forms/DiaperForm';
+import { useFamily } from '@/src/context/family'; // Import family context
 
 function MyComponent() {
   const [showDiaperForm, setShowDiaperForm] = useState(false);
   const [selectedBaby, setSelectedBaby] = useState<{ id: string }>();
+  const { family } = useFamily(); // Get current family from context
   
   return (
     <>
@@ -42,6 +46,7 @@ function MyComponent() {
         onClose={() => setShowDiaperForm(false)}
         babyId={selectedBaby?.id}
         initialTime={new Date().toISOString()}
+        familyId={family?.id} // Pass the current family ID
         onSuccess={() => {
           // Refresh data or perform other actions after successful submission
         }}
@@ -73,3 +78,16 @@ Additional fields are shown when the type is "Dirty" or "Both":
 - Provides validation before submission
 - Handles API calls for creating and updating diaper change records
 - Resets form after successful submission
+- Supports multi-family functionality by accepting a familyId prop and including it in API requests
+
+### Multi-Family Support
+
+The component supports multi-family functionality by:
+- Accepting a `familyId` prop to associate the diaper change record with a specific family
+- Including the family ID in the API request payload
+- The API endpoint also extracts the family ID from request headers as a fallback
+
+When using this component in a multi-family context, you should:
+1. Import and use the family context to get the current family ID
+2. Pass the family ID to the DiaperForm component
+3. The component will handle sending this ID to the API

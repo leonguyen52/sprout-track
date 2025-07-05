@@ -9,26 +9,35 @@ import { toUTC, formatForResponse } from '../utils/timezone';
  */
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: MedicineLogCreate = await req.json();
-    
-    // Convert time to UTC for storage
+
+    const [baby, medicine] = await Promise.all([
+      prisma.baby.findFirst({ where: { id: body.babyId, familyId: userFamilyId } }),
+      prisma.medicine.findFirst({ where: { id: body.medicineId, familyId: userFamilyId } })
+    ]);
+
+    if (!baby) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
+    }
+
+    if (!medicine) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Medicine not found in this family.' }, { status: 404 });
+    }
+
     const timeUTC = toUTC(body.time);
     
-    // Prepare data for creation
-    const data = {
-      ...body,
-      time: timeUTC,
-      caretakerId: authContext.caretakerId,
-    };
-    
-    // If unitAbbr is an empty string, set it to null
-    // This is necessary for the foreign key constraint
-    if (data.unitAbbr === '') {
-      data.unitAbbr = null;
-    }
-    
     const medicineLog = await prisma.medicineLog.create({
-      data,
+      data: {
+        ...body,
+        time: timeUTC,
+        caretakerId: caretakerId,
+        familyId: userFamilyId,
+      },
     });
 
     // Format dates for response
@@ -61,6 +70,11 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
  */
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const body: Partial<MedicineLogCreate> = await req.json();
@@ -75,39 +89,32 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Check if log exists
-    const existingLog = await prisma.medicineLog.findUnique({
-      where: { id },
+    const existingLog = await prisma.medicineLog.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingLog) {
       return NextResponse.json<ApiResponse<MedicineLogResponse>>(
         {
           success: false,
-          error: 'Medicine log not found',
+          error: 'Medicine log not found or access denied',
         },
         { status: 404 }
       );
     }
 
-    // Prepare update data
-    const updateData: any = { ...body };
-    
-    // Convert time to UTC if provided
+    const data: any = { ...body };
     if (body.time) {
-      updateData.time = toUTC(body.time);
+      data.time = toUTC(body.time);
     }
-    
-    // If unitAbbr is an empty string, set it to null
-    // This is necessary for the foreign key constraint
-    if (updateData.unitAbbr === '') {
-      updateData.unitAbbr = null;
-    }
+    delete data.familyId;
+    delete data.babyId;
+    delete data.medicineId;
+    delete data.caretakerId;
 
-    // Update the log
     const medicineLog = await prisma.medicineLog.update({
       where: { id },
-      data: updateData,
+      data,
     });
 
     // Format dates for response
@@ -140,6 +147,11 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
  */
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const babyId = searchParams.get('babyId');
@@ -147,40 +159,27 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit') || '10', 10) : undefined;
-
+    
     // Build where clause
-    const where: any = {};
-
-    // Add filters
-    if (id) {
-      where.id = id;
-    }
-
-    if (babyId) {
-      where.babyId = babyId;
-    }
-
-    if (medicineId) {
-      where.medicineId = medicineId;
-    }
-
-    // Add date range filter if provided
-    if (startDate || endDate) {
-      where.time = {};
-      
-      if (startDate) {
-        where.time.gte = new Date(startDate);
-      }
-      
-      if (endDate) {
-        where.time.lte = new Date(endDate);
-      }
-    }
+    const where: any = {
+      familyId: userFamilyId,
+      ...(babyId && { babyId }),
+      ...(medicineId && { medicineId }),
+      ...(startDate && endDate && {
+        time: {
+          gte: toUTC(startDate),
+          lte: toUTC(endDate),
+        },
+      }),
+    };
 
     // If ID is provided, fetch a single log
     if (id) {
-      const medicineLog = await prisma.medicineLog.findUnique({
-        where: { id },
+      const medicineLog = await prisma.medicineLog.findFirst({
+        where: { 
+          id,
+          ...where,
+        },
         include: {
           medicine: {
             include: {
@@ -201,7 +200,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
         return NextResponse.json<ApiResponse<MedicineLogResponse>>(
           {
             success: false,
-            error: 'Medicine log not found',
+            error: 'Medicine log not found or access denied',
           },
           { status: 404 }
         );
@@ -273,11 +272,16 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
  */
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json<ApiResponse>(
+      return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
           error: 'Medicine log ID is required',
@@ -286,22 +290,20 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Check if log exists
-    const existingLog = await prisma.medicineLog.findUnique({
-      where: { id },
+    const existingLog = await prisma.medicineLog.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingLog) {
-      return NextResponse.json<ApiResponse>(
+      return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
-          error: 'Medicine log not found',
+          error: 'Medicine log not found or access denied',
         },
         { status: 404 }
       );
     }
 
-    // Hard delete the record
     await prisma.medicineLog.delete({
       where: { id },
     });

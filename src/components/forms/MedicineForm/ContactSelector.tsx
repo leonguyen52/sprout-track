@@ -40,7 +40,8 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
   const fetchContacts = useCallback(async () => {
     try {
       // Fetch contacts from API
-      const response = await fetch('/api/contact');
+      const url = `/api/contact`;
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error('Failed to fetch contacts');
@@ -62,15 +63,15 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
     } catch (error) {
       console.error('Error fetching contacts:', error);
     }
-  }, [contacts, onAddNewContact]);
+  }, [onAddNewContact]); // Remove contacts dependency to prevent repeated calls
   
-  // Fetch contacts on component mount
+  // Fetch contacts on component mount only
   useEffect(() => {
-    // Only fetch if we have the callback to update contacts
-    if (onAddNewContact) {
+    // Only fetch if we have the callback to update contacts and haven't fetched yet
+    if (onAddNewContact && contacts.length === 0) {
       fetchContacts();
     }
-  }, [fetchContacts, onAddNewContact]);
+  }, [onAddNewContact]); // Remove fetchContacts dependency to prevent repeated calls
   
   // Filter contacts based on search term
   const filteredContacts = contacts.filter(contact => 
@@ -111,7 +112,7 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
     setIsLoading(true);
     
     try {
-      // Close the form first to prevent UI issues
+      // Close only the contact form
       setShowContactForm(false);
       setSelectedContact(undefined);
       

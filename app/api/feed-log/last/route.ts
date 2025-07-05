@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../../db';
 import { ApiResponse, FeedLogResponse } from '../../types';
 import { FeedType } from '@prisma/client';
+import { withAuthContext, AuthResult } from '../../utils/auth';
+import { formatForResponse } from '../../utils/timezone';
 
-export async function GET(req: NextRequest) {
+async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
     const { searchParams } = new URL(req.url);
     const babyId = searchParams.get('babyId');
     const type = searchParams.get('type') as FeedType | undefined;
+    const { familyId } = authContext;
 
     if (!babyId) {
       return NextResponse.json<ApiResponse<FeedLogResponse>>(
@@ -19,9 +22,28 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Validate that the baby belongs to the family
+    const baby = await prisma.baby.findFirst({
+      where: {
+        id: babyId,
+        familyId: familyId,
+      },
+    });
+
+    if (!baby) {
+      return NextResponse.json<ApiResponse<null>>(
+        {
+          success: false,
+          error: 'Baby not found in this family.',
+        },
+        { status: 404 }
+      );
+    }
+
     // Build where clause based on provided parameters
     const whereClause: any = {
       babyId,
+      familyId,
       ...(type && { type }), // Only include type if it's provided
     };
 
@@ -41,10 +63,10 @@ export async function GET(req: NextRequest) {
 
     const response: FeedLogResponse = {
       ...feedLog,
-      time: feedLog.time.toLocaleString(),
-      createdAt: feedLog.createdAt.toLocaleString(),
-      updatedAt: feedLog.updatedAt.toLocaleString(),
-      deletedAt: feedLog.deletedAt?.toLocaleString() || null,
+      time: formatForResponse(feedLog.time) || '',
+      createdAt: formatForResponse(feedLog.createdAt) || '',
+      updatedAt: formatForResponse(feedLog.updatedAt) || '',
+      deletedAt: formatForResponse(feedLog.deletedAt),
     };
 
     return NextResponse.json<ApiResponse<FeedLogResponse>>({
@@ -62,3 +84,7 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+export const GET = withAuthContext(
+  handleGet as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>
+);

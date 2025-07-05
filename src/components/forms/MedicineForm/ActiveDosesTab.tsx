@@ -243,13 +243,15 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
       const sixtyDaysAgo = new Date();
       sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
       
+      const authToken = localStorage.getItem('authToken');
       // Fetch medicine logs for this baby from the last 60 days
-      const response = await fetch(
-        `/api/medicine-log?babyId=${babyId}&startDate=${sixtyDaysAgo.toISOString()}`
-      );
+      const url = `/api/medicine-log?babyId=${babyId}&startDate=${sixtyDaysAgo.toISOString()}`;
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch medicine logs');
+        throw new Error('Failed to fetch active doses');
       }
       
       const data = await response.json();

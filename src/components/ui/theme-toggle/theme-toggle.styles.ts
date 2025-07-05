@@ -11,6 +11,9 @@ export const themeToggleStyles = {
   // Main button - light mode styling
   button: "flex items-center px-3 py-2 text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors duration-200 rounded-lg w-full",
   
+  // Light variant button - simplified styling
+  buttonLight: "flex items-center text-white hover:text-teal-700 transition-colors duration-200",
+  
   // Theme icon styles are defined in CSS for better control of the circle indicator
 };
 
@@ -26,9 +29,14 @@ export const themeToggleVariants = cva(
         dark: "",
         system: "",
       },
+      variant: {
+        default: "",
+        light: "",
+      },
     },
     defaultVariants: {
       theme: "light",
+      variant: "default",
     },
   }
 );
