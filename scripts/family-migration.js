@@ -1,7 +1,6 @@
 // Family migration script for multi-family support
 // This script creates a single family record and associates all existing data with it
 const { PrismaClient } = require('@prisma/client');
-const { randomUUID } = require('crypto');
 
 const prisma = new PrismaClient();
 
@@ -161,17 +160,18 @@ async function updateDatabase() {
     }
     
     // Create a new family record
-    const familyId = randomUUID();
-    console.log(`Creating new family with ID: ${familyId}`);
+    console.log(`Creating new family...`);
     
-    await prisma.family.create({
+    const family = await prisma.family.create({
       data: {
-        id: familyId,
         slug: slug,
         name: familyName,
         isActive: true
       }
     });
+    
+    const familyId = family.id;
+    console.log(`Created new family with ID: ${familyId}`);
     
     console.log('Family record created successfully.');
     
@@ -208,7 +208,6 @@ async function updateDatabase() {
         
         systemCaretaker = await prisma.caretaker.create({
           data: {
-            id: randomUUID(),
             loginId: '00',
             name: 'system',
             type: 'System Administrator',

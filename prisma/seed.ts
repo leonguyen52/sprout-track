@@ -1,5 +1,4 @@
 import prisma from './db';
-import { randomUUID } from 'crypto';
 
 type UnitData = {
   unitAbbr: string;
@@ -18,7 +17,6 @@ async function main() {
     // Create the default family
     const defaultFamily = await prisma.family.create({
       data: {
-        id: randomUUID(),
         name: "My Family",
         slug: "my-family",
         isActive: true
@@ -31,7 +29,6 @@ async function main() {
     // Create the system caretaker associated with the default family
     const systemCaretaker = await prisma.caretaker.create({
       data: {
-        id: randomUUID(),
         loginId: '00',
         name: 'system',
         type: 'System Administrator',
@@ -57,7 +54,6 @@ async function main() {
     console.log('Creating default settings with PIN: 111222');
     await prisma.settings.create({
       data: {
-        id: randomUUID(),
         familyId: defaultFamilyId,
         familyName: "My Family",
         securityPin: "111222",
@@ -128,7 +124,6 @@ async function updateUnits(unitData: UnitData[]): Promise<void> {
     for (const unit of missingUnits) {
       await prisma.unit.create({
         data: {
-          id: randomUUID(),
           ...unit
         }
       });
