@@ -289,7 +289,6 @@ export async function POST(req: NextRequest) {
       const caretaker = await prisma.caretaker.findFirst({
         where: {
           loginId: loginId,
-          securityPin: securityPin,
           inactive: false,
           deletedAt: null,
           // If family slug is provided, ensure caretaker belongs to that family
@@ -300,7 +299,32 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      if (caretaker) {
+      // Security check: If this is a system caretaker (loginId '00') and regular caretakers exist,
+      // deny access to prevent unauthorized use of the default system account
+      if (caretaker && caretaker.loginId === '00') {
+        const regularCaretakerCount = await prisma.caretaker.count({
+          where: {
+            deletedAt: null,
+            loginId: { not: '00' }, // Exclude system caretaker
+            // If family is specified, only count caretakers in that family
+            ...(targetFamily ? { familyId: targetFamily.id } : {}),
+          },
+        });
+
+        if (regularCaretakerCount > 0) {
+          // Record failed attempt for security
+          recordFailedAttempt(ip);
+          return NextResponse.json<ApiResponse<null>>(
+            {
+              success: false,
+              error: 'System account access is disabled when caretakers are configured',
+            },
+            { status: 403 }
+          );
+        }
+      }
+
+      if (caretaker && caretaker.securityPin === securityPin) {
         // Create JWT token for caretaker
         const token = jwt.sign(
           {

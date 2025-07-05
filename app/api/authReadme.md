@@ -32,6 +32,16 @@ For families that have no regular caretakers (excluding system caretakers), the 
 4. Family settings are also created on-demand with default values if they don't exist
 5. This ensures every family has both settings and a system caretaker for authentication purposes
 
+### System Caretaker Security Lockout
+
+To prevent unauthorized access through the default system account, the following security measure is implemented:
+
+- **Once regular caretakers are configured for a family, the system caretaker (loginId '00') is automatically disabled**
+- This prevents anyone from using the default system PIN to access a family that has real users
+- The system caretaker can only be used when **no other caretakers exist** for the family
+- Attempts to login with the system caretaker when regular caretakers exist will result in a `403 - System account access is disabled when caretakers are configured` error
+- This security measure applies per family - if Family A has caretakers but Family B doesn't, the system caretaker is only disabled for Family A
+
 ### System Administrator Authentication
 
 System administrators have elevated permissions across the entire application:
@@ -302,6 +312,12 @@ return NextResponse.json({ success: true, data: notes });
      - `recordFailedAttempt(ip)`: Records a failed login attempt for an IP
      - `resetFailedAttempts(ip)`: Resets failed attempts for an IP after successful login
    - The lockout system is used in the authentication process to prevent brute force attacks
+
+4. **System Account Protection**:
+   - System caretaker accounts (loginId '00') are automatically disabled when regular caretakers exist for a family
+   - This prevents unauthorized access using default system credentials after a family has been properly configured
+   - Failed attempts to use disabled system accounts are logged and count toward IP lockout limits
+   - Each family's system account is independently managed - configuring caretakers in one family doesn't affect others
 
 ## Best Practices
 
