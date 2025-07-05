@@ -53,6 +53,82 @@ const caretakerTypes = [
   'Daycare Provider', 'Aunt', 'Uncle', 'Family Friend', 'Caregiver'
 ];
 
+// Note content examples
+const noteTemplates = [
+  "Baby was very fussy during feeding time today",
+  "Slept through the night for the first time!",
+  "Pediatrician appointment scheduled for next week",
+  "Started showing interest in solid foods",
+  "Had a great day at the park",
+  "Trying new sleep routine tonight",
+  "Baby seemed extra giggly today",
+  "Running low on diapers - need to buy more",
+  "Grandmother visited and baby was so happy",
+  "First time rolling over from back to tummy!",
+  "Teething seems to be starting",
+  "Baby loves the new toy we got",
+  "Had to change clothes 3 times today - lots of spit up",
+  "Daycare said baby played well with other children",
+  "Trying to establish better feeding schedule",
+  "Baby's first laugh was so precious",
+  "Noticed baby tracking objects with eyes",
+  "Temperature was a bit high, monitoring closely",
+  "Great nap schedule today",
+  "Baby's grip is getting stronger"
+];
+
+// Milestone examples
+const milestoneTemplates = {
+  MOTOR: [
+    "First time holding head up",
+    "Rolling over from tummy to back",
+    "Rolling over from back to tummy",
+    "Sitting without support",
+    "First crawling movements",
+    "Pulling up to standing",
+    "First steps with support",
+    "Walking independently",
+    "Climbing stairs",
+    "Running"
+  ],
+  COGNITIVE: [
+    "First social smile",
+    "Recognizing familiar faces",
+    "Following objects with eyes",
+    "Reaching for toys",
+    "Understanding cause and effect",
+    "Object permanence awareness",
+    "Problem solving skills",
+    "Imitating actions",
+    "Understanding simple commands",
+    "Showing preferences"
+  ],
+  SOCIAL: [
+    "First laugh",
+    "Enjoying peek-a-boo",
+    "Responding to name",
+    "Stranger anxiety begins",
+    "Waving bye-bye",
+    "Playing pat-a-cake",
+    "Showing affection",
+    "Parallel play with others",
+    "Sharing toys",
+    "Showing empathy"
+  ],
+  LANGUAGE: [
+    "First coo sounds",
+    "Babbling begins",
+    "Responding to voices",
+    "Making different sounds",
+    "First word attempt",
+    "Saying 'mama' or 'dada'",
+    "Understanding 'no'",
+    "Following simple commands",
+    "Saying first clear word",
+    "Two-word combinations"
+  ]
+};
+
 // Adjectives and animals for slug generation (copied from family-migration.js)
 const adjectives = [
   'adorable', 'fluffy', 'cuddly', 'tiny', 'fuzzy', 'sweet', 'playful', 'gentle', 'happy',
@@ -86,6 +162,15 @@ function isSameDay(date1, date2) {
   return date1.getFullYear() === date2.getFullYear() &&
          date1.getMonth() === date2.getMonth() &&
          date1.getDate() === date2.getDate();
+}
+
+// Generate the cutoff time (between 15 minutes and 3 hours ago)
+function generateCutoffTime() {
+  const now = new Date();
+  const minMinutesAgo = 15;
+  const maxMinutesAgo = 3 * 60; // 3 hours
+  const minutesAgo = randomInt(minMinutesAgo, maxMinutesAgo);
+  return new Date(now.getTime() - (minutesAgo * 60 * 1000));
 }
 
 // Generate unique slug
@@ -256,26 +341,26 @@ async function generateBabies(family, caretakers) {
 }
 
 // Generate sleep logs for a baby
-async function generateSleepLogs(baby, caretakers, family, startDate, endDate, currentTime = new Date()) {
+async function generateSleepLogs(baby, caretakers, family, startDate, endDate, cutoffTime) {
   const logs = [];
   const currentDate = new Date(startDate);
   
   while (currentDate <= endDate) {
     const caretaker = randomChoice(caretakers);
-    const isToday = isSameDay(currentDate, currentTime);
+    const isToday = isSameDay(currentDate, new Date());
     
     // Night sleep (9 PM - 7 AM)
-    const nightStart = generateTimeInDay(currentDate, 21, 30, isToday ? currentTime : null); // 9 PM
+    const nightStart = generateTimeInDay(currentDate, 21, 30, isToday ? cutoffTime : null); // 9 PM
     
     // Only create night sleep if start time is not in the future
-    if (nightStart <= currentTime) {
+    if (nightStart <= cutoffTime) {
       const nextDay = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
-      const isTomorrowToday = isSameDay(nextDay, currentTime);
-      let nightEnd = generateTimeInDay(nextDay, 7, 30, isTomorrowToday ? currentTime : null); // 7 AM next day
+      const isTomorrowToday = isSameDay(nextDay, new Date());
+      let nightEnd = generateTimeInDay(nextDay, 7, 30, isTomorrowToday ? cutoffTime : null); // 7 AM next day
       
       // Ensure night end is not in the future
-      if (nightEnd > currentTime) {
-        nightEnd = currentTime;
+      if (nightEnd > cutoffTime) {
+        nightEnd = cutoffTime;
       }
       
       const nightDuration = Math.floor((nightEnd - nightStart) / (1000 * 60)); // minutes
@@ -299,16 +384,16 @@ async function generateSleepLogs(baby, caretakers, family, startDate, endDate, c
     
     // Morning nap (10 AM - 12 PM)
     if (Math.random() > 0.3) { // 70% chance
-      const napStart = generateTimeInDay(currentDate, 10, 30, isToday ? currentTime : null);
+      const napStart = generateTimeInDay(currentDate, 10, 30, isToday ? cutoffTime : null);
       
       // Only create nap if start time is not in the future
-      if (napStart <= currentTime) {
+      if (napStart <= cutoffTime) {
         const napDuration = randomInt(60, 120); // 1-2 hours
         let napEnd = new Date(napStart.getTime() + napDuration * 60 * 1000);
         
         // Ensure nap end is not in the future
-        if (napEnd > currentTime) {
-          napEnd = currentTime;
+        if (napEnd > cutoffTime) {
+          napEnd = cutoffTime;
         }
         
         const actualDuration = Math.floor((napEnd - napStart) / (1000 * 60));
@@ -333,16 +418,16 @@ async function generateSleepLogs(baby, caretakers, family, startDate, endDate, c
     
     // Afternoon nap (2 PM - 4 PM)
     if (Math.random() > 0.2) { // 80% chance
-      const napStart = generateTimeInDay(currentDate, 14, 30, isToday ? currentTime : null);
+      const napStart = generateTimeInDay(currentDate, 14, 30, isToday ? cutoffTime : null);
       
       // Only create nap if start time is not in the future
-      if (napStart <= currentTime) {
+      if (napStart <= cutoffTime) {
         const napDuration = randomInt(90, 180); // 1.5-3 hours
         let napEnd = new Date(napStart.getTime() + napDuration * 60 * 1000);
         
         // Ensure nap end is not in the future
-        if (napEnd > currentTime) {
-          napEnd = currentTime;
+        if (napEnd > cutoffTime) {
+          napEnd = cutoffTime;
         }
         
         const actualDuration = Math.floor((napEnd - napStart) / (1000 * 60));
@@ -372,23 +457,23 @@ async function generateSleepLogs(baby, caretakers, family, startDate, endDate, c
 }
 
 // Generate feed logs for a baby
-async function generateFeedLogs(baby, caretakers, family, startDate, endDate, currentTime = new Date()) {
+async function generateFeedLogs(baby, caretakers, family, startDate, endDate, cutoffTime) {
   const logs = [];
   const currentDate = new Date(startDate);
   
   while (currentDate <= endDate) {
     const caretaker = randomChoice(caretakers);
-    const isToday = isSameDay(currentDate, currentTime);
+    const isToday = isSameDay(currentDate, new Date());
     
     // 6-8 bottle feeds per day, every 2-4 hours
     const feedTimes = [2, 6, 10, 14, 18, 22]; // Base times: 2 AM, 6 AM, 10 AM, 2 PM, 6 PM, 10 PM
     
     for (const baseHour of feedTimes) {
       if (Math.random() > 0.15) { // 85% chance for each feed
-        const feedTime = generateTimeInDay(currentDate, baseHour, 45, isToday ? currentTime : null);
+        const feedTime = generateTimeInDay(currentDate, baseHour, 45, isToday ? cutoffTime : null);
         
         // Only create feed log if time is not in the future
-        if (feedTime <= currentTime) {
+        if (feedTime <= cutoffTime) {
           const amount = randomFloat(2, 8); // 2-8 ounces
           
           logs.push({
@@ -412,23 +497,23 @@ async function generateFeedLogs(baby, caretakers, family, startDate, endDate, cu
 }
 
 // Generate diaper logs for a baby
-async function generateDiaperLogs(baby, caretakers, family, startDate, endDate, currentTime = new Date()) {
+async function generateDiaperLogs(baby, caretakers, family, startDate, endDate, cutoffTime) {
   const logs = [];
   const currentDate = new Date(startDate);
   
   while (currentDate <= endDate) {
     const caretaker = randomChoice(caretakers);
-    const isToday = isSameDay(currentDate, currentTime);
+    const isToday = isSameDay(currentDate, new Date());
     
     // 6-10 diaper changes per day
     const diaperCount = randomInt(6, 10);
     
     for (let i = 0; i < diaperCount; i++) {
       const hour = randomInt(0, 23);
-      const changeTime = generateTimeInDay(currentDate, hour, 30, isToday ? currentTime : null);
+      const changeTime = generateTimeInDay(currentDate, hour, 30, isToday ? cutoffTime : null);
       
       // Only create diaper log if time is not in the future
-      if (changeTime <= currentTime) {
+      if (changeTime <= cutoffTime) {
         // Determine diaper type (more wet than dirty)
         let type;
         const rand = Math.random();
@@ -459,6 +544,125 @@ async function generateDiaperLogs(baby, caretakers, family, startDate, endDate, 
   return logs;
 }
 
+// Generate bath logs for a baby (daily)
+async function generateBathLogs(baby, caretakers, family, startDate, endDate, cutoffTime) {
+  const logs = [];
+  const currentDate = new Date(startDate);
+  
+  while (currentDate <= endDate) {
+    const caretaker = randomChoice(caretakers);
+    const isToday = isSameDay(currentDate, new Date());
+    
+    // 80% chance of bath per day, usually in the evening
+    if (Math.random() > 0.2) {
+      const bathTime = generateTimeInDay(currentDate, 19, 60, isToday ? cutoffTime : null); // 7 PM +/- 1 hour
+      
+      // Only create bath log if time is not in the future
+      if (bathTime <= cutoffTime) {
+        const soapUsed = Math.random() > 0.1; // 90% chance
+        const shampooUsed = Math.random() > 0.3; // 70% chance
+        
+        logs.push({
+          id: randomUUID(),
+          time: bathTime,
+          soapUsed: soapUsed,
+          shampooUsed: shampooUsed,
+          notes: Math.random() > 0.7 ? randomChoice([
+            'Baby loved splashing in the water',
+            'Calm and relaxed during bath',
+            'Fussy at first but settled down',
+            'Enjoyed playing with bath toys',
+            'Very sleepy after bath'
+          ]) : null,
+          babyId: baby.id,
+          caretakerId: caretaker.id,
+          familyId: family.id
+        });
+      }
+    }
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return logs;
+}
+
+// Generate notes for a baby (1 every day or two)
+async function generateNotes(baby, caretakers, family, startDate, endDate, cutoffTime) {
+  const logs = [];
+  const currentDate = new Date(startDate);
+  
+  while (currentDate <= endDate) {
+    const caretaker = randomChoice(caretakers);
+    const isToday = isSameDay(currentDate, new Date());
+    
+    // 60% chance of note per day (roughly 1 every day or two)
+    if (Math.random() > 0.4) {
+      const noteTime = generateTimeInDay(currentDate, randomInt(8, 20), 30, isToday ? cutoffTime : null);
+      
+      // Only create note if time is not in the future
+      if (noteTime <= cutoffTime) {
+        logs.push({
+          id: randomUUID(),
+          time: noteTime,
+          content: randomChoice(noteTemplates),
+          category: randomChoice(['General', 'Feeding', 'Sleep', 'Development', 'Health']),
+          babyId: baby.id,
+          caretakerId: caretaker.id,
+          familyId: family.id
+        });
+      }
+    }
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return logs;
+}
+
+// Generate milestones for a baby
+async function generateMilestones(baby, caretakers, family, startDate, endDate, cutoffTime) {
+  const logs = [];
+  const birthDate = new Date(baby.birthDate);
+  const currentDate = new Date(startDate);
+  
+  // Generate milestones based on baby's age
+  const categories = Object.keys(milestoneTemplates);
+  
+  while (currentDate <= endDate) {
+    const caretaker = randomChoice(caretakers);
+    const isToday = isSameDay(currentDate, new Date());
+    
+    // Low chance of milestone per day (they're special!)
+    if (Math.random() > 0.95) { // 5% chance per day
+      const milestoneTime = generateTimeInDay(currentDate, randomInt(8, 20), 30, isToday ? cutoffTime : null);
+      
+      // Only create milestone if time is not in the future
+      if (milestoneTime <= cutoffTime) {
+        const category = randomChoice(categories);
+        const title = randomChoice(milestoneTemplates[category]);
+        const ageInDays = Math.floor((milestoneTime - birthDate) / (1000 * 60 * 60 * 24));
+        
+        logs.push({
+          id: randomUUID(),
+          date: milestoneTime,
+          title: title,
+          description: `${baby.firstName} ${title.toLowerCase()} at ${Math.floor(ageInDays / 30)} months and ${ageInDays % 30} days old!`,
+          category: category,
+          ageInDays: ageInDays,
+          babyId: baby.id,
+          caretakerId: caretaker.id,
+          familyId: family.id
+        });
+      }
+    }
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return logs;
+}
+
 // Main data generation function
 async function generateTestData() {
   try {
@@ -469,14 +673,22 @@ async function generateTestData() {
       await clearExistingData();
     }
     
-    const endDate = new Date();
+    // Generate cutoff time (between 15 minutes and 3 hours ago)
+    const cutoffTime = generateCutoffTime();
+    const endDate = new Date(cutoffTime);
     const startDate = new Date(endDate.getTime() - (daysCount * 24 * 60 * 60 * 1000));
+    
+    console.log(`Data will be generated from ${startDate.toLocaleString()} to ${endDate.toLocaleString()}`);
+    console.log(`Last entries will be between 15 minutes and 3 hours ago`);
     
     let totalBabies = 0;
     let totalCaretakers = 0;
     let totalSleepLogs = 0;
     let totalFeedLogs = 0;
     let totalDiaperLogs = 0;
+    let totalBathLogs = 0;
+    let totalNotes = 0;
+    let totalMilestones = 0;
     
     for (let i = 0; i < familyCount; i++) {
       console.log(`Generating family ${i + 1}/${familyCount}...`);
@@ -500,27 +712,48 @@ async function generateTestData() {
         console.log(`    Generating logs for ${baby.firstName}...`);
         
         // Generate sleep logs
-        const sleepLogs = await generateSleepLogs(baby, caretakers, family, startDate, endDate, endDate);
+        const sleepLogs = await generateSleepLogs(baby, caretakers, family, startDate, endDate, cutoffTime);
         if (sleepLogs.length > 0) {
           await prisma.sleepLog.createMany({ data: sleepLogs });
           totalSleepLogs += sleepLogs.length;
         }
         
         // Generate feed logs
-        const feedLogs = await generateFeedLogs(baby, caretakers, family, startDate, endDate, endDate);
+        const feedLogs = await generateFeedLogs(baby, caretakers, family, startDate, endDate, cutoffTime);
         if (feedLogs.length > 0) {
           await prisma.feedLog.createMany({ data: feedLogs });
           totalFeedLogs += feedLogs.length;
         }
         
         // Generate diaper logs
-        const diaperLogs = await generateDiaperLogs(baby, caretakers, family, startDate, endDate, endDate);
+        const diaperLogs = await generateDiaperLogs(baby, caretakers, family, startDate, endDate, cutoffTime);
         if (diaperLogs.length > 0) {
           await prisma.diaperLog.createMany({ data: diaperLogs });
           totalDiaperLogs += diaperLogs.length;
         }
         
-        console.log(`      Sleep: ${sleepLogs.length}, Feed: ${feedLogs.length}, Diaper: ${diaperLogs.length}`);
+        // Generate bath logs
+        const bathLogs = await generateBathLogs(baby, caretakers, family, startDate, endDate, cutoffTime);
+        if (bathLogs.length > 0) {
+          await prisma.bathLog.createMany({ data: bathLogs });
+          totalBathLogs += bathLogs.length;
+        }
+        
+        // Generate notes
+        const notes = await generateNotes(baby, caretakers, family, startDate, endDate, cutoffTime);
+        if (notes.length > 0) {
+          await prisma.note.createMany({ data: notes });
+          totalNotes += notes.length;
+        }
+        
+        // Generate milestones
+        const milestones = await generateMilestones(baby, caretakers, family, startDate, endDate, cutoffTime);
+        if (milestones.length > 0) {
+          await prisma.milestone.createMany({ data: milestones });
+          totalMilestones += milestones.length;
+        }
+        
+        console.log(`      Sleep: ${sleepLogs.length}, Feed: ${feedLogs.length}, Diaper: ${diaperLogs.length}, Bath: ${bathLogs.length}, Notes: ${notes.length}, Milestones: ${milestones.length}`);
       }
     }
     
@@ -532,7 +765,10 @@ async function generateTestData() {
     console.log(`- ${totalSleepLogs} sleep logs`);
     console.log(`- ${totalFeedLogs} feed logs`);
     console.log(`- ${totalDiaperLogs} diaper logs`);
-    console.log(`Total log entries: ${totalSleepLogs + totalFeedLogs + totalDiaperLogs}`);
+    console.log(`- ${totalBathLogs} bath logs`);
+    console.log(`- ${totalNotes} notes`);
+    console.log(`- ${totalMilestones} milestones`);
+    console.log(`Total log entries: ${totalSleepLogs + totalFeedLogs + totalDiaperLogs + totalBathLogs + totalNotes + totalMilestones}`);
     
   } catch (error) {
     console.error('Error generating test data:', error);
