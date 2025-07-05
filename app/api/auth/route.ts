@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
         });
         
         if (systemCaretaker) {
-          // Create JWT token for system admin with actual caretaker data
+          // Create JWT token for system caretaker with actual caretaker data
           const token = jwt.sign(
             {
               id: systemCaretaker.id,

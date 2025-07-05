@@ -691,6 +691,7 @@ export default function FamilyManagerPage() {
                               familySlug={`setup/${invite.token}`}
                               familyName="Family Setup Invitation"
                               appConfig={appConfig || undefined}
+                              urlSuffix=""
                               variant="outline"
                               size="sm"
                               showText={false}

@@ -74,6 +74,8 @@ export default function FamilyForm({
 
   // Token mode data
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
+  const [tokenPassword, setTokenPassword] = useState('');
+  const [confirmTokenPassword, setConfirmTokenPassword] = useState('');
 
   // Manual mode - Security setup
   const [useSystemPin, setUseSystemPin] = useState(true);
@@ -132,6 +134,8 @@ export default function FamilyForm({
         setFamilySlug('');
         setSlugError('');
         setGeneratedToken(null);
+        setTokenPassword('');
+        setConfirmTokenPassword('');
         setUseSystemPin(true);
         setSystemPin('');
         setConfirmSystemPin('');
@@ -314,12 +318,31 @@ export default function FamilyForm({
   const handleGenerateToken = async () => {
     setError('');
     
+    // Validate password
+    if (!tokenPassword.trim()) {
+      setError('Please enter a setup password');
+      return;
+    }
+    
+    if (tokenPassword.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+    
+    if (tokenPassword !== confirmTokenPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
     try {
       setLoading(true);
       
       const response = await fetch('/api/family/create-setup-link', {
         method: 'POST',
         headers: getAuthHeaders(),
+        body: JSON.stringify({
+          password: tokenPassword,
+        }),
       });
 
       const data = await response.json();
@@ -405,14 +428,14 @@ export default function FamilyForm({
     try {
       setLoading(true);
 
-      // Create family using the admin manual creation endpoint
-      const familyResponse = await fetch('/api/family/manage', {
+      // Create family using the setup/start endpoint with isNewFamily flag
+      const familyResponse = await fetch('/api/setup/start', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
           name: familyName,
           slug: familySlug,
-          isActive: true,
+          isNewFamily: true, // This tells the API to create a new family instead of updating the default one
         }),
       });
 
@@ -423,16 +446,6 @@ export default function FamilyForm({
       }
 
       const createdFamilyId = familyData.data.id;
-
-      // Create initial settings for the new family
-      const initialSettingsResponse = await fetch(`/api/settings?familyId=${createdFamilyId}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      if (!initialSettingsResponse.ok) {
-        throw new Error('Failed to create initial settings');
-      }
 
       // Save security settings
       if (useSystemPin) {
@@ -571,6 +584,34 @@ export default function FamilyForm({
                 <li>Security PIN or individual caretaker accounts</li>
                 <li>Baby information</li>
               </ul>
+
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Setup Password</Label>
+                  <Input
+                    type="password"
+                    value={tokenPassword}
+                    onChange={(e) => setTokenPassword(e.target.value)}
+                    placeholder="Enter password for setup access"
+                    disabled={loading}
+                    minLength={6}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    This password will be required to access the setup invitation
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</Label>
+                  <Input
+                    type="password"
+                    value={confirmTokenPassword}
+                    onChange={(e) => setConfirmTokenPassword(e.target.value)}
+                    placeholder="Confirm setup password"
+                    disabled={loading}
+                    minLength={6}
+                  />
+                </div>
+              </div>
 
               {generatedToken && (
                 <div className="space-y-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
@@ -966,7 +1007,7 @@ export default function FamilyForm({
         {!isEditing && setupMode === 'token' ? (
           <Button 
             onClick={handleGenerateToken} 
-            disabled={loading}
+            disabled={loading || !tokenPassword || !confirmTokenPassword || tokenPassword !== confirmTokenPassword}
           >
             {loading ? 'Generating...' : 'Generate Setup Invitation'}
           </Button>

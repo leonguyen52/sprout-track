@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/prisma/db';
-import { ApiResponse } from '@/app/api/utils/auth';
+import { ApiResponse, withAdminAuth, getAuthenticatedUser } from '@/app/api/utils/auth';
 import { Family } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
@@ -8,77 +8,105 @@ interface SetupStartRequest {
   name: string;
   slug: string;
   token?: string;
+  isNewFamily?: boolean; // Flag to indicate this is a new family creation vs initial setup
 }
 
 async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Family>>> {
-  const { name, slug, token } = (await req.json()) as SetupStartRequest;
+  const { name, slug, token, isNewFamily = false } = (await req.json()) as SetupStartRequest;
 
   if (!name || !slug) {
     return NextResponse.json({ success: false, error: 'Family name and slug are required' }, { status: 400 });
   }
 
+  // Get authentication context
+  const authResult = await getAuthenticatedUser(req);
+  
+  if (!authResult.authenticated) {
+    return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+  }
+
+  // Check for setup token authentication
+  let setupTokenData = null;
+  if (token) {
+    // Handle setup token validation for token-based setup
+    if (authResult.caretakerRole !== 'ADMIN' && !authResult.isSysAdmin) {
+      // For token setup, we need to check if this is a valid setup token auth
+      // This would be handled by a different auth flow, but for now require admin
+      return NextResponse.json({ success: false, error: 'Insufficient permissions for setup' }, { status: 403 });
+    }
+    
+    setupTokenData = await prisma.familySetup.findUnique({
+      where: { token },
+    });
+    
+    if (!setupTokenData || setupTokenData.expiresAt < new Date() || setupTokenData.familyId) {
+      return NextResponse.json({ success: false, error: 'Invalid or expired setup token' }, { status: 403 });
+    }
+  }
+
+  // Check if user has permission to create families
+  const canCreateFamily = authResult.isSysAdmin || 
+                          authResult.caretakerRole === 'ADMIN' || 
+                          setupTokenData;
+
+  if (!canCreateFamily) {
+    return NextResponse.json({ success: false, error: 'Insufficient permissions to create families' }, { status: 403 });
+  }
+
   try {
-    if (token) {
-      // Invitation Mode - validate the token
-      const setupToken = await prisma.familySetup.findUnique({
-        where: { token },
+    if (token && setupTokenData) {
+      // SCENARIO 3: Token-based setup - create new family and mark token as used
+      
+      // Check if slug is unique
+      const existingFamily = await prisma.family.findUnique({ where: { slug } });
+      if (existingFamily) {
+        return NextResponse.json({ success: false, error: 'That URL is already taken' }, { status: 409 });
+      }
+
+      const updatedFamily = await prisma.$transaction(async (tx) => {
+        // Create new family
+        const family = await tx.family.create({
+          data: {
+            id: randomUUID(),
+            name,
+            slug,
+            isActive: true,
+          },
+        });
+
+        // Create settings for the family
+        await tx.settings.create({
+          data: {
+            id: randomUUID(),
+            familyId: family.id,
+            familyName: name,
+          },
+        });
+
+        // Mark the invitation token as used
+        await tx.familySetup.update({
+          where: { token },
+          data: { familyId: family.id },
+        });
+
+        return family;
       });
 
-      if (!setupToken || setupToken.expiresAt < new Date()) {
-        return NextResponse.json({ success: false, error: 'Invalid or expired token' }, { status: 404 });
-      }
-
-      if (setupToken.familyId) {
-        return NextResponse.json({ success: false, error: 'Token has already been used' }, { status: 409 });
-      }
-    } else {
-      // No token provided - check if this is a valid scenario
-      const families = await prisma.family.findMany();
+      return NextResponse.json({ success: true, data: updatedFamily });
+    } else if (authResult.isSysAdmin || authResult.caretakerRole === 'ADMIN') {
+      // System admin or admin caretaker scenarios (requires appropriate authentication)
       
-      if (families.length === 0) {
-        // Fresh install - no families exist, allow creation
-      } else if (families.length === 1 && families[0].slug === 'my-family') {
-        // Initial setup scenario - only default family exists, allow system admin to create actual family
-        // This replaces the default "My Family" created by the seed script
-      } else {
-        // Multiple families exist or non-default family exists
-        // Require invitation token for additional families
-        return NextResponse.json({ success: false, error: 'Cannot create family without invitation token' }, { status: 403 });
+      // Check if slug is unique
+      const existingFamily = await prisma.family.findUnique({ where: { slug } });
+      if (existingFamily) {
+        return NextResponse.json({ success: false, error: 'That URL is already taken' }, { status: 409 });
       }
-    }
 
-    // Check if slug is unique
-    const existingFamily = await prisma.family.findUnique({ where: { slug } });
-    if (existingFamily) {
-      return NextResponse.json({ success: false, error: 'That URL is already taken' }, { status: 409 });
-    }
+      const updatedFamily = await prisma.$transaction(async (tx) => {
+        let family;
 
-    const updatedFamily = await prisma.$transaction(async (tx) => {
-      let family;
-
-      if (!token) {
-        // Initial setup - modify the existing default family instead of creating new one
-        const families = await tx.family.findMany();
-        if (families.length === 1 && families[0].slug === 'my-family') {
-          // Update the existing default family
-          family = await tx.family.update({
-            where: { id: families[0].id },
-            data: {
-              name,
-              slug,
-              isActive: true,
-            },
-          });
-
-          // Update the existing settings for this family
-          await tx.settings.updateMany({
-            where: { familyId: family.id },
-            data: {
-              familyName: name,
-            },
-          });
-        } else {
-          // Fallback: create new family if default doesn't exist
+        if (isNewFamily) {
+          // SCENARIO 2: Sysadmin creating a new family (from FamilyForm)
           family = await tx.family.create({
             data: {
               id: randomUUID(),
@@ -95,41 +123,61 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
               familyName: name,
             },
           });
+        } else {
+          // SCENARIO 1: Brand new setup - update existing default family or create new one
+          const families = await tx.family.findMany();
+          
+          if (families.length === 1 && families[0].slug === 'my-family') {
+            // Update the existing default family
+            family = await tx.family.update({
+              where: { id: families[0].id },
+              data: {
+                name,
+                slug,
+                isActive: true,
+              },
+            });
+
+            // Update the existing settings for this family
+            await tx.settings.updateMany({
+              where: { familyId: family.id },
+              data: {
+                familyName: name,
+              },
+            });
+          } else {
+            // Fallback: create new family if default doesn't exist
+            family = await tx.family.create({
+              data: {
+                id: randomUUID(),
+                name,
+                slug,
+                isActive: true,
+              },
+            });
+
+            await tx.settings.create({
+              data: {
+                id: randomUUID(),
+                familyId: family.id,
+                familyName: name,
+              },
+            });
+          }
         }
-      } else {
-        // Token-based setup - create new family
-        family = await tx.family.create({
-          data: {
-            id: randomUUID(),
-            name,
-            slug,
-            isActive: true,
-          },
-        });
 
-        await tx.settings.create({
-          data: {
-            id: randomUUID(),
-            familyId: family.id,
-            familyName: name,
-          },
-        });
+        return family;
+      });
 
-        // Mark the invitation token as used
-        await tx.familySetup.update({
-          where: { token },
-          data: { familyId: family.id },
-        });
-      }
+      return NextResponse.json({ success: true, data: updatedFamily });
+    }
 
-      return family;
-    });
-
-    return NextResponse.json({ success: true, data: updatedFamily });
+    // This should not be reached due to authentication check above
+    return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
   } catch (error) {
     console.error('Error starting setup:', error);
     return NextResponse.json({ success: false, error: 'Error starting setup' }, { status: 500 });
   }
 }
 
-export const POST = handler; 
+export const POST = withAdminAuth(handler); 

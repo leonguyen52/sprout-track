@@ -8,6 +8,10 @@ interface SetupLinkResponse {
   token: string;
 }
 
+interface SetupLinkRequest {
+  password: string;
+}
+
 async function handler(
   req: NextRequest,
   authContext: AuthResult
@@ -20,6 +24,13 @@ async function handler(
   }
 
   try {
+    const { password }: SetupLinkRequest = await req.json();
+
+    // Validate password
+    if (!password || password.length < 6) {
+      return NextResponse.json({ success: false, error: 'Password must be at least 6 characters long' }, { status: 400 });
+    }
+
     // For system administrators, we need to find the actual system caretaker ID
     // since the auth middleware sets caretakerId to null for system caretakers
     let actualCaretakerId = caretakerId;
@@ -67,6 +78,7 @@ async function handler(
     await prisma.familySetup.create({
       data: {
         token,
+        password, // Store password in plain text
         expiresAt,
         createdBy: actualCaretakerId,
       },

@@ -68,15 +68,22 @@ export default function SetupPageWithToken({ params }: SetupPageWithTokenProps) 
   const [isValidToken, setIsValidToken] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     const resolveParams = async () => {
       try {
         const resolvedParams = await params;
         const tokenParam = resolvedParams.token;
         setToken(tokenParam);
         
-        // Check authentication first
+        // Check authentication for token-based setup
         const authToken = localStorage.getItem('authToken');
         const unlockTime = localStorage.getItem('unlockTime');
         
@@ -99,6 +106,21 @@ export default function SetupPageWithToken({ params }: SetupPageWithTokenProps) 
             router.push(`/login?setup=token&token=${tokenParam}`);
             return;
           }
+          
+          // Check if this is token-based authentication for the correct token
+          if (decodedPayload.isSetupAuth && decodedPayload.setupToken === tokenParam) {
+            setIsAuthenticated(true);
+          } else if (decodedPayload.isSysAdmin) {
+            // System admin can also access setup pages
+            setIsAuthenticated(true);
+          } else {
+            // Invalid auth type - redirect to token login
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('unlockTime');
+            localStorage.removeItem('caretakerId');
+            router.push(`/login?setup=token&token=${tokenParam}`);
+            return;
+          }
         } catch (error) {
           console.error('Error parsing JWT token:', error);
           // Invalid token - redirect to login
@@ -108,8 +130,6 @@ export default function SetupPageWithToken({ params }: SetupPageWithTokenProps) 
           router.push(`/login?setup=token&token=${tokenParam}`);
           return;
         }
-        
-        setIsAuthenticated(true);
         
         // Validate the setup token
         const response = await fetch(`/api/setup/validate-token`, {
@@ -139,7 +159,7 @@ export default function SetupPageWithToken({ params }: SetupPageWithTokenProps) 
     };
 
     resolveParams();
-  }, [params, router]);
+  }, [mounted, params, router]);
 
   const handleSetupComplete = (family: { id: string; name: string; slug: string }) => {
     console.log('Token-based setup completed for family:', family);
@@ -147,12 +167,12 @@ export default function SetupPageWithToken({ params }: SetupPageWithTokenProps) 
     router.push(`/${family.slug}/login`);
   };
 
-  if (isLoading) {
+  if (!mounted || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Validating setup invitation...</p>
+          <p>{!mounted ? 'Loading...' : 'Validating setup invitation...'}</p>
         </div>
       </div>
     );
