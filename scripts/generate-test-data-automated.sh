@@ -10,8 +10,8 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 echo "Generating test data for development environment..."
 
 # Set environment variables for automation
-export FAMILY_COUNT=3
-export DAYS_COUNT=14
+export FAMILY_COUNT=5
+export DAYS_COUNT=60
 export CLEAR_DATA=true
 
 # Run the test data generator
