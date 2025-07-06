@@ -165,7 +165,7 @@ export default function FamilyManagerLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-4 family-manager-login-background">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-blue-50 p-4 family-manager-login-background">
       <Card className="w-full max-w-md family-manager-login-card">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
@@ -178,10 +178,10 @@ export default function FamilyManagerLoginPage() {
               priority
             />
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <CardTitle className="text-2xl font-bold text-gray-900">
             Family Manager Login
           </CardTitle>
-          <p className="text-sm text-gray-600 dark:text-gray-400 family-manager-login-description">
+          <p className="text-sm text-gray-600 family-manager-login-description">
             Enter the system administrator password to access family management
           </p>
         </CardHeader>
@@ -243,7 +243,7 @@ export default function FamilyManagerLoginPage() {
           </form>
           
           {/* Go back to home button */}
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 family-manager-login-separator">
+          <div className="mt-4 pt-4 border-t border-gray-200 family-manager-login-separator">
             <Button
               type="button"
               variant="outline"

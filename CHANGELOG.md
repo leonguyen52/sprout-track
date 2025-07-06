@@ -28,6 +28,8 @@
 
 #### Other Fixes and Improvements
 - Updated API calls to provide more real-time feel while minimizing bandwidth when app not actively used
+- Fixed time that loads when opening most activities to be now instead of the the of the last page refresh
+- Updated pump log so end time is now and start time defaults to 15 minutes in the past
 - Removed solid foods from feed timer calculations
 - Updated activity timeline descriptions to show units correctly
 - Fixed visual bugs for light/dark mode consistency
