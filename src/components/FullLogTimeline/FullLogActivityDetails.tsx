@@ -9,6 +9,7 @@ import {
 import { FullLogActivityDetailsProps } from './full-log-timeline.types';
 import { getActivityDetails, formatTime } from '@/src/components/Timeline/utils';
 import { useTheme } from '@/src/context/theme';
+import './full-log-timeline.css';
 
 /**
  * FullLogActivityDetails Component
