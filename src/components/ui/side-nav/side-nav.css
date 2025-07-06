@@ -1,7 +1,31 @@
+/* Inner shadow for side-nav on large screens only (600px and above) */
+@media (min-width: 600px) {
+  .side-nav {
+    box-shadow: inset -4px 0 6px -1px rgba(0, 0, 0, 0.1), inset -2px 0 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  .side-nav-header {
+    box-shadow: inset -4px 0 6px -1px rgba(0, 0, 0, 0.1), inset -2px 0 4px -1px rgba(0, 0, 0, 0.06);
+  }
+}
+
 /* Dark mode overrides for SideNav component */
 html.dark .side-nav {
   background-color: #4b5563; /* gray-600 */
   color: #e5e7eb; /* gray-200 */
+}
+
+@media (min-width: 600px) {
+  html.dark .side-nav {
+    box-shadow: none !important;
+    border-right: 1px solid #1f2937 !important; /* almost black border in dark mode */
+  }
+  
+}
+
+/* Light mode border for header */
+.side-nav-header .mx-auto {
+  border-bottom: 1px solid #e5e7eb; /* gray-200 */
 }
 
 html.dark .side-nav-header {
