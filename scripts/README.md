@@ -294,6 +294,7 @@ FAMILY_COUNT=3 DAYS_COUNT=14 CLEAR_DATA=true ./Scripts/generate-test-data.sh
 
 The script creates realistic test data including:
 
+- **App Configuration**: Global settings (domain: demo.sprout-track.com, HTTPS enabled)
 - **Families**: With unique slugs and names
 - **Caretakers**: Parents, grandparents, nannies, etc. (2-4 per family)
 - **Babies**: With realistic birth dates (1-2 per family)
