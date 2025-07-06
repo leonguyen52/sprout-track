@@ -227,7 +227,7 @@ async function clearExistingData() {
   const models = [
     'familyMember', 'sleepLog', 'feedLog', 'diaperLog', 'moodLog', 'note', 
     'milestone', 'pumpLog', 'playLog', 'bathLog', 'measurement', 'medicineLog',
-    'medicine', 'calendarEvent', 'contact', 'baby', 'caretaker', 'settings', 'family'
+    'medicine', 'calendarEvent', 'contact', 'baby', 'caretaker', 'settings', 'family', 'appConfig'
   ];
   
   for (const model of models) {
@@ -238,6 +238,23 @@ async function clearExistingData() {
       console.log(`Note: Could not clear ${model} (may not exist): ${error.message}`);
     }
   }
+}
+
+// Generate app configuration
+async function generateAppConfig() {
+  console.log('Generating app configuration...');
+  
+  const appConfig = await prisma.appConfig.create({
+    data: {
+      id: randomUUID(),
+      adminPass: 'admin', // Plain text - will be encrypted by the API when used
+      rootDomain: 'demo.sprout-track.com',
+      enableHttps: true
+    }
+  });
+  
+  console.log(`Created app config with domain: ${appConfig.rootDomain}`);
+  return appConfig;
 }
 
 // Generate a family
@@ -673,6 +690,9 @@ async function generateTestData() {
       await clearExistingData();
     }
     
+    // Generate app configuration
+    await generateAppConfig();
+    
     // Generate cutoff time (between 15 minutes and 3 hours ago)
     const cutoffTime = generateCutoffTime();
     const endDate = new Date(cutoffTime);
@@ -759,6 +779,7 @@ async function generateTestData() {
     
     console.log(`\nTest data generation completed successfully!`);
     console.log(`Generated:`);
+    console.log(`- 1 app configuration (domain: demo.sprout-track.com, HTTPS: enabled)`);
     console.log(`- ${familyCount} families`);
     console.log(`- ${totalCaretakers} caretakers`);
     console.log(`- ${totalBabies} babies`);
