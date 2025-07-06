@@ -221,5 +221,142 @@ The script processes the following models and their date fields:
 The script includes error handling to prevent data loss:
 
 - It only updates fields that need conversion to UTC
-- It logs any errors that occur during the update process
-- It processes each model and record independently, so an error with one record won't affect others
+# Test Data Generation Scripts
+
+This directory contains scripts for generating realistic test data for the Sprout Track application.
+
+## Files
+
+- `generate-test-data.sh` - Main script that can run interactively or in automated mode
+- `generate-test-data.js` - JavaScript data generation logic  
+- `generate-test-data-automated.sh` - Example script for automated usage
+- `README.md` - This documentation file
+
+## Interactive Mode
+
+Run the script interactively to be prompted for parameters:
+
+```bash
+./Scripts/generate-test-data.sh
+```
+
+The script will ask you for:
+- Number of families to generate (1-20)
+- Number of days of log entries (1-90)
+- Whether to clear existing data
+
+## Automated Mode
+
+The script can be run in automated mode by setting environment variables. This is perfect for cron jobs, CI/CD pipelines, or automated deployments.
+
+### Environment Variables
+
+- `FAMILY_COUNT` - Number of families to generate (1-20)
+- `DAYS_COUNT` - Number of days of log entries (1-90)  
+- `CLEAR_DATA` - Whether to clear existing data ("true" or "false")
+
+### Example Usage
+
+```bash
+# Generate 3 families with 14 days of data, clearing existing data
+export FAMILY_COUNT=3
+export DAYS_COUNT=14
+export CLEAR_DATA=true
+./Scripts/generate-test-data.sh
+```
+
+Or in a single command:
+```bash
+FAMILY_COUNT=3 DAYS_COUNT=14 CLEAR_DATA=true ./Scripts/generate-test-data.sh
+```
+
+## Cron Job Examples
+
+### Daily Test Data Refresh
+```bash
+# Run daily at 2 AM to refresh test data
+0 2 * * * cd /path/to/sprout-track && FAMILY_COUNT=5 DAYS_COUNT=30 CLEAR_DATA=true ./Scripts/generate-test-data.sh >> /var/log/sprout-track-testdata.log 2>&1
+```
+
+### Weekly Test Data Addition
+```bash
+# Add more test data weekly without clearing existing data
+0 3 * * 0 cd /path/to/sprout-track && FAMILY_COUNT=2 DAYS_COUNT=7 CLEAR_DATA=false ./Scripts/generate-test-data.sh >> /var/log/sprout-track-testdata.log 2>&1
+```
+
+### Development Environment Setup
+```bash
+# Generate test data for development environment
+0 8 * * 1 cd /path/to/sprout-track && FAMILY_COUNT=3 DAYS_COUNT=14 CLEAR_DATA=true ./Scripts/generate-test-data.sh >> /var/log/sprout-track-testdata.log 2>&1
+```
+
+## Generated Data
+
+The script creates realistic test data including:
+
+- **App Configuration**: Global settings (domain: demo.sprout-track.com, HTTPS enabled)
+- **Families**: With unique slugs and names
+- **Caretakers**: Parents, grandparents, nannies, etc. (2-4 per family)
+- **Babies**: With realistic birth dates (1-2 per family)
+- **Sleep Logs**: Night sleep and naps with realistic timing
+- **Feed Logs**: Bottle feeding schedules (6-8 per day)
+- **Diaper Logs**: Wet/dirty diapers throughout the day (6-10 per day)
+- **Bath Logs**: Daily baths (80% chance per day)
+- **Notes**: General observations (1 every day or two)
+- **Milestones**: Developmental achievements (rare special events)
+
+### Time Range
+
+All log entries are generated with timestamps between the start date and a cutoff time that is **15 minutes to 3 hours ago**. This ensures realistic data that doesn't appear to be from the future.
+
+## Data Volume Estimates
+
+For each baby per day:
+- Sleep logs: ~4 entries (night sleep + naps)
+- Feed logs: ~6 entries (bottle feeds)
+- Diaper logs: ~8 entries (changes throughout day)
+- Bath logs: ~1 entry (daily bath)
+- Notes: ~0.5 entries (every other day)
+- Milestones: ~0.05 entries (rare events)
+
+**Total per baby per day: ~19.5 log entries**
+
+## Security
+
+All generated families use the same security PIN: `111222`
+
+This allows easy access to any generated family for testing purposes.
+
+## Error Handling
+
+The script includes validation for:
+- Environment variable ranges and types
+- Required dependencies (Node.js)
+- Database connection
+- File system permissions
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Node.js not found**: Install Node.js before running the script
+2. **Database connection error**: Ensure the database is accessible
+3. **Permission denied**: Make sure the script has execute permissions:
+   ```bash
+   chmod +x Scripts/generate-test-data.sh
+   ```
+
+### Log Output
+
+For automated runs, redirect output to a log file:
+```bash
+FAMILY_COUNT=3 DAYS_COUNT=14 CLEAR_DATA=true ./Scripts/generate-test-data.sh >> /var/log/testdata.log 2>&1
+```
+
+### Debug Mode
+
+For debugging, run with verbose output:
+```bash
+set -x
+FAMILY_COUNT=3 DAYS_COUNT=14 CLEAR_DATA=true ./Scripts/generate-test-data.sh
+```
