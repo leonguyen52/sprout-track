@@ -43,6 +43,10 @@ The demo is populated with semi-realistic 🙃 test data spanning multiple famil
 
 ### Quick Docker Deployment
 
+![Docker Stars](https://img.shields.io/docker/stars/sprouttrack/sprout-track) ![Docker Image Size](https://img.shields.io/docker/image-size/sprouttrack/sprout-track) ![Docker Pulls](https://img.shields.io/docker/pulls/sprouttrack/sprout-track)
+
+
+
 To deploy the latest version using Docker:
 
 ```bash
