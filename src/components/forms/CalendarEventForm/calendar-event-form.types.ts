@@ -52,6 +52,11 @@ export interface CalendarEventFormProps {
    * Whether the form is in a loading state
    */
   isLoading?: boolean;
+  
+  /**
+   * The ID of the family this event belongs to (for multi-family support)
+   */
+  familyId?: string;
 }
 
 /**
@@ -81,6 +86,9 @@ export interface CalendarEventFormData {
   babyIds: string[];
   caretakerIds: string[];
   contactIds: string[];
+  
+  // Multi-family support
+  familyId?: string;
   
   // Special flag for deletion
   _deleted?: boolean;

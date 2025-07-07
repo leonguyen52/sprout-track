@@ -40,6 +40,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
   onClose,
   isOpen,
 }) => {
+  
   // State for event form
   const [showEventForm, setShowEventForm] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventFormData | undefined>(undefined);
@@ -76,6 +77,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
       fetchData();
     }
   }, [isOpen]);
+  
   // Format date for display
   const formattedDate = useMemo(() => {
     return date.toLocaleDateString('en-US', {
@@ -240,22 +242,14 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
   
   // Handle event delete
   const handleDeleteEvent = async (eventId: string) => {
-    if (!eventId) return;
-    
     try {
       const response = await fetch(`/api/calendar-event?id=${eventId}`, {
         method: 'DELETE',
       });
-      
       const data = await response.json();
-      
       if (data.success) {
-        // Close form
-        setShowEventForm(false);
-        
-        // Notify parent component to refresh
         if (onAddEvent) {
-          onAddEvent(date);
+          onAddEvent(date); // Trigger refresh
         }
       } else {
         console.error('Error deleting event:', data.error);
@@ -290,81 +284,83 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
     
     // Events state - grouped by time of day
     return (
-      <div className="calendar-day-view">
-        {/* Morning events */}
-        {groupedEvents.morning.length > 0 && (
-          <div className={styles.eventGroup}>
-            <div className={styles.eventGroupHeader}>
-              <Sun className={styles.eventGroupIcon} />
-              <h3 className={cn(
-                styles.eventGroupTitle,
-                'calendar-day-view-group-title'
-              )}>
-                Morning
-              </h3>
+      <div className="calendar-day-view px-3">
+        <div className="max-w-2xl mx-auto mt-2">
+          {/* Morning events */}
+          {groupedEvents.morning.length > 0 && (
+            <div className={styles.eventGroup}>
+              <div className={styles.eventGroupHeader}>
+                <Sun className={styles.eventGroupIcon} />
+                <h3 className={cn(
+                  styles.eventGroupTitle,
+                  'calendar-day-view-group-title'
+                )}>
+                  Morning
+                </h3>
+              </div>
+              
+              <div className={styles.eventsList}>
+                {groupedEvents.morning.map(event => (
+                  <CalendarEventItem
+                    key={event.id}
+                    event={event}
+                    onClick={handleEventClick}
+                  />
+                ))}
+              </div>
             </div>
-            
-            <div className={styles.eventsList}>
-              {groupedEvents.morning.map(event => (
-                <CalendarEventItem
-                  key={event.id}
-                  event={event}
-                  onClick={handleEventClick}
-                />
-              ))}
+          )}
+          
+          {/* Afternoon events */}
+          {groupedEvents.afternoon.length > 0 && (
+            <div className={styles.eventGroup}>
+              <div className={styles.eventGroupHeader}>
+                <Coffee className={styles.eventGroupIcon} />
+                <h3 className={cn(
+                  styles.eventGroupTitle,
+                  'calendar-day-view-group-title'
+                )}>
+                  Afternoon
+                </h3>
+              </div>
+              
+              <div className={styles.eventsList}>
+                {groupedEvents.afternoon.map(event => (
+                  <CalendarEventItem
+                    key={event.id}
+                    event={event}
+                    onClick={handleEventClick}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-        
-        {/* Afternoon events */}
-        {groupedEvents.afternoon.length > 0 && (
-          <div className={styles.eventGroup}>
-            <div className={styles.eventGroupHeader}>
-              <Coffee className={styles.eventGroupIcon} />
-              <h3 className={cn(
-                styles.eventGroupTitle,
-                'calendar-day-view-group-title'
-              )}>
-                Afternoon
-              </h3>
+          )}
+          
+          {/* Evening events */}
+          {groupedEvents.evening.length > 0 && (
+            <div className={styles.eventGroup}>
+              <div className={styles.eventGroupHeader}>
+                <Moon className={styles.eventGroupIcon} />
+                <h3 className={cn(
+                  styles.eventGroupTitle,
+                  'calendar-day-view-group-title'
+                )}>
+                  Evening
+                </h3>
+              </div>
+              
+              <div className={styles.eventsList}>
+                {groupedEvents.evening.map(event => (
+                  <CalendarEventItem
+                    key={event.id}
+                    event={event}
+                    onClick={handleEventClick}
+                  />
+                ))}
+              </div>
             </div>
-            
-            <div className={styles.eventsList}>
-              {groupedEvents.afternoon.map(event => (
-                <CalendarEventItem
-                  key={event.id}
-                  event={event}
-                  onClick={handleEventClick}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* Evening events */}
-        {groupedEvents.evening.length > 0 && (
-          <div className={styles.eventGroup}>
-            <div className={styles.eventGroupHeader}>
-              <Moon className={styles.eventGroupIcon} />
-              <h3 className={cn(
-                styles.eventGroupTitle,
-                'calendar-day-view-group-title'
-              )}>
-                Evening
-              </h3>
-            </div>
-            
-            <div className={styles.eventsList}>
-              {groupedEvents.evening.map(event => (
-                <CalendarEventItem
-                  key={event.id}
-                  event={event}
-                  onClick={handleEventClick}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   };
@@ -376,27 +372,22 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
         isOpen={isOpen}
         onClose={handleClose}
         title={formattedDate}
-        className={cn('calendar-day-view-slide-in', className)}
+        className={cn(styles.container, className)}
       >
-        <FormPageContent className="calendar-day-view-content">
-          {renderContent()}
+        <FormPageContent className="p-0">
+          <div className="flex flex-col h-full">
+            {renderContent()}
+          </div>
         </FormPageContent>
-        
         <FormPageFooter>
-          <Button variant="outline" onClick={handleClose}>
-            Close
-          </Button>
-          
-          {onAddEvent && (
+          <div className="flex justify-end w-full">
             <Button onClick={handleAddEvent}>
-              <PlusCircle className="h-4 w-4 mr-2" />
+              <PlusCircle className="mr-2 h-4 w-4" />
               Add Event
             </Button>
-          )}
+          </div>
         </FormPageFooter>
       </FormPage>
-      
-      {/* Calendar Event Form */}
       <CalendarEventForm
         isOpen={showEventForm}
         onClose={handleEventFormClose}

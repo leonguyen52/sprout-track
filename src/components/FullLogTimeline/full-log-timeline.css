@@ -107,3 +107,12 @@ html.dark .full-log-timeline-loading-container {
 html.dark .full-log-timeline-loading-text {
   color: #e5e7eb !important; /* gray-200 */
 }
+
+/* Dark mode overrides for FullLogActivityDetails component */
+html.dark .full-log-timeline-details-label {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .full-log-timeline-details-value {
+  color: #e5e7eb !important; /* gray-200 */
+}

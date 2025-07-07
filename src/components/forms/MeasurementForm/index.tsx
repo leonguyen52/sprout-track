@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MeasurementType } from '@prisma/client';
 import { MeasurementResponse, MeasurementCreate } from '@/app/api/types';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -169,7 +168,14 @@ export default function MeasurementForm({
         const formattedTime = `${year}-${month}-${day}T${hours}:${minutes}`;
         
         // Update the specific measurement type that's being edited
-        const updatedFormData = { ...formData, date: formattedTime, notes: activity.notes || '' };
+        const updatedFormData = { 
+          date: formattedTime, 
+          notes: activity.notes || '',
+          height: { value: '', unit: defaultUnits.height },
+          weight: { value: '', unit: defaultUnits.weight },
+          headCircumference: { value: '', unit: defaultUnits.headCircumference },
+          temperature: { value: '', unit: defaultUnits.temperature },
+        };
         
         switch (activity.type) {
           case 'HEIGHT':
@@ -197,7 +203,32 @@ export default function MeasurementForm({
       // Reset initialization flag when form closes
       setIsInitialized(false);
     }
-  }, [isOpen, initialTime, activity, isInitialized, formData]);
+  }, [isOpen, initialTime, activity, isInitialized, defaultUnits]);
+
+  // Separate effect to handle initialTime changes for new entries
+  useEffect(() => {
+    if (isOpen && !activity && isInitialized) {
+      // Update the selected date time when initialTime changes for new entries
+      try {
+        const date = new Date(initialTime);
+        if (!isNaN(date.getTime())) {
+          setSelectedDateTime(date);
+          
+          // Also update the date in formData
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const formattedTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+          
+          setFormData(prev => ({ ...prev, date: formattedTime }));
+        }
+      } catch (error) {
+        console.error('Error parsing initialTime:', error);
+      }
+    }
+  }, [initialTime, isOpen, activity, isInitialized]);
 
   // Handle value change for a specific measurement type
   const handleValueChange = (type: keyof Omit<FormData, 'date' | 'notes'>, value: string) => {
@@ -243,7 +274,7 @@ export default function MeasurementForm({
       }
       
       // Create an array of measurements to save
-      const measurements: MeasurementCreate[] = [];
+      const measurements: Omit<MeasurementCreate, 'familyId'>[] = [];
       
       // Add height measurement if value is provided
       if (formData.height.value) {

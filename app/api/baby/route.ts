@@ -3,16 +3,31 @@ import prisma from '../db';
 import { ApiResponse, BabyCreate, BabyUpdate, BabyResponse } from '../types';
 import { Gender } from '@prisma/client';
 import { toUTC, formatForResponse } from '../utils/timezone';
-import { withAuth, withAuthContext, AuthResult } from '../utils/auth';
+import { withAuthContext, AuthResult } from '../utils/auth';
 
-async function handlePost(req: NextRequest) {
+async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
-    const body: BabyCreate = await req.json();
+    const { familyId: userFamilyId, isSetupAuth } = authContext;
+    
+    const requestBody = await req.json();
+    const { familyId: bodyFamilyId, ...babyData } = requestBody;
+    const body: BabyCreate = babyData;
+    
+    // Determine target family ID - prefer auth context, but allow body override for setup auth
+    let targetFamilyId = userFamilyId;
+    if (!userFamilyId && isSetupAuth && bodyFamilyId) {
+      targetFamilyId = bodyFamilyId;
+    }
+    
+    if (!targetFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
 
     const baby = await prisma.baby.create({
       data: {
         ...body,
         birthDate: toUTC(body.birthDate),
+        familyId: targetFamilyId, // Set family ID from trusted context or setup auth
       },
     });
 
@@ -41,20 +56,25 @@ async function handlePost(req: NextRequest) {
   }
 }
 
-async function handlePut(req: NextRequest) {
+async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: BabyUpdate = await req.json();
     const { id, ...updateData } = body;
 
-    const existingBaby = await prisma.baby.findUnique({
-      where: { id },
+    const existingBaby = await prisma.baby.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingBaby) {
       return NextResponse.json<ApiResponse<BabyResponse>>(
         {
           success: false,
-          error: 'Baby not found',
+          error: 'Baby not found or access denied',
         },
         { status: 404 }
       );
@@ -93,8 +113,13 @@ async function handlePut(req: NextRequest) {
   }
 }
 
-async function handleDelete(req: NextRequest) {
+async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+    
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -105,6 +130,21 @@ async function handleDelete(req: NextRequest) {
           error: 'Baby ID is required',
         },
         { status: 400 }
+      );
+    }
+
+    // Verify baby belongs to user's family before deleting
+    const existingBaby = await prisma.baby.findFirst({
+      where: { id, familyId: userFamilyId },
+    });
+
+    if (!existingBaby) {
+      return NextResponse.json<ApiResponse<null>>(
+        {
+          success: false,
+          error: 'Baby not found or access denied',
+        },
+        { status: 404 }
       );
     }
 
@@ -129,16 +169,22 @@ async function handleDelete(req: NextRequest) {
   }
 }
 
-async function handleGet(req: NextRequest) {
+async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
-
+    
     if (id) {
-      const baby = await prisma.baby.findUnique({
+      const baby = await prisma.baby.findFirst({
         where: { 
           id,
           deletedAt: null,
+          familyId: userFamilyId, // Filter by family ID from context
         },
       });
 
@@ -170,6 +216,7 @@ async function handleGet(req: NextRequest) {
     const babies = await prisma.baby.findMany({
       where: {
         deletedAt: null,
+        familyId: userFamilyId, // Filter by family ID from context
       },
       orderBy: {
         createdAt: 'desc',
@@ -203,7 +250,7 @@ async function handleGet(req: NextRequest) {
 
 // Apply authentication middleware to all handlers
 // Use type assertions to handle the multiple return types
-export const GET = withAuth(handleGet as (req: NextRequest) => Promise<NextResponse<ApiResponse<any>>>);
-export const POST = withAuth(handlePost as (req: NextRequest) => Promise<NextResponse<ApiResponse<any>>>);
-export const PUT = withAuth(handlePut as (req: NextRequest) => Promise<NextResponse<ApiResponse<any>>>);
-export const DELETE = withAuth(handleDelete as (req: NextRequest) => Promise<NextResponse<ApiResponse<any>>>);
+export const GET = withAuthContext(handleGet as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>);
+export const POST = withAuthContext(handlePost as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>);
+export const PUT = withAuthContext(handlePut as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>);
+export const DELETE = withAuthContext(handleDelete as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>);

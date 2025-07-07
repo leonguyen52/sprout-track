@@ -60,66 +60,36 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
       setError(null);
       
       try {
+        const authToken = localStorage.getItem('authToken');
+        const fetchOptions = { headers: { 'Authorization': `Bearer ${authToken}` } };
+
         // Fetch all medicines
-        const medicinesResponse = await fetch('/api/medicine');
-        
-        if (!medicinesResponse.ok) {
-          throw new Error('Failed to fetch medicines');
-        }
-        
+        const medicinesResponse = await fetch('/api/medicine', fetchOptions);
+        if (!medicinesResponse.ok) throw new Error('Failed to fetch medicines');
         const medicinesData = await medicinesResponse.json();
         
         // Fetch units for medicine
-        let unitsData;
-        try {
-          const unitsResponse = await fetch('/api/units?activityType=medicine');
-          
-          if (!unitsResponse.ok) {
-            console.error('Error fetching medicine units with filter, falling back to all units');
-            // Fallback to fetching all units if the filtered request fails
-            const fallbackResponse = await fetch('/api/units');
-            if (!fallbackResponse.ok) {
-              throw new Error('Failed to fetch units');
-            }
-            unitsData = await fallbackResponse.json();
-          } else {
-            unitsData = await unitsResponse.json();
-          }
-        } catch (error) {
-          console.error('Error fetching units:', error);
-          throw new Error('Failed to fetch units');
-        }
-        
+        const unitsResponse = await fetch('/api/units?activityType=medicine', fetchOptions);
+        if (!unitsResponse.ok) throw new Error('Failed to fetch units');
+        const unitsData = await unitsResponse.json();
+
         // Fetch contacts
-        const contactsResponse = await fetch('/api/contact');
-        
-        if (!contactsResponse.ok) {
-          throw new Error('Failed to fetch contacts');
-        }
-        
+        const contactsResponse = await fetch('/api/contact', fetchOptions);
+        if (!contactsResponse.ok) throw new Error('Failed to fetch contacts');
         const contactsData = await contactsResponse.json();
         
         // Update state with fetched data
-        if (medicinesData.success) {
-          setMedicines(medicinesData.data);
-        } else {
-          setError(medicinesData.error || 'Failed to load medicines');
-        }
+        if (medicinesData.success) setMedicines(medicinesData.data);
+        else setError(medicinesData.error || 'Failed to load medicines');
         
-        if (unitsData.success) {
-          setUnits(unitsData.data);
-        } else {
-          setError(unitsData.error || 'Failed to load units');
-        }
+        if (unitsData.success) setUnits(unitsData.data);
+        else setError(unitsData.error || 'Failed to load units');
         
-        if (contactsData.success) {
-          setContacts(contactsData.data);
-        } else {
-          setError(contactsData.error || 'Failed to load contacts');
-        }
+        if (contactsData.success) setContacts(contactsData.data);
+        else setError(contactsData.error || 'Failed to load contacts');
+
       } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load data. Please try again.');
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
         setIsFetching(false);
       }
@@ -155,18 +125,21 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
       const method = isEditing ? 'PUT' : 'POST';
       const url = '/api/medicine' + (isEditing ? `?id=${formData.id}` : '');
       
+      const { ...dataToSubmit } = formData;
+
+      const authToken = localStorage.getItem('authToken');
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSubmit),
       });
       
       const data = await response.json();
       
       if (data.success) {
-        // Update local state
         if (isEditing) {
           setMedicines(prev => prev.map(m => 
             m.id === formData.id ? { ...m, ...data.data } : m
@@ -174,21 +147,14 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
         } else {
           setMedicines(prev => [...prev, data.data]);
         }
-        
-        // Close form
         setShowMedicineForm(false);
         setSelectedMedicine(null);
-        
-        // Refresh parent data if needed
-        if (refreshData) {
-          refreshData();
-        }
+        refreshData?.();
       } else {
         setError(data.error || `Failed to ${isEditing ? 'update' : 'create'} medicine`);
       }
     } catch (err) {
-      console.error(`Error ${formData.id ? 'updating' : 'creating'} medicine:`, err);
-      setError(`Failed to ${formData.id ? 'update' : 'create'} medicine. Please try again.`);
+      setError(err instanceof Error ? err.message : `Failed to ${formData.id ? 'update' : 'create'} medicine.`);
     } finally {
       setIsLoading(false);
     }
@@ -200,40 +166,31 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
     setError(null);
     
     try {
+      const authToken = localStorage.getItem('authToken');
       const response = await fetch(`/api/medicine?id=${id}`, {
         method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${authToken}` },
       });
       
       const data = await response.json();
       
       if (data.success) {
-        // Remove deleted medicine from state
         setMedicines(prev => prev.filter(m => m.id !== id));
-        
-        // Close form if open
         setShowMedicineForm(false);
         setSelectedMedicine(null);
-        
-        // Refresh parent data if needed
-        if (refreshData) {
-          refreshData();
-        }
+        refreshData?.();
       } else {
         setError(data.error || 'Failed to delete medicine');
       }
     } catch (err) {
-      console.error('Error deleting medicine:', err);
-      setError('Failed to delete medicine. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to delete medicine.');
     } finally {
       setIsLoading(false);
     }
   };
   
-
-  
   return (
     <div className={cn(styles.tabContent)}>
-      {/* Loading state for initial data fetch */}
       {isFetching && (
         <div className="flex flex-col items-center justify-center p-6">
           <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
@@ -241,143 +198,79 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
         </div>
       )}
       
-      {/* Error state */}
       {error && (
-        <div className="flex flex-col items-center justify-center p-6 text-red-500">
-          <AlertCircle className="h-8 w-8" />
-          <p className="mt-2">{error}</p>
+        <div className="flex flex-col items-center justify-center p-6">
+          <AlertCircle className="h-8 w-8 text-red-500" />
+          <p className="mt-2 text-red-500 text-center">{error}</p>
         </div>
       )}
       
-      {/* Medicines list */}
-      {!isFetching && !error && (
+      {!isFetching && !error && !showMedicineForm && (
         <>
-          {/* Show inactive medicines toggle */}
-          <div className="flex items-center space-x-2 mb-4">
-            <Switch
-              checked={showInactive}
-              onCheckedChange={setShowInactive}
-              id="show-inactive"
-            />
-            <Label htmlFor="show-inactive" className="text-sm font-medium cursor-pointer">
-              Show inactive medicines
-            </Label>
-            {showInactive && (
-              <Badge variant="outline" className="ml-auto flex items-center">
-                <EyeOff className="h-3 w-3 mr-1" />
-                <span>Showing inactive</span>
-              </Badge>
-            )}
-          </div>
-          
-          <div className="space-y-4">
-            {filteredMedicines.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-6 text-center">
-                <PillBottle className="h-12 w-12 mb-2 text-gray-400" />
-                <p className="text-gray-500">
-                  {medicines.length === 0 
-                    ? "No medicines added yet" 
-                    : "No active medicines found. Toggle the switch to show inactive medicines."}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {filteredMedicines.map((medicine) => (
-                  <div 
-                    key={medicine.id} 
-                    className="rounded-lg bg-gray-50 border border-gray-100 shadow-sm overflow-hidden"
-                  >
-                    <div 
-                      className="flex items-center justify-between p-3 cursor-pointer"
-                      onClick={() => handleAccordionToggle(medicine.id)}
-                    >
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 p-1.5 mr-2 rounded-full bg-teal-100 text-teal-600">
-                          <PillBottle className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-800">{medicine.name}</div>
-                          <div className="text-xs text-gray-500">
-                            {medicine.typicalDoseSize && medicine.unitAbbr && (
-                              <span>{medicine.typicalDoseSize} {medicine.unitAbbr}</span>
-                            )}
-                            {!medicine.active && (
-                              <Badge variant="outline" className="ml-2 text-xs">
-                                Inactive
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <ChevronRight 
-                        className={`h-4 w-4 text-gray-400 transition-transform ${expandedMedicine === medicine.id ? 'rotate-90' : ''}`}
-                      />
-                    </div>
-                    
-                    {expandedMedicine === medicine.id && (
-                      <div className="p-3 pt-0 border-t border-gray-100 mt-1">
-                        {medicine.doseMinTime && (
-                          <div className="flex items-center text-xs text-gray-600 mb-2">
-                            <Clock className="h-3 w-3 mr-1 text-gray-400" />
-                            <span>Min time between doses: {medicine.doseMinTime}</span>
-                          </div>
-                        )}
-                        
-                        {medicine.contacts && medicine.contacts.length > 0 && (
-                          <div className="mb-2">
-                            <div className="text-xs text-gray-500 mb-1">Associated contacts:</div>
-                            <div className="flex flex-wrap gap-1">
-                              {medicine.contacts.map(c => (
-                                <Badge key={c.contact.id} variant="secondary" className="text-xs flex items-center">
-                                  <User className="h-3 w-3 mr-1" />
-                                  {c.contact.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="flex mt-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditMedicine(medicine);
-                            }}
-                          >
-                            <Edit className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            <div className="flex justify-center mt-4">
-              <Button
-                onClick={handleAddMedicine}
-                className="bg-teal-600 hover:bg-teal-700 text-white"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Medicine
-              </Button>
+          <div className="flex justify-between items-center p-1 mb-2">
+            <h3 className="text-lg font-semibold">Manage Medicines</h3>
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="show-inactive">Show Inactive</Label>
+              <Switch
+                id="show-inactive"
+                checked={showInactive}
+                onCheckedChange={setShowInactive}
+              />
             </div>
           </div>
           
-          {/* Medicine Form using FormPage component */}
-          <MedicineForm
-            isOpen={showMedicineForm}
-            onClose={() => setShowMedicineForm(false)}
-            medicine={selectedMedicine}
-            units={units}
-            contacts={contacts}
-            onSave={handleSaveMedicine}
-          />
+          <div className="space-y-2">
+            {filteredMedicines.map(medicine => (
+              <div key={medicine.id} className={cn(styles.doseCard, !medicine.active && 'opacity-60')}>
+                <div className="flex items-center cursor-pointer" onClick={() => handleAccordionToggle(medicine.id)}>
+                  <PillBottle className="h-5 w-5 mr-3" />
+                  <div className="flex-1">
+                    <p className="font-semibold">{medicine.name}</p>
+                    <p className="text-sm text-gray-500">
+                      Typical dose: {medicine.typicalDoseSize} {medicine.unitAbbr}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleEditMedicine(medicine); }}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </div>
+                {expandedMedicine === medicine.id && (
+                  <div className="mt-2 pt-2 border-t">
+                    <div className="text-sm space-y-1">
+                      <p className="flex items-center"><Clock className="h-4 w-4 mr-2" /> Minimum time between doses: {medicine.doseMinTime}</p>
+                      {medicine.notes && <p>{medicine.notes}</p>}
+                      <div className="flex items-center pt-1">
+                        <User className="h-4 w-4 mr-2" />
+                        <div className="flex flex-wrap gap-1">
+                          {medicine.contacts.length > 0 ? (
+                            medicine.contacts.map(c => <Badge key={c.contact.id} variant="secondary">{c.contact.name}</Badge>)
+                          ) : (
+                            <span className="text-gray-500">No associated contacts</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          <Button className="w-full mt-4" onClick={handleAddMedicine}>
+            <Plus className="mr-2 h-4 w-4" /> Add New Medicine
+          </Button>
         </>
+      )}
+
+      {showMedicineForm && (
+        <MedicineForm
+          isOpen={true}
+          onClose={() => setShowMedicineForm(false)}
+          medicine={selectedMedicine}
+          units={units}
+          contacts={contacts}
+          onSave={handleSaveMedicine}
+        />
       )}
     </div>
   );

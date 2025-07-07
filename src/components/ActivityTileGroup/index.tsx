@@ -152,7 +152,10 @@ export function ActivityTileGroup({
         console.log(`Loading activity settings for caretakerId: ${caretakerId}`);
         
         // Fetch activity settings from the API with the current caretakerId
-        const response = await fetch(`/api/activity-settings?caretakerId=${caretakerId}`);
+        const authToken = localStorage.getItem('authToken');
+        const response = await fetch(`/api/activity-settings?caretakerId=${caretakerId}`, {
+          headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+        });
         
         // Handle 401 Unauthorized specifically (expected when logged out)
         if (response.status === 401) {
@@ -298,10 +301,12 @@ export function ActivityTileGroup({
         console.log(`Saving settings:`, settings);
         
         // Save settings to the API
+        const authToken = localStorage.getItem('authToken');
         const response = await fetch('/api/activity-settings', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(authToken && { 'Authorization': `Bearer ${authToken}` })
           },
           body: JSON.stringify(settings)
         });

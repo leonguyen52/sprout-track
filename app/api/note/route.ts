@@ -6,15 +6,30 @@ import { toUTC, formatForResponse } from '../utils/timezone';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: NoteCreate = await req.json();
+
+    const baby = await prisma.baby.findFirst({
+      where: { id: body.babyId, familyId: userFamilyId },
+    });
+
+    if (!baby) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
+    }
     
     // Convert time to UTC for storage
     const timeUTC = toUTC(body.time);
+    
     const note = await prisma.note.create({
       data: {
         ...body,
         time: timeUTC,
-        caretakerId: authContext.caretakerId,
+        caretakerId: caretakerId,
+        familyId: userFamilyId,
       },
     });
 
@@ -45,6 +60,11 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const body: Partial<NoteCreate> = await req.json();
@@ -59,15 +79,18 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingNote = await prisma.note.findUnique({
-      where: { id },
+    const existingNote = await prisma.note.findFirst({
+      where: {
+        id,
+        familyId: userFamilyId,
+      },
     });
 
     if (!existingNote) {
       return NextResponse.json<ApiResponse<NoteResponse>>(
         {
           success: false,
-          error: 'Note not found',
+          error: 'Note not found or access denied',
         },
         { status: 404 }
       );
@@ -79,7 +102,9 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       : body;
 
     const note = await prisma.note.update({
-      where: { id },
+      where: {
+        id,
+      },
       data,
     });
 
@@ -110,20 +135,26 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const babyId = searchParams.get('babyId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const categories = searchParams.get('categories');
-
+    
     // If categories flag is present, return unique categories
     if (categories === 'true') {
       const notes = await prisma.note.findMany({
         where: {
+          familyId: userFamilyId,
           category: {
             not: null
-          }
+          },
         },
         distinct: ['category'],
         select: {
@@ -142,6 +173,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     }
 
     const queryParams = {
+      familyId: userFamilyId,
       ...(babyId && { babyId }),
       ...(startDate && endDate && {
         time: {
@@ -152,15 +184,18 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     };
 
     if (id) {
-      const note = await prisma.note.findUnique({
-        where: { id },
+      const note = await prisma.note.findFirst({
+        where: { 
+          id,
+          familyId: userFamilyId,
+        },
       });
 
       if (!note) {
         return NextResponse.json<ApiResponse<NoteResponse>>(
           {
             success: false,
-            error: 'Note not found',
+            error: 'Note not found or access denied',
           },
           { status: 404 }
         );
@@ -215,6 +250,11 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -228,8 +268,27 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
+    const existingNote = await prisma.note.findFirst({
+      where: { 
+        id,
+        familyId: userFamilyId,
+      },
+    });
+
+    if (!existingNote) {
+      return NextResponse.json<ApiResponse<void>>(
+        {
+          success: false,
+          error: 'Note not found or access denied',
+        },
+        { status: 404 }
+      );
+    }
+
     await prisma.note.delete({
-      where: { id },
+      where: { 
+        id,
+      },
     });
 
     return NextResponse.json<ApiResponse<void>>({

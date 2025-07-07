@@ -20,15 +20,17 @@ import './setup-wizard.css';
  * 
  * @example
  * ```tsx
- * <SetupWizard onComplete={() => console.log('Setup complete!')} />
+ * <SetupWizard onComplete={(family) => console.log('Setup complete!', family)} />
  * ```
  */
-const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
+const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSetup = false }) => {
   const [stage, setStage] = useState(1);
   const [loading, setLoading] = useState(false);
   
   // Stage 1: Family setup
   const [familyName, setFamilyName] = useState('');
+  const [familySlug, setFamilySlug] = useState('');
+  const [createdFamily, setCreatedFamily] = useState<{ id: string; name: string; slug: string } | null>(null);
   
   // Stage 2: Security setup
   const [useSystemPin, setUseSystemPin] = useState(true);
@@ -60,37 +62,67 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   // Error handling
   const [error, setError] = useState('');
 
+  // Get auth headers for API calls
+  const getAuthHeaders = () => {
+    const authToken = localStorage.getItem('authToken');
+    return {
+      'Content-Type': 'application/json',
+      ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+    };
+  };
+
   const handleNext = async () => {
     setError('');
     
     if (stage === 1) {
-      // Validate family name
+      // Validate family name and slug
       if (!familyName.trim()) {
         setError('Please enter a family name');
+        return;
+      }
+
+      if (!familySlug.trim()) {
+        setError('Please enter a family URL');
+        return;
+      }
+
+      // Basic slug validation
+      const slugPattern = /^[a-z0-9-]+$/;
+      if (!slugPattern.test(familySlug)) {
+        setError('Family URL can only contain lowercase letters, numbers, and hyphens');
+        return;
+      }
+
+      if (familySlug.length < 3) {
+        setError('Family URL must be at least 3 characters long');
         return;
       }
       
       try {
         setLoading(true);
-        // Save family name to settings (update existing record)
-        const response = await fetch('/api/settings', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        // Create family using the setup/start endpoint
+        const response = await fetch('/api/setup/start', {
+          method: 'POST',
+          headers: getAuthHeaders(),
           body: JSON.stringify({
-            familyName,
+            name: familyName,
+            slug: familySlug,
+            token: token, // Include token if this is invitation-based setup
           }),
         });
         
-        if (!response.ok) {
-          throw new Error('Failed to save family name');
-        }
+        const data = await response.json();
         
-        setStage(2);
+        if (data.success) {
+          // Store the created family for later use
+          setCreatedFamily(data.data);
+          setStage(2);
+        } else {
+          setError(data.error || 'Failed to create family');
+        }
       } catch (error) {
-        console.error('Error saving family name:', error);
-        setError('Failed to save family name. Please try again.');
+        console.error('Error creating family:', error);
+        setError('Failed to create family. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -109,19 +141,39 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
         
         try {
           setLoading(true);
-          // Save system PIN to settings
-          const response = await fetch('/api/settings', {
+          
+          // Save system PIN to settings (this will also update system caretaker automatically)
+          const settingsResponse = await fetch(`/api/settings?familyId=${createdFamily?.id}`, {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
               securityPin: systemPin,
             }),
           });
           
-          if (!response.ok) {
-            throw new Error('Failed to save security PIN');
+          if (!settingsResponse.ok) {
+            throw new Error('Failed to save security PIN to settings');
+          }
+          
+          // For token-based auth, skip system caretaker update since:
+          // 1. We don't have a caretakerId in localStorage
+          // 2. The settings API already handles updating the system caretaker
+          const caretakerId = localStorage.getItem('caretakerId');
+          if (caretakerId) {
+            // Only update system caretaker if we have a caretaker ID (non-token auth)
+            const caretakerResponse = await fetch('/api/caretaker', {
+              method: 'PUT',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                id: caretakerId,
+                securityPin: systemPin,
+              }),
+            });
+            
+            if (!caretakerResponse.ok) {
+              console.warn('Failed to update system caretaker PIN (non-fatal)');
+              // Don't fail the setup for this - settings API already handles it
+            }
           }
           
           setStage(3);
@@ -140,14 +192,15 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
         
         try {
           setLoading(true);
-          // Save caretakers
+          // Save caretakers for the created family
           for (const caretaker of caretakers) {
             const response = await fetch('/api/caretaker', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(caretaker),
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                ...caretaker,
+                familyId: createdFamily?.id, // Ensure familyId is included for token-based auth
+              }),
             });
             
             if (!response.ok) {
@@ -187,12 +240,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       
       try {
         setLoading(true);
-        // Save baby information
+        // Save baby information for the created family
         const response = await fetch('/api/baby', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             firstName: babyFirstName,
             lastName: babyLastName,
@@ -200,6 +251,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
             gender: babyGender,
             feedWarningTime,
             diaperWarningTime,
+            familyId: createdFamily?.id, // Ensure familyId is included for token-based auth
           }),
         });
         
@@ -207,8 +259,15 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           throw new Error('Failed to save baby information');
         }
         
-        // Setup complete
-        onComplete();
+        // Setup complete - logout and pass the family data to the callback
+        if (createdFamily) {
+          // Clear authentication tokens to force re-login with new family context
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('unlockTime');
+          localStorage.removeItem('caretakerId');
+          
+          onComplete(createdFamily);
+        }
       } catch (error) {
         console.error('Error saving baby information:', error);
         setError('Failed to save baby information. Please try again.');
@@ -228,7 +287,25 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const addCaretaker = () => {
     // Validate caretaker
     if (newCaretaker.loginId.length !== 2) {
-      setError('Login ID must be exactly 2 characters');
+      setError('Login ID must be exactly 2 digits');
+      return;
+    }
+    
+    // Check if login ID contains only digits
+    if (!/^\d+$/.test(newCaretaker.loginId)) {
+      setError('Login ID must contain only digits');
+      return;
+    }
+    
+    // Check if login ID is "00" (reserved)
+    if (newCaretaker.loginId === '00') {
+      setError('Login ID "00" is reserved for system use');
+      return;
+    }
+    
+    // Check if login ID is already taken
+    if (caretakers.some(c => c.loginId === newCaretaker.loginId)) {
+      setError('This Login ID is already taken');
       return;
     }
     
@@ -304,6 +381,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           <FamilySetupStage
             familyName={familyName}
             setFamilyName={setFamilyName}
+            familySlug={familySlug}
+            setFamilySlug={setFamilySlug}
+            token={token}
+            initialSetup={initialSetup}
           />
         )}
 

@@ -40,6 +40,7 @@ export default function FeedForm({
 }: FeedFormProps) {
   const { formatDate, toUTCString } = useTimezone();
   const { theme } = useTheme();
+  
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime
@@ -238,6 +239,31 @@ export default function FeedForm({
     }
   }, [isOpen, initialTime, activity, isInitialized]);
 
+  // Separate effect to handle initialTime changes for new entries
+  useEffect(() => {
+    if (isOpen && !activity && isInitialized) {
+      // Update the selected date time when initialTime changes for new entries
+      try {
+        const date = new Date(initialTime);
+        if (!isNaN(date.getTime())) {
+          setSelectedDateTime(date);
+          
+          // Also update the time in formData
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const formattedTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+          
+          setFormData(prev => ({ ...prev, time: formattedTime }));
+        }
+      } catch (error) {
+        console.error('Error parsing initialTime:', error);
+      }
+    }
+  }, [initialTime, isOpen, activity, isInitialized]);
+
   useEffect(() => {
     if (formData.type === 'BOTTLE' || formData.type === 'SOLIDS') {
       fetchLastAmount(formData.type);
@@ -263,8 +289,15 @@ export default function FeedForm({
 
   const incrementAmount = () => {
     const currentAmount = parseFloat(formData.amount || '0');
-    const step = formData.unit === 'ML' ? 5 : 0.5;
-    const newAmount = (currentAmount + step).toFixed(1); // Only show one decimal place
+    // Different step sizes for different units
+    let step = 0.5; // Default for OZ and TBSP
+    if (formData.unit === 'ML') {
+      step = 5;
+    } else if (formData.unit === 'G') {
+      step = 5; // 1 grams increments for grams
+    }
+    
+    const newAmount = (currentAmount + step).toFixed(formData.unit === 'G' ? 0 : 1);
     setFormData(prev => ({
       ...prev,
       amount: newAmount
@@ -273,9 +306,16 @@ export default function FeedForm({
 
   const decrementAmount = () => {
     const currentAmount = parseFloat(formData.amount || '0');
-    const step = formData.unit === 'ML' ? 5 : 0.5;
+    // Different step sizes for different units
+    let step = 0.5; // Default for OZ and TBSP
+    if (formData.unit === 'ML') {
+      step = 5;
+    } else if (formData.unit === 'G') {
+      step = 1; // 1 gram increments for grams
+    }
+    
     if (currentAmount >= step) {
-      const newAmount = (currentAmount - step).toFixed(1); // Only show one decimal place
+      const newAmount = (currentAmount - step).toFixed(formData.unit === 'G' ? 0 : 1);
       setFormData(prev => ({
         ...prev,
         amount: newAmount
@@ -392,6 +432,7 @@ export default function FeedForm({
     
     console.log('Original time (local):', formData.time);
     console.log('Converted time (UTC):', utcTimeString);
+    console.log('Unit being sent:', formData.unit); // Debug log for unit
     
     const payload = {
       babyId,
@@ -405,10 +446,12 @@ export default function FeedForm({
       }),
       ...((formData.type === 'BOTTLE' || formData.type === 'SOLIDS') && formData.amount && { 
         amount: parseFloat(formData.amount),
-        unitAbbr: formData.unit
+        unitAbbr: formData.unit // This should correctly send 'TBSP' or 'G'
       }),
-      ...(formData.type === 'SOLIDS' && formData.food && { food: formData.food })
+      ...(formData.type === 'SOLIDS' && formData.food && { food: formData.food }),
     };
+
+    console.log('Payload being sent:', payload); // Debug log for payload
 
     // Get auth token from localStorage
     const authToken = localStorage.getItem('authToken');

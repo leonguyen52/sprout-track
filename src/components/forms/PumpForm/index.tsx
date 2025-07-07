@@ -43,9 +43,30 @@ export default function PumpForm({
   onSuccess,
 }: PumpFormProps) {
   const { formatDate, toUTCString } = useTimezone();
+  const { theme } = useTheme();
   const [selectedStartDateTime, setSelectedStartDateTime] = useState<Date>(() => {
     try {
-      // Try to parse the initialTime
+      // Initialize with current time - 15 minutes as default (start time is in the past)
+      const date = new Date(initialTime);
+      date.setMinutes(date.getMinutes() - 15);
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - 15);
+        return now; // Fallback to current date - 15 min if invalid
+      }
+      return date;
+    } catch (error) {
+      console.error('Error parsing initialTime:', error);
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - 15);
+      return now; // Fallback to current date - 15 min
+    }
+  });
+  
+  const [selectedEndDateTime, setSelectedEndDateTime] = useState<Date>(() => {
+    try {
+      // Initialize with current time as default (end time is now)
       const date = new Date(initialTime);
       // Check if the date is valid
       if (isNaN(date.getTime())) {
@@ -53,32 +74,11 @@ export default function PumpForm({
       }
       return date;
     } catch (error) {
-      console.error('Error parsing initialTime:', error);
+      console.error('Error setting initial end time:', error);
       return new Date(); // Fallback to current date
     }
   });
   
-  const [selectedEndDateTime, setSelectedEndDateTime] = useState<Date>(() => {
-    try {
-      // Initialize with current time + 15 minutes as default
-      const date = new Date(initialTime);
-      date.setMinutes(date.getMinutes() + 15);
-      // Check if the date is valid
-      if (isNaN(date.getTime())) {
-        const now = new Date();
-        now.setMinutes(now.getMinutes() + 15);
-        return now; // Fallback to current date + 15 min if invalid
-      }
-      return date;
-    } catch (error) {
-      console.error('Error setting initial end time:', error);
-      const now = new Date();
-      now.setMinutes(now.getMinutes() + 15);
-      return now; // Fallback to current date + 15 min
-    }
-  });
-  
-  const { theme } = useTheme();
   const [formData, setFormData] = useState({
     startTime: initialTime,
     endTime: '',
@@ -185,6 +185,48 @@ export default function PumpForm({
       setIsInitialized(false);
     }
   }, [isOpen, initialTime, activity, isInitialized]);
+
+  // Separate effect to handle initialTime changes for new entries
+  useEffect(() => {
+    if (isOpen && !activity && isInitialized) {
+      // Update the selected date times when initialTime changes for new entries
+      try {
+        const date = new Date(initialTime);
+        if (!isNaN(date.getTime())) {
+          // Set start time to 15 minutes in the past
+          const startDate = new Date(date);
+          startDate.setMinutes(startDate.getMinutes() - 15);
+          setSelectedStartDateTime(startDate);
+          
+          // Set end time to current time
+          setSelectedEndDateTime(date);
+          
+          // Also update the times in formData
+          const startYear = startDate.getFullYear();
+          const startMonth = String(startDate.getMonth() + 1).padStart(2, '0');
+          const startDay = String(startDate.getDate()).padStart(2, '0');
+          const startHours = String(startDate.getHours()).padStart(2, '0');
+          const startMinutes = String(startDate.getMinutes()).padStart(2, '0');
+          const formattedStartTime = `${startYear}-${startMonth}-${startDay}T${startHours}:${startMinutes}`;
+          
+          const endYear = date.getFullYear();
+          const endMonth = String(date.getMonth() + 1).padStart(2, '0');
+          const endDay = String(date.getDate()).padStart(2, '0');
+          const endHours = String(date.getHours()).padStart(2, '0');
+          const endMinutes = String(date.getMinutes()).padStart(2, '0');
+          const formattedEndTime = `${endYear}-${endMonth}-${endDay}T${endHours}:${endMinutes}`;
+          
+          setFormData(prev => ({ 
+            ...prev, 
+            startTime: formattedStartTime,
+            endTime: formattedEndTime
+          }));
+        }
+      } catch (error) {
+        console.error('Error parsing initialTime:', error);
+      }
+    }
+  }, [initialTime, isOpen, activity, isInitialized]);
 
   // Handle amount increment/decrement
   const incrementAmount = (field: 'leftAmount' | 'rightAmount') => {

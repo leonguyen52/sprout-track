@@ -16,6 +16,7 @@ import './theme-toggle.css';
  */
 export const ThemeToggle: React.FC<ThemeToggleProps> = ({ 
   className,
+  variant = "default",
   ...props
 }) => {
   const { theme, toggleTheme, useSystemTheme, toggleUseSystemTheme } = useTheme();
@@ -52,8 +53,9 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 
   // Get the appropriate icon and label for the current theme
   const getCurrentThemeIcon = () => {
-    if (useSystemTheme) return <Monitor size={16} />;
-    return theme === 'light' ? <Sun size={16} /> : <Moon size={16} />;
+    const iconSize = variant === 'light' ? 14 : 16;
+    if (useSystemTheme) return <Monitor size={iconSize} />;
+    return theme === 'light' ? <Sun size={iconSize} /> : <Moon size={iconSize} />;
   };
 
   const getCurrentThemeLabel = () => {
@@ -61,6 +63,33 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     return theme === 'light' ? 'Light' : 'Dark';
   };
 
+  // Render light variant
+  if (variant === 'light') {
+    return (
+      <button
+        onClick={cycleTheme}
+        className={cn(
+          themeToggleStyles.buttonLight,
+          "theme-toggle-button-light",
+          className
+        )}
+        aria-label={`Switch to ${getNextTheme()} mode`}
+        title={`Switch to ${getNextTheme()} mode`}
+        {...props}
+      >
+        <span className="theme-icon-container-light">
+          <span className="theme-icon-light">
+            {getCurrentThemeIcon()}
+          </span>
+        </span>
+        <span className="theme-info-light">
+          <span className="current-theme-light">{getCurrentThemeLabel()}</span>
+        </span>
+      </button>
+    );
+  }
+
+  // Render default variant
   return (
     <div className="theme-toggle-container">
       <div className="theme-toggle-row">

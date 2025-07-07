@@ -11,7 +11,17 @@ export interface SetupWizardProps {
   /**
    * Function to call when setup is complete
    */
-  onComplete: () => void;
+  onComplete: (family: { id: string; name: string; slug: string }) => void;
+
+  /**
+   * Optional token for invitation-based setup
+   */
+  token?: string;
+
+  /**
+   * Whether this is initial setup of a blank database
+   */
+  initialSetup?: boolean;
 }
 
 /**
@@ -27,6 +37,26 @@ export interface FamilySetupStageProps {
    * Function to update family name
    */
   setFamilyName: (value: string) => void;
+
+  /**
+   * Family slug value
+   */
+  familySlug: string;
+  
+  /**
+   * Function to update family slug
+   */
+  setFamilySlug: (value: string) => void;
+
+  /**
+   * Optional token for invitation-based setup
+   */
+  token?: string;
+
+  /**
+   * Whether this is initial setup of a blank database
+   */
+  initialSetup?: boolean;
 }
 
 /**

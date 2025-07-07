@@ -1,7 +1,6 @@
 import { Settings } from '@prisma/client';
 import { CardHeader } from '@/src/components/ui/card';
-import { Button } from '@/src/components/ui/button';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import SleepForm from '@/src/components/forms/SleepForm';
 import FeedForm from '@/src/components/forms/FeedForm';
 import DiaperForm from '@/src/components/forms/DiaperForm';
@@ -24,97 +23,94 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
   const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>(null);
   const [editModalType, setEditModalType] = useState<'sleep' | 'feed' | 'diaper' | 'medicine' | 'note' | 'bath' | 'pump' | 'milestone' | 'measurement' | null>(null);
-  // Pagination removed as it breaks up view by day
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
-  // Keep track of the last fetched date to prevent duplicate fetches
-  const [lastFetchedDate, setLastFetchedDate] = useState<string>('');
-  
-  // State to store the activities fetched for the selected date
   const [dateFilteredActivities, setDateFilteredActivities] = useState<ActivityType[]>([]);
   
-  // Loading state for fetching activities
   const [isLoadingActivities, setIsLoadingActivities] = useState<boolean>(false);
-  
-  // Function to fetch activities for a specific date
-  const fetchActivitiesForDate = async (babyId: string, date: Date) => {
+  const [isFetchAnimated, setIsFetchAnimated] = useState<boolean>(true);
+  const lastRefreshTimestamp = useRef<number>(Date.now());
+  const wasIdle = useRef<boolean>(false);
+
+  const babyId = useMemo(() => (activities.length > 0 ? activities[0].babyId : undefined), [activities]);
+
+  const fetchActivitiesForDate = async (babyId: string, date: Date, isAnimated: boolean) => {
+    setIsFetchAnimated(isAnimated);
+    if (isAnimated) {
+      setIsLoadingActivities(true);
+    }
+
     try {
-      // Format date for API request - ensure it's in ISO format
       const formattedDate = date.toISOString();
-      
-      console.log(`Fetching activities for date: ${formattedDate}`);
-      
-      // Add a timestamp to prevent caching
       const timestamp = new Date().getTime();
+      const urlPath = window.location.pathname;
+      const familySlugMatch = urlPath.match(/^\/([^\/]+)\//);
+      const familySlug = familySlugMatch ? familySlugMatch[1] : null;
       
-      // Make the API call with the date parameter
-      const url = `/api/timeline?babyId=${babyId}&date=${encodeURIComponent(formattedDate)}&_t=${timestamp}`;
-      console.log(`API URL: ${url}`);
+      let url = `/api/timeline?babyId=${babyId}&date=${encodeURIComponent(formattedDate)}&_t=${timestamp}`;
       
+      const authToken = localStorage.getItem('authToken');
       const response = await fetch(url, {
         cache: 'no-store',
         headers: {
           'Pragma': 'no-cache',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Expires': '0'
+          'Expires': '0',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
         }
       });
       
       if (response.ok) {
-        console.log('Successfully fetched activities for date');
         const data = await response.json();
         if (data.success) {
           setDateFilteredActivities(data.data);
-          console.log(`Received ${data.data.length} activities for date ${formattedDate}`);
-          return data.data;
+          lastRefreshTimestamp.current = Date.now();
         } else {
           setDateFilteredActivities([]);
-          console.log(`No activities found for date ${formattedDate}`);
-          return [];
         }
       } else {
         console.error('Failed to fetch activities:', await response.text());
         setDateFilteredActivities([]);
-        return [];
       }
     } catch (error) {
       console.error('Error fetching activities for date:', error);
       setDateFilteredActivities([]);
-      return [];
+    } finally {
+      if (isAnimated) {
+        setIsLoadingActivities(false);
+      }
     }
   };
-  
-  // Handle date selection and fetch data for the selected date
+
+  const handleFormSuccess = () => {
+    setEditModalType(null);
+    setSelectedActivity(null);
+
+    if (babyId) {
+      fetchActivitiesForDate(babyId, selectedDate, true);
+    }
+
+    if (onActivityDeleted) {
+      onActivityDeleted();
+    }
+  };
+
   const handleDateSelection = (newDate: Date) => {
     setSelectedDate(newDate);
-    // Pagination removed as it breaks up view by day
-    
-    // Get the baby ID from the first activity if available
-    const babyId = activities.length > 0 ? activities[0].babyId : null;
-    
     if (babyId) {
-      // Fetch data for the selected date
-      fetchActivitiesForDate(babyId, newDate);
-      setLastFetchedDate(newDate.toDateString());
-      
-      // Notify parent that date has changed
+      fetchActivitiesForDate(babyId, newDate, true);
       if (onActivityDeleted) {
         onActivityDeleted(newDate);
       }
     }
   };
-  
-  // Function to handle date navigation
+
   const handleDateChange = (days: number) => {
-    // Calculate the new date
     const newDate = new Date(selectedDate);
     newDate.setDate(newDate.getDate() + days);
-    
-    // Update the selected date
     handleDateSelection(newDate);
   };
   
-  // Fetch settings on component mount
   useEffect(() => {
     const fetchSettings = async () => {
       const response = await fetch('/api/settings');
@@ -128,36 +124,54 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
     fetchSettings();
   }, []);
   
-  // Initialize with the current date and fetch data when needed
   useEffect(() => {
-    // Get the baby ID from the first activity if available
-    const babyId = activities.length > 0 ? activities[0].babyId : null;
-    
-    if (babyId && lastFetchedDate !== selectedDate.toDateString()) {
-      // Fetch data for the selected date if we haven't already
-      setIsLoadingActivities(true);
-      fetchActivitiesForDate(babyId, selectedDate)
-        .finally(() => setIsLoadingActivities(false));
-      setLastFetchedDate(selectedDate.toDateString());
+    if (babyId) {
+      fetchActivitiesForDate(babyId, selectedDate, true);
+    } else {
+      setDateFilteredActivities(activities);
     }
-  }, [activities.length, selectedDate, lastFetchedDate]); // Run when these dependencies change
-  
-  // This effect will run when the activities prop changes (e.g., when a new activity is added)
+  }, [activities, selectedDate, babyId]);
+
   useEffect(() => {
-    // Only refresh if we have a selected date and activities
-    if (selectedDate && activities.length > 0) {
-      const babyId = activities[0].babyId;
-      if (babyId) {
-        // Refresh data for the currently selected date
-        setIsLoadingActivities(true);
-        fetchActivitiesForDate(babyId, selectedDate)
-          .finally(() => setIsLoadingActivities(false));
+    if (!babyId) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // User came back to the tab, refresh immediately
+        fetchActivitiesForDate(babyId, selectedDate, false);
       }
-    }
-  }, [activities]); // Run when activities prop changes
+    };
+
+    const poll = setInterval(() => {
+      const idleThreshold = 5 * 60 * 1000; // 5 minutes
+      const activeRefreshRate = 30 * 1000; // 30 seconds
+
+      const idleTime = Date.now() - parseInt(localStorage.getItem('unlockTime') || `${Date.now()}`);
+      const isCurrentlyIdle = idleTime >= idleThreshold;
+      const timeSinceLastRefresh = Date.now() - lastRefreshTimestamp.current;
+
+      // Case 1: User just came back from an idle state (was idle, now is not)
+      if (wasIdle.current && !isCurrentlyIdle) {
+        fetchActivitiesForDate(babyId, selectedDate, false);
+      }
+      // Case 2: User is active and the regular refresh interval has passed
+      else if (!isCurrentlyIdle && timeSinceLastRefresh > activeRefreshRate) {
+        fetchActivitiesForDate(babyId, selectedDate, false);
+      }
+
+      // Update the idle state for the next check
+      wasIdle.current = isCurrentlyIdle;
+    }, 10000); // Check status every 10 seconds
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [babyId, selectedDate]);
 
   const sortedActivities = useMemo(() => {
-    // Only use dateFilteredActivities, never fall back to activities from props
     const filtered = !activeFilter || activeFilter === null
       ? dateFilteredActivities
       : dateFilteredActivities.filter(activity => {
@@ -193,8 +207,6 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
 
     return sorted;
   }, [dateFilteredActivities, activeFilter]);
-
-  // Pagination removed as it breaks up view by day
 
   const handleDelete = async (activity: ActivityType) => {
     if (!confirm('Are you sure you want to delete this activity?')) return;
@@ -244,9 +256,10 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
         activities={sortedActivities}
         settings={settings}
         isLoading={isLoadingActivities}
-        onActivitySelect={setSelectedActivity}
-        onSwipeLeft={Object.assign(() => handleDateChange(1), { activeFilter })} // Next day (swipe left) with activeFilter
-        onSwipeRight={() => handleDateChange(-1)} // Previous day (swipe right)
+        isAnimated={isFetchAnimated}
+        onActivitySelect={(activity) => setSelectedActivity(activity)}
+        onSwipeLeft={() => handleDateChange(1)}
+        onSwipeRight={() => handleDateChange(-1)}
       />
 
       {/* Activity Details */}
@@ -259,85 +272,50 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
         onEdit={handleEdit}
       />
 
-      {/* Edit Forms */}
-      {selectedActivity && (
+          {/* Edit Forms */}
+      {selectedActivity && editModalType && (
         <>
           <SleepForm
             isOpen={editModalType === 'sleep'}
-            onClose={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-            }}
+            onClose={() => setEditModalType(null)}
+            babyId={selectedActivity.babyId}
+            initialTime={getActivityTime(selectedActivity)}
+            activity={'duration' in selectedActivity && 'type' in selectedActivity ? selectedActivity : undefined}
+            onSuccess={handleFormSuccess}
             isSleeping={false}
             onSleepToggle={() => {}}
-            babyId={selectedActivity.babyId}
-            initialTime={'startTime' in selectedActivity && selectedActivity.startTime ? String(selectedActivity.startTime) : getActivityTime(selectedActivity)}
-            activity={'duration' in selectedActivity && 'type' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
           />
           <FeedForm
             isOpen={editModalType === 'feed'}
-            onClose={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-            }}
+            onClose={() => setEditModalType(null)}
             babyId={selectedActivity.babyId}
-            initialTime={'time' in selectedActivity && selectedActivity.time ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
-            activity={'amount' in selectedActivity && 'type' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
+            initialTime={getActivityTime(selectedActivity)}
+            activity={'amount' in selectedActivity ? selectedActivity : undefined}
+            onSuccess={handleFormSuccess}
           />
           <DiaperForm
             isOpen={editModalType === 'diaper'}
-            onClose={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-            }}
+            onClose={() => setEditModalType(null)}
             babyId={selectedActivity.babyId}
-            initialTime={'time' in selectedActivity && selectedActivity.time ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
-            activity={'condition' in selectedActivity && 'type' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
+            initialTime={getActivityTime(selectedActivity)}
+            activity={'condition' in selectedActivity ? selectedActivity : undefined}
+            onSuccess={handleFormSuccess}
           />
           <NoteForm
             isOpen={editModalType === 'note'}
-            onClose={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-            }}
+            onClose={() => setEditModalType(null)}
             babyId={selectedActivity.babyId}
-            initialTime={'time' in selectedActivity && selectedActivity.time ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
-            activity={'content' in selectedActivity && 'time' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
+            initialTime={getActivityTime(selectedActivity)}
+            activity={'content' in selectedActivity ? selectedActivity : undefined}
+            onSuccess={handleFormSuccess}
           />
           <BathForm
             isOpen={editModalType === 'bath'}
-            onClose={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-            }}
+            onClose={() => setEditModalType(null)}
             babyId={selectedActivity.babyId}
-            initialTime={'time' in selectedActivity && selectedActivity.time ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
+            initialTime={getActivityTime(selectedActivity)}
             activity={'soapUsed' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
+            onSuccess={handleFormSuccess}
           />
           <PumpForm
             isOpen={editModalType === 'pump'}
@@ -352,11 +330,7 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
                 (selectedActivity as unknown as PumpLogResponse) : 
                 undefined
             }
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
+            onSuccess={handleFormSuccess}
           />
           <MilestoneForm
             isOpen={editModalType === 'milestone'}
@@ -367,11 +341,7 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
             babyId={selectedActivity.babyId}
             initialTime={'date' in selectedActivity && selectedActivity.date ? String(selectedActivity.date) : getActivityTime(selectedActivity)}
             activity={'title' in selectedActivity && 'category' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
-              setEditModalType(null);
-              setSelectedActivity(null);
-              onActivityDeleted?.();
-            }}
+            onSuccess={handleFormSuccess}
           />
           <MeasurementForm
             isOpen={editModalType === 'measurement'}
@@ -382,29 +352,19 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
             babyId={selectedActivity.babyId}
             initialTime={'date' in selectedActivity && selectedActivity.date ? String(selectedActivity.date) : getActivityTime(selectedActivity)}
             activity={'value' in selectedActivity && 'unit' in selectedActivity ? selectedActivity : undefined}
-            onSuccess={() => {
+            onSuccess={handleFormSuccess}
+          />
+          <MedicineForm
+            isOpen={editModalType === 'medicine'}
+            onClose={() => {
               setEditModalType(null);
               setSelectedActivity(null);
-              onActivityDeleted?.();
             }}
+            babyId={selectedActivity.babyId}
+            initialTime={'doseAmount' in selectedActivity && 'time' in selectedActivity ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
+            activity={'doseAmount' in selectedActivity && 'medicineId' in selectedActivity ? selectedActivity : undefined}
+            onSuccess={handleFormSuccess}
           />
-          {editModalType === 'medicine' && (
-            <MedicineForm
-              isOpen={true}
-              onClose={() => {
-                setEditModalType(null);
-                setSelectedActivity(null);
-              }}
-              babyId={selectedActivity.babyId}
-              initialTime={'time' in selectedActivity && selectedActivity.time ? String(selectedActivity.time) : getActivityTime(selectedActivity)}
-              onSuccess={() => {
-                setEditModalType(null);
-                setSelectedActivity(null);
-                onActivityDeleted?.();
-              }}
-              activity={'doseAmount' in selectedActivity && 'medicineId' in selectedActivity ? selectedActivity : undefined}
-            />
-          )}
         </>
       )}
     </div>

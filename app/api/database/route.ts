@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import prisma from '../db';
-import { withAdminAuth, ApiResponse } from '../utils/auth';
+import { withSysAdminAuth, ApiResponse } from '../utils/auth';
 
 // Helper to ensure database is closed before operations
 async function disconnectPrisma() {
@@ -96,6 +96,6 @@ async function postHandler(req: NextRequest): Promise<NextResponse<ApiResponse<a
 }
 
 // Export the wrapped handlers with authentication
-// Database operations should be accessible to all authenticated users
-export const GET = withAdminAuth(getHandler);
-export const POST = withAdminAuth(postHandler);
+// Database operations should only be accessible to system administrators
+export const GET = withSysAdminAuth(getHandler);
+export const POST = withSysAdminAuth(postHandler);

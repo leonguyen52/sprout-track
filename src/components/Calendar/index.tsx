@@ -101,8 +101,6 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
    * Fetch events for the selected month
    */
   const fetchEvents = async () => {
-    if (!selectedBabyId) return;
-
     try {
       // Create start date (first day of month) and end date (last day of month)
       const year = currentDate.getFullYear();
@@ -115,11 +113,10 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
       endDate.setHours(23, 59, 59, 999);
       
       console.log(`Fetching events for date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
-      console.log(`Baby ID: ${selectedBabyId}, Timezone: ${userTimezone}`);
       
       // Fetch calendar events
       const eventsResponse = await fetch(
-        `/api/calendar-event?babyId=${selectedBabyId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&timezone=${encodeURIComponent(userTimezone)}`
+        `/api/calendar-event?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
       );
       const eventsData = await eventsResponse.json();
       
@@ -166,7 +163,7 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
    */
   useEffect(() => {
     fetchEvents();
-  }, [selectedBabyId, currentDate, userTimezone]);
+  }, [currentDate, userTimezone]);
 
   // Removed fetchEventsForSelectedDay and its useEffect hook
 

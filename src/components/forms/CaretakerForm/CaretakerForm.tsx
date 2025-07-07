@@ -78,7 +78,8 @@ export default function CaretakerForm({
     if (!isEditing && isOpen) {
       const checkFirstCaretaker = async () => {
         try {
-          const response = await fetch('/api/caretaker');
+          // The backend will automatically scope this to the user's family
+          const response = await fetch(`/api/caretaker`);
           if (response.ok) {
             const data = await response.json();
             const isFirst = !data.data || data.data.length === 0;
@@ -125,7 +126,12 @@ export default function CaretakerForm({
     }
 
     if (formData.loginId.length !== 2) {
-      setError('Login ID must be exactly 2 characters');
+      setError('Login ID must be exactly 2 digits');
+      return;
+    }
+
+    if (!/^\d{2}$/.test(formData.loginId)) {
+      setError('Login ID must contain only digits');
       return;
     }
 
@@ -155,7 +161,7 @@ export default function CaretakerForm({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save caretaker');
+        throw new Error(errorData.error || 'Failed to save caretaker');
       }
 
       if (onCaretakerChange) {
@@ -188,18 +194,22 @@ export default function CaretakerForm({
             <Input
               value={formData.loginId}
               onChange={(e) => {
-                const value = e.target.value;
-                // Allow any input up to 2 characters
-                setFormData({ ...formData, loginId: value });
+                const value = e.target.value.replace(/\D/g, '');
+                // Only allow digits up to 2 characters
+                if (value.length <= 2) {
+                  setFormData({ ...formData, loginId: value });
+                }
               }}
               className="w-full"
-              placeholder="Enter 2-digit login ID"
+              placeholder="Enter 2-digit ID"
               maxLength={2}
               required
               autoComplete="off"
+              inputMode="numeric"
+              pattern="\d*"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Login ID must be exactly 2 digits or characters (currently: {formData.loginId.length}/2)
+              Login ID must be exactly 2 digits (currently: {formData.loginId.length}/2)
             </p>
           </div>
           <div>

@@ -34,6 +34,7 @@ A modular form component for creating and editing feeding records for a baby. Th
 - Timer functionality for tracking breastfeeding duration
 - Form validation for required fields
 - Responsive design
+- Multi-family support with family ID association
 
 ## Props
 
@@ -45,15 +46,18 @@ A modular form component for creating and editing feeding records for a baby. Th
 | `initialTime` | string | Yes | Initial time value for the form (ISO format) |
 | `activity` | FeedLogResponse | No | Existing feeding record data (for edit mode) |
 | `onSuccess` | () => void | No | Optional callback function called after successful submission |
+| `familyId` | string | No | The ID of the family this feeding record belongs to (for multi-family support) |
 
 ## Usage
 
 ```tsx
 import FeedForm from '@/src/components/forms/FeedForm';
+import { useFamily } from '@/src/context/family'; // Import family context
 
 function MyComponent() {
   const [showFeedForm, setShowFeedForm] = useState(false);
   const [selectedBaby, setSelectedBaby] = useState<{ id: string }>();
+  const { family } = useFamily(); // Get current family from context
   
   return (
     <>
@@ -66,6 +70,7 @@ function MyComponent() {
         onClose={() => setShowFeedForm(false)}
         babyId={selectedBaby?.id}
         initialTime={new Date().toISOString()}
+        familyId={family?.id} // Pass the current family ID
         onSuccess={() => {
           // Refresh data or perform other actions after successful submission
         }}
@@ -114,3 +119,16 @@ The component dynamically shows different fields based on the selected feeding t
 - Supports manual editing of duration times for flexibility
 - Validates time inputs to ensure they are within valid ranges
 - Resets form after successful submission
+- Supports multi-family functionality by accepting a familyId prop and including it in API requests
+
+### Multi-Family Support
+
+The component supports multi-family functionality by:
+- Accepting a `familyId` prop to associate the feeding record with a specific family
+- Including the family ID in the API request payload
+- The API endpoint also extracts the family ID from request headers as a fallback
+
+When using this component in a multi-family context, you should:
+1. Import and use the family context to get the current family ID
+2. Pass the family ID to the FeedForm component
+3. The component will handle sending this ID to the API

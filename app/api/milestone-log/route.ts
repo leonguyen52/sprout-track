@@ -6,15 +6,30 @@ import { toUTC, formatForResponse } from '../utils/timezone';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: MilestoneCreate = await req.json();
-    
+
+    const baby = await prisma.baby.findFirst({
+      where: { id: body.babyId, familyId: userFamilyId },
+    });
+
+    if (!baby) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
+    }
+
     // Convert date to UTC for storage
     const dateUTC = toUTC(body.date);
+    
     const milestone = await prisma.milestone.create({
       data: {
         ...body,
         date: dateUTC,
-        caretakerId: authContext.caretakerId,
+        caretakerId: caretakerId,
+        familyId: userFamilyId,
       },
     });
 
@@ -45,6 +60,11 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const body: Partial<MilestoneCreate> = await req.json();
@@ -59,15 +79,18 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingMilestone = await prisma.milestone.findUnique({
-      where: { id },
+    const existingMilestone = await prisma.milestone.findFirst({
+      where: { 
+        id,
+        familyId: userFamilyId 
+      },
     });
 
     if (!existingMilestone) {
       return NextResponse.json<ApiResponse<MilestoneResponse>>(
         {
           success: false,
-          error: 'Milestone not found',
+          error: 'Milestone not found or access denied',
         },
         { status: 404 }
       );
@@ -79,7 +102,9 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       : body;
 
     const milestone = await prisma.milestone.update({
-      where: { id },
+      where: { 
+        id
+      },
       data,
     });
 
@@ -110,14 +135,20 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const babyId = searchParams.get('babyId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const category = searchParams.get('category');
-
+    
     const queryParams: any = {
+      familyId: userFamilyId,
       ...(babyId && { babyId }),
       ...(category && { category }),
       ...(startDate && endDate && {
@@ -129,15 +160,18 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     };
 
     if (id) {
-      const milestone = await prisma.milestone.findUnique({
-        where: { id },
+      const milestone = await prisma.milestone.findFirst({
+        where: { 
+          id,
+          familyId: userFamilyId
+        },
       });
 
       if (!milestone) {
         return NextResponse.json<ApiResponse<MilestoneResponse>>(
           {
             success: false,
-            error: 'Milestone not found',
+            error: 'Milestone not found or access denied',
           },
           { status: 404 }
         );
@@ -215,6 +249,11 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -228,15 +267,18 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    const existingMilestone = await prisma.milestone.findUnique({
-      where: { id },
+    const existingMilestone = await prisma.milestone.findFirst({
+      where: { 
+        id,
+        familyId: userFamilyId
+      },
     });
 
     if (!existingMilestone) {
       return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
-          error: 'Milestone not found',
+          error: 'Milestone not found or access denied',
         },
         { status: 404 }
       );

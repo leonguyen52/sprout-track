@@ -95,6 +95,51 @@ enum RecurrencePattern {
   CUSTOM
 }
 
+// New model for multi-family support
+model Family {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true)
+  
+  // Relations
+  babies           Baby[]
+  caretakers       Caretaker[]
+  settings         Settings[]
+  sleepLogs        SleepLog[]
+  feedLogs         FeedLog[]
+  diaperLogs       DiaperLog[]
+  moodLogs         MoodLog[]
+  notes            Note[]
+  milestones       Milestone[]
+  pumpLogs         PumpLog[]
+  playLogs         PlayLog[]
+  bathLogs         BathLog[]
+  measurements     Measurement[]
+  medicines        Medicine[]
+  medicineLogs     MedicineLog[]
+  contacts         Contact[]
+  calendarEvents   CalendarEvent[]
+  familyMembers    FamilyMember[]
+  familySetups     FamilySetup[]
+}
+
+// New model for family membership
+model FamilyMember {
+  family       Family    @relation(fields: [familyId], references: [id])
+  familyId     String
+  caretaker    Caretaker @relation(fields: [caretakerId], references: [id])
+  caretakerId  String
+  role         String    // e.g., "admin", "member"
+  joinedAt     DateTime  @default(now())
+  
+  @@id([familyId, caretakerId])
+  @@index([familyId])
+  @@index([caretakerId])
+}
+
 model Baby {
   id               String        @id @default(uuid())
   firstName        String
@@ -107,6 +152,10 @@ model Baby {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   deletedAt        DateTime?
+  
+  // Add family relation
+  family           Family?       @relation(fields: [familyId], references: [id])
+  familyId         String?       // Nullable initially for migration
   
   // Relationships
   sleepLogs        SleepLog[]
@@ -124,6 +173,7 @@ model Baby {
   
   @@index([birthDate])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 model Caretaker {
@@ -138,6 +188,10 @@ model Caretaker {
   updatedAt    DateTime  @updatedAt
   deletedAt    DateTime?
   
+  // Add family relation
+  family       Family?   @relation(fields: [familyId], references: [id])
+  familyId     String?   // Nullable initially for migration
+  
   // Relationships
   sleepLogs    SleepLog[]
   feedLogs     FeedLog[]
@@ -151,8 +205,11 @@ model Caretaker {
   measurements Measurement[]
   medicineLogs MedicineLog[] // Relation to MedicineLog model
   events       CaretakerEvent[] // New relationship for calendar events
+  familyMembers FamilyMember[]
+  familySetups  FamilySetup[]
   
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 model SleepLog {
@@ -167,6 +224,10 @@ model SleepLog {
   updatedAt   DateTime     @updatedAt
   deletedAt   DateTime?
   
+  // Add family relation
+  family      Family?      @relation(fields: [familyId], references: [id])
+  familyId    String?      // Nullable initially for migration
+  
   // Relationships
   baby        Baby         @relation(fields: [babyId], references: [id], onDelete: Cascade)
   babyId      String
@@ -178,6 +239,7 @@ model SleepLog {
   @@index([babyId])
   @@index([caretakerId])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 model Unit {
@@ -185,12 +247,16 @@ model Unit {
   unitAbbr    String        @unique
   unitName    String
   activityTypes String?     // Comma-separated list of activity types: height, weight, temp, medicine
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+
+
+  // Relationships
   feedLogs    FeedLog[]
   pumpLogs    PumpLog[]
   medicines   Medicine[]    // Relation to Medicine model
   medicineLogs MedicineLog[] // Relation to MedicineLog model
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
   
   @@index([unitAbbr])
 }
@@ -211,6 +277,10 @@ model FeedLog {
   updatedAt    DateTime    @updatedAt
   deletedAt    DateTime?
   
+  // Add family relation
+  family       Family?     @relation(fields: [familyId], references: [id])
+  familyId     String?     // Nullable initially for migration
+  
   // Relationships
   baby         Baby        @relation(fields: [babyId], references: [id], onDelete: Cascade)
   babyId       String
@@ -224,6 +294,7 @@ model FeedLog {
   @@index([caretakerId])
   @@index([unitAbbr])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 model DiaperLog {
@@ -236,6 +307,10 @@ model DiaperLog {
   updatedAt   DateTime   @updatedAt
   deletedAt   DateTime?
   
+  // Add family relation
+  family      Family?    @relation(fields: [familyId], references: [id])
+  familyId    String?    // Nullable initially for migration
+  
   // Relationships
   baby        Baby       @relation(fields: [babyId], references: [id], onDelete: Cascade)
   babyId      String
@@ -246,6 +321,7 @@ model DiaperLog {
   @@index([babyId])
   @@index([caretakerId])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 model MoodLog {
@@ -258,6 +334,10 @@ model MoodLog {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
   
+  // Add family relation
+  family      Family?   @relation(fields: [familyId], references: [id])
+  familyId    String?   // Nullable initially for migration
+  
   // Relationships
   baby        Baby      @relation(fields: [babyId], references: [id], onDelete: Cascade)
   babyId      String
@@ -268,6 +348,7 @@ model MoodLog {
   @@index([babyId])
   @@index([caretakerId])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 model Note {
@@ -279,6 +360,10 @@ model Note {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
   
+  // Add family relation
+  family      Family?   @relation(fields: [familyId], references: [id])
+  familyId    String?   // Nullable initially for migration
+  
   // Relationships
   baby        Baby      @relation(fields: [babyId], references: [id], onDelete: Cascade)
   babyId      String
@@ -289,6 +374,7 @@ model Note {
   @@index([babyId])
   @@index([caretakerId])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 model Settings {
@@ -305,6 +391,12 @@ model Settings {
   enableDebugTimezone Boolean @default(false)  // Enable debug timezone tool
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  
+  // Add family relation
+  family            Family?  @relation(fields: [familyId], references: [id])
+  familyId          String?  // Nullable initially for migration
+  
+  @@index([familyId])
 }
 
 // New models for additional activity logs
@@ -321,6 +413,10 @@ model Milestone {
   updatedAt   DateTime         @updatedAt
   deletedAt   DateTime?
   
+  // Add family relation
+  family      Family?          @relation(fields: [familyId], references: [id])
+  familyId    String?          // Nullable initially for migration
+  
   // Relationships
   baby        Baby             @relation(fields: [babyId], references: [id], onDelete: Cascade)
   babyId      String
@@ -331,6 +427,7 @@ model Milestone {
   @@index([babyId])
   @@index([caretakerId])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 model PumpLog {
@@ -348,6 +445,10 @@ model PumpLog {
   updatedAt      DateTime       @updatedAt
   deletedAt      DateTime?
   
+  // Add family relation
+  family         Family?        @relation(fields: [familyId], references: [id])
+  familyId       String?        // Nullable initially for migration
+  
   // Relationships
   baby           Baby           @relation(fields: [babyId], references: [id], onDelete: Cascade)
   babyId         String
@@ -360,6 +461,7 @@ model PumpLog {
   @@index([caretakerId])
   @@index([unitAbbr])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 model PlayLog {
@@ -374,6 +476,10 @@ model PlayLog {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
   
+  // Add family relation
+  family      Family?   @relation(fields: [familyId], references: [id])
+  familyId    String?   // Nullable initially for migration
+  
   // Relationships
   baby        Baby      @relation(fields: [babyId], references: [id], onDelete: Cascade)
   babyId      String
@@ -385,6 +491,7 @@ model PlayLog {
   @@index([babyId])
   @@index([caretakerId])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 model BathLog {
@@ -397,6 +504,10 @@ model BathLog {
   updatedAt       DateTime         @updatedAt
   deletedAt       DateTime?
   
+  // Add family relation
+  family          Family?          @relation(fields: [familyId], references: [id])
+  familyId        String?          // Nullable initially for migration
+  
   // Relationships
   baby            Baby             @relation(fields: [babyId], references: [id], onDelete: Cascade)
   babyId          String
@@ -407,6 +518,7 @@ model BathLog {
   @@index([babyId])
   @@index([caretakerId])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 model Measurement {
@@ -420,6 +532,10 @@ model Measurement {
   updatedAt   DateTime         @updatedAt
   deletedAt   DateTime?
   
+  // Add family relation
+  family      Family?          @relation(fields: [familyId], references: [id])
+  familyId    String?          // Nullable initially for migration
+  
   // Relationships
   baby        Baby             @relation(fields: [babyId], references: [id], onDelete: Cascade)
   babyId      String
@@ -431,6 +547,7 @@ model Measurement {
   @@index([babyId])
   @@index([caretakerId])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 // New model for contacts (doctors, teachers, etc.)
@@ -446,12 +563,17 @@ model Contact {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
   
+  // Add family relation
+  family      Family?   @relation(fields: [familyId], references: [id])
+  familyId    String?   // Nullable initially for migration
+  
   // Relationships
   events      ContactEvent[] // Events associated with this contact
-  medicines   ContactMedicine[] // Medicines associated with this contact
+  medicines   ContactMedicine[] // Medicines associated with this medicine
   
   @@index([role])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 // New model for calendar events
@@ -480,6 +602,10 @@ model CalendarEvent {
   updatedAt         DateTime         @updatedAt
   deletedAt         DateTime?
   
+  // Add family relation
+  family            Family?          @relation(fields: [familyId], references: [id])
+  familyId          String?          // Nullable initially for migration
+  
   // Relationships - multiple babies and caretakers can be associated with an event
   babies            BabyEvent[]
   caretakers        CaretakerEvent[]
@@ -490,6 +616,7 @@ model CalendarEvent {
   @@index([type])
   @@index([recurring])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 // Junction table for many-to-many relationship between babies and events
@@ -541,6 +668,10 @@ model Medicine {
   updatedAt       DateTime         @updatedAt
   deletedAt       DateTime?
   
+  // Add family relation
+  family          Family?          @relation(fields: [familyId], references: [id])
+  familyId        String?          // Nullable initially for migration
+  
   // Relationships
   medicineLogs    MedicineLog[]    // Logs of medicine administration
   contacts        ContactMedicine[] // Contacts associated with this medicine
@@ -550,6 +681,7 @@ model Medicine {
   @@index([active])
   @@index([unitAbbr])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 // Medicine log table to track medicine administration
@@ -562,6 +694,10 @@ model MedicineLog {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   deletedAt       DateTime?
+  
+  // Add family relation
+  family          Family?          @relation(fields: [familyId], references: [id])
+  familyId        String?          // Nullable initially for migration
   
   // Relationships
   medicine        Medicine         @relation(fields: [medicineId], references: [id], onDelete: Cascade)
@@ -578,6 +714,7 @@ model MedicineLog {
   @@index([caretakerId])
   @@index([unitAbbr])
   @@index([deletedAt])
+  @@index([familyId])
 }
 
 // Junction table for many-to-many relationship between contacts and medicines
@@ -590,4 +727,30 @@ model ContactMedicine {
   @@id([contactId, medicineId])
   @@index([contactId])
   @@index([medicineId])
+}
+
+// New model for family setup invitations
+model FamilySetup {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  password  String   // Password for token-based authentication
+  expiresAt DateTime
+  createdBy String   // ID of the admin Caretaker who initiated the setup
+  familyId  String?  @unique // Linked to the Family record upon creation
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator   Caretaker @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  family    Family?   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@index([createdBy])
+}
+
+// Application configuration settings
+model AppConfig {
+  id          String   @id @default(cuid())
+  adminPass   String   // Sitewide admin password
+  rootDomain  String   // Root domain for the application
+  enableHttps Boolean  @default(false) // Whether HTTPS is enabled (0/1)
+  updatedAt   DateTime @updatedAt
 }

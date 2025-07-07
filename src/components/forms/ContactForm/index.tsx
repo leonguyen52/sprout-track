@@ -116,9 +116,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
   };
   
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async () => {
     if (!validateForm()) {
       return;
     }
@@ -259,7 +257,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
       description={contact ? 'Update contact details' : 'Add a new contact to your list'}
       className="contact-form-container"
     >
-      <form onSubmit={handleSubmit} className="h-full flex flex-col">
+      <div className="h-full flex flex-col">
         <FormPageContent className="overflow-y-auto">
           <div className="space-y-6">
             {/* Contact details section */}
@@ -410,7 +408,8 @@ const ContactForm: React.FC<ContactFormProps> = ({
               </Button>
               
               <Button 
-                type="submit" 
+                type="button"
+                onClick={handleSubmit}
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -425,7 +424,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
             </div>
           </div>
         </FormPageFooter>
-      </form>
+      </div>
     </FormPage>
   );
 };

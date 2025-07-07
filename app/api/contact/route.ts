@@ -30,6 +30,13 @@ interface ContactCreate {
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId } = authContext;
+    if (!familyId) {
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: 'User is not associated with a family.' },
+        { status: 403 }
+      );
+    }
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const role = searchParams.get('role');
@@ -37,6 +44,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     // Build where clause
     const where: any = {
       deletedAt: null,
+      familyId: familyId, // Filter by family ID from auth context
     };
 
     // Add filters
@@ -50,12 +58,16 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
     // If ID is provided, fetch a single contact
     if (id) {
-      const contact = await prisma.contact.findUnique({
-        where: { id },
+      const contact = await prisma.contact.findFirst({
+        where: {
+          id,
+          deletedAt: null,
+          familyId: familyId, // Filter by family ID from auth context
+        },
       });
 
-      if (!contact || contact.deletedAt) {
-        return NextResponse.json<ApiResponse<ContactResponse>>(
+      if (!contact) {
+        return NextResponse.json<ApiResponse<null>>(
           {
             success: false,
             error: 'Contact not found',
@@ -65,14 +77,14 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
       }
 
       // Format dates for response
-      const response: ContactResponse = {
+      const response: Omit<ContactResponse, 'familyId'> = {
         ...contact,
         createdAt: formatForResponse(contact.createdAt) || '',
         updatedAt: formatForResponse(contact.updatedAt) || '',
         deletedAt: formatForResponse(contact.deletedAt),
       };
 
-      return NextResponse.json<ApiResponse<ContactResponse>>({
+      return NextResponse.json<ApiResponse<Omit<ContactResponse, 'familyId'>>>({
         success: true,
         data: response,
       });
@@ -87,20 +99,20 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     });
 
     // Format dates for response
-    const response: ContactResponse[] = contacts.map(contact => ({
+    const response: Omit<ContactResponse, 'familyId'>[] = contacts.map(contact => ({
       ...contact,
       createdAt: formatForResponse(contact.createdAt) || '',
       updatedAt: formatForResponse(contact.updatedAt) || '',
       deletedAt: formatForResponse(contact.deletedAt),
     }));
 
-    return NextResponse.json<ApiResponse<ContactResponse[]>>({
+    return NextResponse.json<ApiResponse<Omit<ContactResponse, 'familyId'>[]>>({
       success: true,
       data: response,
     });
   } catch (error) {
     console.error('Error fetching contacts:', error);
-    return NextResponse.json<ApiResponse<ContactResponse[]>>(
+    return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
         error: 'Failed to fetch contacts',
@@ -112,11 +124,18 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId } = authContext;
+    if (!familyId) {
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: 'User is not associated with a family.' },
+        { status: 403 }
+      );
+    }
     const body: ContactCreate = await req.json();
-    
+
     // Validate required fields
     if (!body.name || !body.role) {
-      return NextResponse.json<ApiResponse<ContactResponse>>(
+      return NextResponse.json<ApiResponse<null>>(
         {
           success: false,
           error: 'Name and role are required',
@@ -124,7 +143,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         { status: 400 }
       );
     }
-    
+
     // Create contact
     const contact = await prisma.contact.create({
       data: {
@@ -134,24 +153,25 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         email: body.email || null,
         address: body.address || null,
         notes: body.notes || null,
+        familyId: familyId, // Set family ID from auth context
       },
     });
-    
+
     // Format dates for response
-    const response: ContactResponse = {
+    const response: Omit<ContactResponse, 'familyId'> = {
       ...contact,
       createdAt: formatForResponse(contact.createdAt) || '',
       updatedAt: formatForResponse(contact.updatedAt) || '',
       deletedAt: formatForResponse(contact.deletedAt),
     };
-    
-    return NextResponse.json<ApiResponse<ContactResponse>>({
+
+    return NextResponse.json<ApiResponse<Omit<ContactResponse, 'familyId'>>>({
       success: true,
       data: response,
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating contact:', error);
-    return NextResponse.json<ApiResponse<ContactResponse>>(
+    return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
         error: 'Failed to create contact',
@@ -163,12 +183,19 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId } = authContext;
+    if (!familyId) {
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: 'User is not associated with a family.' },
+        { status: 403 }
+      );
+    }
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const body: ContactCreate = await req.json();
-    
+
     if (!id) {
-      return NextResponse.json<ApiResponse<ContactResponse>>(
+      return NextResponse.json<ApiResponse<null>>(
         {
           success: false,
           error: 'Contact ID is required',
@@ -176,14 +203,17 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
         { status: 400 }
       );
     }
-    
-    // Check if contact exists
-    const existingContact = await prisma.contact.findUnique({
-      where: { id },
+
+    // Check if contact exists and belongs to the family
+    const existingContact = await prisma.contact.findFirst({
+      where: {
+        id,
+        familyId: familyId,
+      },
     });
-    
+
     if (!existingContact || existingContact.deletedAt) {
-      return NextResponse.json<ApiResponse<ContactResponse>>(
+      return NextResponse.json<ApiResponse<null>>(
         {
           success: false,
           error: 'Contact not found',
@@ -191,10 +221,10 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
         { status: 404 }
       );
     }
-    
+
     // Validate required fields
     if (!body.name || !body.role) {
-      return NextResponse.json<ApiResponse<ContactResponse>>(
+      return NextResponse.json<ApiResponse<null>>(
         {
           success: false,
           error: 'Name and role are required',
@@ -202,7 +232,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
         { status: 400 }
       );
     }
-    
+
     // Update contact
     const contact = await prisma.contact.update({
       where: { id },
@@ -215,22 +245,22 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
         notes: body.notes || null,
       },
     });
-    
+
     // Format dates for response
-    const response: ContactResponse = {
+    const response: Omit<ContactResponse, 'familyId'> = {
       ...contact,
       createdAt: formatForResponse(contact.createdAt) || '',
       updatedAt: formatForResponse(contact.updatedAt) || '',
       deletedAt: formatForResponse(contact.deletedAt),
     };
-    
-    return NextResponse.json<ApiResponse<ContactResponse>>({
+
+    return NextResponse.json<ApiResponse<Omit<ContactResponse, 'familyId'>>>({
       success: true,
       data: response,
     });
   } catch (error) {
     console.error('Error updating contact:', error);
-    return NextResponse.json<ApiResponse<ContactResponse>>(
+    return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
         error: 'Failed to update contact',
@@ -242,11 +272,18 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId } = authContext;
+    if (!familyId) {
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: 'User is not associated with a family.' },
+        { status: 403 }
+      );
+    }
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
-    
+
     if (!id) {
-      return NextResponse.json<ApiResponse<void>>(
+      return NextResponse.json<ApiResponse<null>>(
         {
           success: false,
           error: 'Contact ID is required',
@@ -254,14 +291,17 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
         { status: 400 }
       );
     }
-    
-    // Check if contact exists
-    const existingContact = await prisma.contact.findUnique({
-      where: { id },
+
+    // Check if contact exists and belongs to the family
+    const existingContact = await prisma.contact.findFirst({
+      where: {
+        id,
+        familyId: familyId,
+      },
     });
-    
+
     if (!existingContact || existingContact.deletedAt) {
-      return NextResponse.json<ApiResponse<void>>(
+      return NextResponse.json<ApiResponse<null>>(
         {
           success: false,
           error: 'Contact not found',
@@ -269,21 +309,19 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
         { status: 404 }
       );
     }
-    
-    // Soft delete the contact
+
+    // Soft delete contact
     await prisma.contact.update({
       where: { id },
       data: {
         deletedAt: new Date(),
       },
     });
-    
-    return NextResponse.json<ApiResponse<void>>({
-      success: true,
-    });
+
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('Error deleting contact:', error);
-    return NextResponse.json<ApiResponse<void>>(
+    return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
         error: 'Failed to delete contact',
@@ -293,9 +331,7 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
   }
 }
 
-// Apply authentication middleware to all handlers
-// Use type assertions to handle the multiple return types
-export const GET = withAuthContext(handleGet as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>);
-export const POST = withAuthContext(handlePost as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>);
-export const PUT = withAuthContext(handlePut as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>);
-export const DELETE = withAuthContext(handleDelete as (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<any>>>);
+export const GET = withAuthContext(handleGet as any);
+export const POST = withAuthContext(handlePost);
+export const PUT = withAuthContext(handlePut);
+export const DELETE = withAuthContext(handleDelete as any);

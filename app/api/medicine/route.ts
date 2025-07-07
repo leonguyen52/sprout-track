@@ -9,31 +9,23 @@ import { formatForResponse } from '../utils/timezone';
  */
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId, caretakerId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body: MedicineCreate = await req.json();
     const { 
       contactIds, 
-      unitAbbr, 
-      name, 
-      typicalDoseSize, 
-      doseMinTime, 
-      notes, 
-      active 
+      ...medicineData
     } = body;
-
-    // Prepare data for creation, explicitly listing fields to avoid undefined keys
-    const medicineCreateData = {
-      name,
-      typicalDoseSize,
-      doseMinTime,
-      notes,
-      active,
-      // Connect to the unit if unitAbbr is provided
-      ...(unitAbbr ? { unit: { connect: { unitAbbr } } } : {})
-    };
-
+    
     // Create the medicine
     const medicine = await prisma.medicine.create({
-      data: medicineCreateData,
+      data: {
+        ...medicineData,
+        familyId: userFamilyId,
+      },
     });
 
     // Associate with contacts if provided
@@ -98,69 +90,59 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
  */
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
-    const body: MedicineUpdate = await req.json();
-    const { 
-      id, 
-      contactIds, 
-      unitAbbr, 
-      name, 
-      typicalDoseSize, 
-      doseMinTime, 
-      notes, 
-      active 
-    } = body;
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
 
-    // Check if medicine exists
-    const existingMedicine = await prisma.medicine.findUnique({
-      where: { id },
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    const body: Partial<MedicineCreate> = await req.json();
+    const { contactIds, ...updateData } = body;
+
+    if (!id) {
+      return NextResponse.json<ApiResponse<MedicineResponse>>(
+        {
+          success: false,
+          error: 'Medicine ID is required',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check if medicine exists and belongs to the family
+    const existingMedicine = await prisma.medicine.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingMedicine) {
       return NextResponse.json<ApiResponse<MedicineResponse>>(
         {
           success: false,
-          error: 'Medicine not found',
+          error: 'Medicine not found or access denied',
         },
         { status: 404 }
       );
     }
 
-    // Prepare data for update, explicitly listing fields to avoid undefined keys
-    const medicineUpdateData = {
-      name,
-      typicalDoseSize,
-      doseMinTime,
-      notes,
-      active,
-      // Connect to the unit if unitAbbr is provided, or disconnect if it's empty
-      unit: unitAbbr 
-        ? { connect: { unitAbbr } } 
-        : { disconnect: true }
-    };
+    // Prevent changing the family or creator
+    delete (updateData as any).familyId;
+    delete (updateData as any).createdById;
 
-    // Update the medicine
     const medicine = await prisma.medicine.update({
       where: { id },
-      data: medicineUpdateData,
+      data: updateData,
     });
 
-    // Update contact associations if provided
+    // Update contact associations
     if (contactIds) {
-      // Delete existing associations
-      await prisma.contactMedicine.deleteMany({
-        where: { medicineId: id },
-      });
-
-      // Create new associations
+      await prisma.contactMedicine.deleteMany({ where: { medicineId: id } });
       if (contactIds.length > 0) {
-        // Filter out duplicate contact IDs
         const uniqueContactIds = Array.from(new Set(contactIds));
-        
         const contactMedicineData = uniqueContactIds.map(contactId => ({
           contactId,
           medicineId: id,
         }));
-
         await prisma.contactMedicine.createMany({
           data: contactMedicineData,
         });
@@ -214,14 +196,20 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
  */
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const active = searchParams.get('active');
     const contactId = searchParams.get('contactId');
-
+    
     // Build where clause
     const where: any = {
       deletedAt: null,
+      familyId: userFamilyId,
     };
 
     // Add filters
@@ -235,8 +223,8 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
     // If ID is provided, fetch a single medicine
     if (id) {
-      const medicine = await prisma.medicine.findUnique({
-        where: { id },
+      const medicine = await prisma.medicine.findFirst({
+        where,
         include: {
           contacts: {
             include: {
@@ -251,7 +239,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
         return NextResponse.json<ApiResponse<MedicineResponse>>(
           {
             success: false,
-            error: 'Medicine not found',
+            error: 'Medicine not found or access denied',
           },
           { status: 404 }
         );
@@ -280,6 +268,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
           medicine: {
             deletedAt: null,
             ...(active !== null ? { active: active === 'true' } : {}),
+            ...(userFamilyId && { familyId: userFamilyId }),
           },
         },
         include: {
@@ -352,11 +341,16 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
  */
 async function handleDelete(req: NextRequest, authContext: AuthResult) {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json<ApiResponse>(
+      return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
           error: 'Medicine ID is required',
@@ -365,16 +359,16 @@ async function handleDelete(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Check if medicine exists
-    const existingMedicine = await prisma.medicine.findUnique({
-      where: { id },
+    // Check if medicine exists and belongs to the family
+    const existingMedicine = await prisma.medicine.findFirst({
+      where: { id, familyId: userFamilyId },
     });
 
     if (!existingMedicine) {
-      return NextResponse.json<ApiResponse>(
+      return NextResponse.json<ApiResponse<void>>(
         {
           success: false,
-          error: 'Medicine not found',
+          error: 'Medicine not found or access denied',
         },
         { status: 404 }
       );

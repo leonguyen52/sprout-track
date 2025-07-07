@@ -29,6 +29,7 @@ export interface TimelineActivityListProps {
   activities: ActivityType[];
   settings: Settings | null;
   isLoading: boolean;
+  isAnimated?: boolean;
   itemsPerPage?: number;
   currentPage?: number;
   totalPages?: number;

@@ -4,7 +4,8 @@
 # 1. Creates a backup
 # 2. Stops the service
 # 3. Deletes the .next folder
-# 4. Updates the application
+# 4. Updates the environment configuration
+# 5. Updates the application
 # Service management is handled by the individual scripts
 
 # Get the script directory and project directory
@@ -38,8 +39,17 @@ else
     echo ".next folder not found, continuing deployment."
 fi
 
-# Step 4: Update application
-echo "Step 4: Updating application..."
+# Step 4: Update environment configuration
+echo "Step 4: Updating environment configuration..."
+"$SCRIPT_DIR/env-update.sh"
+if [ $? -ne 0 ]; then
+    echo "Error: Environment update failed! Deployment aborted."
+    "$SCRIPT_DIR/service.sh" start  # Try to restart service
+    exit 1
+fi
+
+# Step 5: Update application
+echo "Step 5: Updating application..."
 "$SCRIPT_DIR/update.sh"
 if [ $? -ne 0 ]; then
     echo "Error: Update failed! Deployment aborted."

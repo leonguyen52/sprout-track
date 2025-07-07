@@ -34,6 +34,11 @@ export interface AuthResult {
   caretakerId?: string | null;
   caretakerType?: string | null;
   caretakerRole?: string;
+  familyId?: string | null;
+  familySlug?: string | null;
+  isSysAdmin?: boolean;
+  isSetupAuth?: boolean;
+  setupToken?: string;
   error?: string;
 }
 
@@ -74,19 +79,43 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
       
       try {
         // Verify and decode the token
-        const decoded = jwt.verify(token, JWT_SECRET) as {
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        
+        // Handle setup authentication tokens
+        if (decoded.isSetupAuth && decoded.setupToken) {
+          return {
+            authenticated: true,
+            caretakerId: null,
+            caretakerType: 'Setup',
+            caretakerRole: 'ADMIN', // Setup auth tokens have admin privileges for family creation
+            familyId: null,
+            familySlug: null,
+            isSysAdmin: false,
+            isSetupAuth: true,
+            setupToken: decoded.setupToken,
+          };
+        }
+        
+        // Handle regular user/admin tokens
+        const regularDecoded = decoded as {
           id: string;
           name: string;
           type: string | null;
           role: string;
+          familyId: string | null;
+          familySlug: string | null;
+          isSysAdmin?: boolean;
         };
         
         // Return authenticated user info from token
         return {
           authenticated: true,
-          caretakerId: decoded.id,
-          caretakerType: decoded.type,
-          caretakerRole: decoded.role
+          caretakerId: regularDecoded.isSysAdmin ? null : regularDecoded.id,
+          caretakerType: regularDecoded.type,
+          caretakerRole: regularDecoded.role,
+          familyId: regularDecoded.familyId,
+          familySlug: regularDecoded.familySlug,
+          isSysAdmin: regularDecoded.isSysAdmin || false,
         };
       } catch (jwtError) {
         console.error('JWT verification error:', jwtError);
@@ -96,21 +125,14 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
     
     // If no token but we have a caretakerId cookie, use the old method (backward compatibility)
     if (caretakerId) {
-      // Check if caretakerId is 'system' (system admin)
-      if (caretakerId === 'system') {
-        return { 
-          authenticated: true, 
-          caretakerId: 'system',
-          caretakerType: 'admin',
-          caretakerRole: 'ADMIN'
-        };
-      }
-      
       // Verify caretaker exists in database
       const caretaker = await prisma.caretaker.findFirst({
         where: {
           id: caretakerId,
           deletedAt: null,
+        },
+        include: {
+          family: true,
         },
       });
       
@@ -120,7 +142,10 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           caretakerId: caretaker.id,
           caretakerType: caretaker.type,
           // Use type assertion for role until Prisma types are updated
-          caretakerRole: (caretaker as any).role || 'USER'
+          caretakerRole: (caretaker as any).role || 'USER',
+          familyId: caretaker.familyId,
+          familySlug: caretaker.family?.slug,
+          isSysAdmin: false,
         };
       }
     }
@@ -178,12 +203,65 @@ export function withAdminAuth<T>(
       );
     }
     
-    // Check if user is an admin (either by role or special system ID)
-    if (authResult.caretakerRole !== 'ADMIN' && authResult.caretakerId !== 'system') {
+    // Check if user is an admin by role, system admin, or system caretaker
+    let isSystemCaretaker = false;
+    if (authResult.caretakerId) {
+      try {
+        const caretaker = await prisma.caretaker.findFirst({
+          where: {
+            id: authResult.caretakerId,
+            loginId: '00', // System caretakers have loginId '00'
+            deletedAt: null,
+          },
+        });
+        isSystemCaretaker = !!caretaker;
+      } catch (error) {
+        console.error('Error checking system caretaker:', error);
+      }
+    }
+    
+    // Allow access for: ADMIN role, system caretakers, or system administrators
+    if (authResult.caretakerRole !== 'ADMIN' && !isSystemCaretaker && !authResult.isSysAdmin) {
       return NextResponse.json<ApiResponse<null>>(
         {
           success: false,
           error: 'Admin access required',
+        },
+        { status: 403 }
+      );
+    }
+    
+    return handler(req);
+  };
+}
+
+/**
+ * Middleware function to require system admin authentication for API routes
+ * @param handler The API route handler function
+ * @returns A wrapped handler that checks system admin authentication before proceeding
+ */
+export function withSysAdminAuth<T>(
+  handler: (req: NextRequest) => Promise<NextResponse<ApiResponse<T>>>
+) {
+  return async (req: NextRequest): Promise<NextResponse<ApiResponse<T | null>>> => {
+    const authResult = await getAuthenticatedUser(req);
+    
+    if (!authResult.authenticated) {
+      return NextResponse.json<ApiResponse<null>>(
+        {
+          success: false,
+          error: 'Authentication required',
+        },
+        { status: 401 }
+      );
+    }
+    
+    // Check if user is a system administrator
+    if (!authResult.isSysAdmin) {
+      return NextResponse.json<ApiResponse<null>>(
+        {
+          success: false,
+          error: 'System administrator access required',
         },
         { status: 403 }
       );
@@ -215,15 +293,102 @@ export function withAuthContext<T>(
       );
     }
     
-    // Modify authResult for system admin to use null caretakerId for database operations
-    if (authResult.caretakerId === 'system') {
-      // Create a new object to avoid modifying the original
+    // System administrators: extract family context from URL, query params, or referer
+    if (authResult.isSysAdmin) {
+      // Try to get familyId from query parameter first
+      const { searchParams } = new URL(req.url);
+      let familyId = searchParams.get('familyId');
+      
+      // If no familyId in query params, try to extract from URL path (for family-specific routes like /[slug]/...)
+      if (!familyId) {
+        const url = new URL(req.url);
+        const pathSegments = url.pathname.split('/').filter(Boolean);
+        
+        // Check if this looks like a family route (not api, family-manager, etc.)
+        if (pathSegments.length > 0 && 
+            !pathSegments[0].startsWith('api') && 
+            !pathSegments[0].startsWith('family-manager') &&
+            !pathSegments[0].startsWith('setup')) {
+          
+          const familySlug = pathSegments[0];
+          
+          // Look up family by slug to get familyId
+          try {
+            const family = await prisma.family.findUnique({
+              where: { slug: familySlug }
+            });
+            
+            if (family) {
+              familyId = family.id;
+            }
+          } catch (error) {
+            console.error('Error looking up family by slug for sysadmin:', error);
+          }
+        }
+      }
+      
+      // If still no familyId, try to extract from referer header (for API calls from family pages)
+      if (!familyId) {
+        const referer = req.headers.get('referer');
+        if (referer) {
+          try {
+            const refererUrl = new URL(referer);
+            const refererPathSegments = refererUrl.pathname.split('/').filter(Boolean);
+            
+            // Check if referer is a family route
+            if (refererPathSegments.length > 0 && 
+                !refererPathSegments[0].startsWith('api') && 
+                !refererPathSegments[0].startsWith('family-manager') &&
+                !refererPathSegments[0].startsWith('setup')) {
+              
+              const familySlug = refererPathSegments[0];
+              
+              // Look up family by slug to get familyId
+              const family = await prisma.family.findUnique({
+                where: { slug: familySlug }
+              });
+              
+              if (family) {
+                familyId = family.id;
+              }
+            }
+          } catch (error) {
+            console.error('Error parsing referer for sysadmin family context:', error);
+          }
+        }
+      }
+      
+      // Create modified auth result with the family context
       const modifiedAuthResult = {
         ...authResult,
-        // Set caretakerId to null for database operations
-        caretakerId: null
+        familyId: familyId || authResult.familyId
       };
+      
       return handler(req, modifiedAuthResult);
+    }
+    
+    // Check if this is a system caretaker by looking up loginId in database
+    if (authResult.caretakerId) {
+      try {
+        const caretaker = await prisma.caretaker.findFirst({
+          where: {
+            id: authResult.caretakerId,
+            loginId: '00', // System caretakers have loginId '00'
+            deletedAt: null,
+          },
+        });
+        
+        if (caretaker) {
+          // This is a system caretaker - set caretakerId to null for database operations
+          const modifiedAuthResult = {
+            ...authResult,
+            caretakerId: null
+          };
+          return handler(req, modifiedAuthResult);
+        }
+      } catch (error) {
+        console.error('Error checking system caretaker:', error);
+      }
     }
     
     return handler(req, authResult);
