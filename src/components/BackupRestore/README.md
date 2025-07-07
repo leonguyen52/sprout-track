@@ -56,6 +56,34 @@ function SettingsPage() {
 }
 ```
 
+### Import-Only Usage (Initial Setup)
+
+```tsx
+import { BackupRestore } from '@/src/components/BackupRestore';
+
+// Example usage during initial setup wizard
+function InitialSetupImport() {
+  const handleImportSuccess = () => {
+    console.log('Database imported successfully during setup');
+    // Page will reload automatically after migration
+  };
+  
+  const handleImportError = (error: string) => {
+    console.error('Import failed during setup:', error);
+    // Error messages are handled by the component
+  };
+  
+  return (
+    <BackupRestore
+      importOnly={true}
+      initialSetup={true}
+      onRestoreSuccess={handleImportSuccess}
+      onRestoreError={handleImportError}
+    />
+  );
+}
+```
+
 ## Component API
 
 ### BackupRestore
@@ -73,16 +101,19 @@ Main component for database backup and restore operations.
 | `onRestoreSuccess` | `() => void` | Callback when restore operation succeeds | `undefined` |
 | `onRestoreError` | `(error: string) => void` | Callback when restore operation fails | `undefined` |
 | `className` | `string` | Custom CSS classes for the container | `undefined` |
+| `importOnly` | `boolean` | Whether to show only import/restore functionality (hides backup button) | `false` |
+| `initialSetup` | `boolean` | Whether this is being used during initial setup (uses different migration API) | `false` |
 
 ## Visual Behavior
 
-- Displays a section header with "Database Management" title
-- Two action buttons: "Backup Database" and "Restore Database"
-- Help text explaining the functionality
+- Displays a section header with "Database Management" title (or "Import Previous Data" in import-only mode)
+- Two action buttons: "Backup Database" and "Restore Database" (or just "Import Database" in import-only mode)
+- Help text explaining the functionality (contextual based on mode)
 - Error messages appear in red styling when operations fail
 - Success messages appear in green styling when operations succeed
+- Migration progress indicators show during database migration steps
 - Buttons are disabled during operations to prevent conflicts
-- Restore button shows "Restoring..." text when a restore is in progress
+- Restore button shows "Restoring..."/"Importing..." text when a restore is in progress
 
 ## Implementation Details
 
@@ -97,7 +128,7 @@ The component handles all database backup and restore logic internally:
 
 ### Restore Process
 1. Accepts a `.db` file through a hidden file input
-2. Uploads the file to `/api/database` with POST method using FormData
+2. Uploads the file to `/api/database` (normal mode) or `/api/database/restore-initial` (initial setup mode) with POST method using FormData
 3. Shows progress during the upload
 4. **Automatically runs post-restore migrations** to update older database schemas
 5. Displays detailed progress during migration steps
@@ -138,8 +169,10 @@ src/components/BackupRestore/
 └── README.md                   # This documentation
 
 Related API Endpoints:
-├── /api/database                # Backup (GET) and restore (POST) operations
-└── /api/database/migrate        # Post-restore migration operations (System Admin only)
+├── /api/database                    # Backup (GET) and restore (POST) operations (System Admin only)
+├── /api/database/restore-initial    # Initial setup restore operations (Setup Auth allowed)
+├── /api/database/migrate            # Post-restore migration operations (System Admin only)
+└── /api/database/migrate-initial    # Initial setup migration operations (Setup Auth allowed)
 ```
 
 ## Cross-Platform Considerations
@@ -225,9 +258,10 @@ This component integrates with the project's deployment scripts:
 - Only `.db` files are accepted for restore operations
 - Error messages don't expose sensitive system information
 - Temporary URLs are properly cleaned up after downloads
-- **System Admin Authentication**: Database migration operations require system administrator privileges
-  - Regular family administrators cannot perform migrations
-  - Authentication is enforced at the API level using `withSysAdminAuth` middleware
+- **System Admin Authentication**: Database operations require appropriate authentication
+  - **Standard backup/restore**: Requires system administrator privileges (`withSysAdminAuth`)
+  - **Initial setup restore**: Allows system admin OR setup authentication (`withAuthContext`)
+  - **Migration operations**: System admin only (standard) or setup auth allowed (initial setup)
   - Clear error messages guide users who lack sufficient privileges
 - **Migration security**: Server-side scripts run with application privileges
 - **Backup validation**: Restored databases are validated before migration begins

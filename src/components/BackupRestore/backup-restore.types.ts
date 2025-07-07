@@ -22,6 +22,12 @@ export interface BackupRestoreProps {
   
   /** Custom className for the container */
   className?: string;
+
+  /** Whether to show only import/restore functionality (hides backup button) */
+  importOnly?: boolean;
+
+  /** Whether this is being used during initial setup (uses different migration API) */
+  initialSetup?: boolean;
 }
 
 /**

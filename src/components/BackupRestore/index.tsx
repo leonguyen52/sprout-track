@@ -19,7 +19,9 @@ export const BackupRestore: React.FC<BackupRestoreProps> = ({
   onBackupError,
   onRestoreSuccess,
   onRestoreError,
-  className
+  className,
+  importOnly = false,
+  initialSetup = false
 }) => {
   const { theme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,7 +63,8 @@ export const BackupRestore: React.FC<BackupRestoreProps> = ({
         ...(authToken && { 'Authorization': `Bearer ${authToken}` })
       };
 
-      const response = await fetch('/api/database/migrate', {
+      const migrationEndpoint = initialSetup ? '/api/database/migrate-initial' : '/api/database/migrate';
+      const response = await fetch(migrationEndpoint, {
         method: 'POST',
         headers
       });
@@ -87,19 +90,28 @@ export const BackupRestore: React.FC<BackupRestoreProps> = ({
         migrationStep: 'Migration completed! Reloading application...' 
       }));
       
-      // Show completion message briefly before reload
+      // Show completion message briefly before reload/redirect
       setTimeout(() => {
         setState(prev => ({ 
           ...prev, 
           isMigrating: false,
           migrationStep: null,
-          success: 'Database restored and migrated successfully. Application is reloading...' 
+          success: initialSetup 
+            ? 'Database imported and migrated successfully. Redirecting...' 
+            : 'Database restored and migrated successfully. Application is reloading...' 
         }));
         
-        // Refresh the page after successful migration
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+        if (!initialSetup) {
+          // Refresh the page after successful migration (normal mode)
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          // For initial setup, call the success callback after showing the message
+          setTimeout(() => {
+            onRestoreSuccess?.();
+          }, 1000);
+        }
       }, 1000);
       
     } catch (error) {
@@ -163,7 +175,8 @@ export const BackupRestore: React.FC<BackupRestoreProps> = ({
         'Authorization': `Bearer ${authToken}`
       } : {};
 
-      const response = await fetch('/api/database', {
+      const restoreEndpoint = initialSetup ? '/api/database/restore-initial' : '/api/database';
+      const response = await fetch(restoreEndpoint, {
         method: 'POST',
         headers,
         body: formData,
@@ -177,8 +190,6 @@ export const BackupRestore: React.FC<BackupRestoreProps> = ({
         ...prev, 
         success: 'Database restored successfully. Running migrations...' 
       }));
-      
-      onRestoreSuccess?.();
       
       // Run post-restore migrations
       await runPostRestoreMigrations();
@@ -210,38 +221,45 @@ export const BackupRestore: React.FC<BackupRestoreProps> = ({
       <div className={backupRestoreStyles.header.container}>
         <Settings className={backupRestoreStyles.header.icon} />
         <Label className={backupRestoreStyles.header.title}>
-          Database Management
+          {importOnly ? 'Import Previous Data' : 'Database Management'}
         </Label>
       </div>
 
       {/* Action Buttons */}
       <div className={backupRestoreStyles.buttonContainer}>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleBackup}
-          className={backupRestoreStyles.button.backup}
-          disabled={isLoading || isSaving || state.isRestoring || state.isMigrating}
-        >
-          <Download className={backupRestoreStyles.icon} />
-          Backup Database
-        </Button>
+        {!importOnly && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleBackup}
+            className={backupRestoreStyles.button.backup}
+            disabled={isLoading || isSaving || state.isRestoring || state.isMigrating}
+          >
+            <Download className={backupRestoreStyles.icon} />
+            Backup Database
+          </Button>
+        )}
         <Button
           type="button"
           variant="outline"
           onClick={() => fileInputRef.current?.click()}
-          className={backupRestoreStyles.button.restore}
+          className={cn(
+            backupRestoreStyles.button.restore,
+            importOnly && "w-full"
+          )}
           disabled={isLoading || isSaving || state.isRestoring || state.isMigrating}
         >
           <Upload className={backupRestoreStyles.icon} />
-          {state.isRestoring ? 'Restoring...' : state.isMigrating ? 'Migrating...' : 'Restore Database'}
+          {state.isRestoring ? 'Importing...' : state.isMigrating ? 'Migrating...' : importOnly ? 'Import Database' : 'Restore Database'}
         </Button>
       </div>
       
       {/* Help Text */}
       <p className={backupRestoreStyles.helpText}>
-        Create backups of your database or restore from a previous backup. 
-        Restoring will replace all current data and run necessary migrations.
+        {importOnly 
+          ? 'Import data from a previous Sprout Track database backup to start with existing family data, or skip this step to create a new family from scratch.'
+          : 'Create backups of your database or restore from a previous backup. Restoring will replace all current data and run necessary migrations.'
+        }
       </p>
 
       {/* Migration Progress */}

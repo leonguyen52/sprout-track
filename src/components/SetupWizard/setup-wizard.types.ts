@@ -17,6 +17,11 @@ export interface SetupWizardProps {
    * Optional token for invitation-based setup
    */
   token?: string;
+
+  /**
+   * Whether this is initial setup of a blank database
+   */
+  initialSetup?: boolean;
 }
 
 /**
@@ -47,6 +52,11 @@ export interface FamilySetupStageProps {
    * Optional token for invitation-based setup
    */
   token?: string;
+
+  /**
+   * Whether this is initial setup of a blank database
+   */
+  initialSetup?: boolean;
 }
 
 /**

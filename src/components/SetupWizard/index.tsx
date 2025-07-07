@@ -23,7 +23,7 @@ import './setup-wizard.css';
  * <SetupWizard onComplete={(family) => console.log('Setup complete!', family)} />
  * ```
  */
-const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token }) => {
+const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSetup = false }) => {
   const [stage, setStage] = useState(1);
   const [loading, setLoading] = useState(false);
   
@@ -384,6 +384,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token }) => {
             familySlug={familySlug}
             setFamilySlug={setFamilySlug}
             token={token}
+            initialSetup={initialSetup}
           />
         )}
 
