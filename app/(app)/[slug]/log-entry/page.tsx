@@ -53,6 +53,10 @@ function HomeContent(): React.ReactElement {
   // Track the currently selected date in the Timeline component
   const [selectedTimelineDate, setSelectedTimelineDate] = useState<Date | null>(null);
   
+  // Track polling state for activity timers (same as Timeline component)
+  const lastRefreshTimestamp = useRef<number>(Date.now());
+  const wasIdle = useRef<boolean>(false);
+  
   const [sleepData, setSleepData] = useState<{
     ongoingSleep?: SleepLogResponse;
     lastEndedSleep?: SleepLogResponse & { endTime: string };
@@ -113,6 +117,9 @@ function HomeContent(): React.ReactElement {
         ongoingSleep,
         lastEndedSleep: completedSleeps[0]
       });
+      
+      // Update refresh timestamp for polling mechanism
+      lastRefreshTimestamp.current = Date.now();
     } catch (error) {
       console.error('Error checking sleep status:', error);
     }
@@ -209,6 +216,9 @@ function HomeContent(): React.ReactElement {
             [babyId]: new Date(completedSleeps[0].endTime)
           }));
         }
+        
+        // Update refresh timestamp for polling mechanism
+        lastRefreshTimestamp.current = Date.now();
       }
     } catch (error) {
       console.error('Error refreshing activities:', error);
@@ -296,6 +306,51 @@ function HomeContent(): React.ReactElement {
       }
     }
   }, [sleepData, selectedBaby]);
+
+  // Activity timer polling mechanism (same intervals as Timeline component)
+  useEffect(() => {
+    if (!selectedBaby?.id) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // User came back to the tab, refresh immediately
+        refreshActivities(selectedBaby.id);
+        checkSleepStatus(selectedBaby.id);
+      }
+    };
+
+    const poll = setInterval(() => {
+      const idleThreshold = 5 * 60 * 1000; // 5 minutes
+      const activeRefreshRate = 30 * 1000; // 30 seconds
+
+      const idleTime = Date.now() - parseInt(localStorage.getItem('unlockTime') || `${Date.now()}`);
+      const isCurrentlyIdle = idleTime >= idleThreshold;
+      const timeSinceLastRefresh = Date.now() - lastRefreshTimestamp.current;
+
+      // Case 1: User just came back from an idle state (was idle, now is not)
+      if (wasIdle.current && !isCurrentlyIdle) {
+        refreshActivities(selectedBaby.id);
+        checkSleepStatus(selectedBaby.id);
+        lastRefreshTimestamp.current = Date.now();
+      }
+      // Case 2: User is active and the regular refresh interval has passed
+      else if (!isCurrentlyIdle && timeSinceLastRefresh > activeRefreshRate) {
+        refreshActivities(selectedBaby.id);
+        checkSleepStatus(selectedBaby.id);
+        lastRefreshTimestamp.current = Date.now();
+      }
+
+      // Update the idle state for the next check
+      wasIdle.current = isCurrentlyIdle;
+    }, 10000); // Check status every 10 seconds
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [selectedBaby?.id, refreshActivities, checkSleepStatus]);
 
   return (
     <div className="relative isolate">
