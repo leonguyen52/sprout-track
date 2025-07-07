@@ -86,10 +86,8 @@ async function handler(request: NextRequest): Promise<NextResponse<ApiResponse<a
     return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Migration failed',
-        data: {
-          suggestion: 'You may need to restore from a different backup or manually run migration scripts.'
-        }
+        error: `${error instanceof Error ? error.message : 'Migration failed'}. You may need to restore from a different backup or manually run migration scripts.`,
+        data: null
       }, 
       { status: 500 }
     );
