@@ -34,6 +34,7 @@
 - Updated activity timeline descriptions to show units correctly
 - Fixed visual bugs for light/dark mode consistency
 - Improved error handling and user feedback across the application
+- Fixed the caretaker form so that users can only correctly enter in numbers instead of characters
 
 ## v0.91.4 - Added Medicine Tracker - (Beta) - April 2025
 
