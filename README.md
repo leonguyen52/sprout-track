@@ -22,6 +22,33 @@ A Next.js application for tracking baby activities, milestones, and development.
   </tr>
 </table>
 
+## Live Demo
+
+Try out Sprout Track at our live demo: **[https://demo.sprout-track.com](https://demo.sprout-track.com)**
+
+*The demo environment is refreshed every 2 hours.*
+
+### Demo Login Information
+
+**Family Manager Access:**
+- URL: [https://demo.sprout-track.com/family-manager](https://demo.sprout-track.com/family-manager)
+- Password: `admin`
+
+**Family Access:**
+- URL: [https://demo.sprout-track.com](https://demo.sprout-track.com)
+- Available login IDs: `01`, `02`, `03` (1-3 ID's are randomly generated)
+- PIN: `111222`
+
+The demo is populated with semi-realistic 🙃 test data spanning multiple families and several days of baby tracking activities.
+
+### Quick Docker Deployment
+
+To deploy the latest version using Docker:
+
+```bash
+docker pull sprouttrack/sprout-track:0.92.0
+```
+
 ## Table of Contents
 
 - [Tech Stack](#tech-stack)
@@ -32,7 +59,6 @@ A Next.js application for tracking baby activities, milestones, and development.
   - [Default Security PIN](#default-security-pin)
 - [Initial Application Setup](#initial-application-setup)
   - [Setup Wizard](#setup-wizard)
-- [Project Structure](#project-structure)
 - [Available Scripts](#available-scripts)
   - [Next.js Server/Dev Scripts](#nextjs-serverdev-scripts)
   - [Customizing Port Numbers](#customizing-port-numbers)
@@ -54,8 +80,6 @@ A Next.js application for tracking baby activities, milestones, and development.
 - TypeScript
 - Prisma with SQLite (`/prisma`)
 - TailwindCSS for styling
-- React Query for data fetching
-- React Hook Form for form handling
 - Docker for containerization (optional)
 
 ## Getting Started
@@ -156,7 +180,8 @@ After installation, when you first access the application, you'll be guided thro
 The application includes a built-in Setup Wizard (`src/components/SetupWizard`) that walks you through the following steps:
 
 1. **Family Setup**
-   - Enter your family name
+   - Enter your family name and link/slug
+   - On initial setup you can import data from a previous version (just import the old *.db file from the /db folder)
 
 2. **Security Setup**
    - Choose between a system-wide PIN or individual caretaker PINs
@@ -172,13 +197,7 @@ The application includes a built-in Setup Wizard (`src/components/SetupWizard`) 
 
 The Setup Wizard ensures your application is properly configured with the necessary security settings and initial data before you start tracking your baby's activities.
 
-## Project Structure
 
-- `/app` - Next.js app router pages and components
-- `/prisma` - SQLite database and Prisma schema
-- `/src/components` - Reusable UI components
-- `/src/lib` - Utility functions and shared logic
-- `/scripts` - Utility scripts for setup, deployment, and maintenance
 
 ## Available Scripts
 
@@ -213,13 +232,30 @@ This change will persist across application updates. For Docker deployments, use
 - `npm run prisma:seed` - Seed the database with initial data
 - `npm run prisma:studio` - Open Prisma Studio to view/edit database
 
-### Utility Scripts
+### Setup and Deployment Scripts
 
-- `./scripts/setup.sh` - Complete setup process (Node.js check, dependencies, database, build)
-- `./scripts/backup.sh` - Create a backup of the application and database
+- `./scripts/setup.sh` - Complete initial setup (Node.js check, dependencies, database, build)
+- `./scripts/env-update.sh` - Check and update environment configuration (creates ENC_HASH if missing)
 - `./scripts/update.sh` - Update application (git pull, prisma operations, build)
-- `./scripts/deployment.sh` - Full deployment process (backup + update)
+- `./scripts/deployment.sh` - Full deployment process (backup + update + service management)
+- `./scripts/backup.sh` - Create a backup of the application and database
 - `./scripts/service.sh {start|stop|restart|status}` - Manage the application service
+
+### Test Data Generation Scripts
+
+- `./scripts/generate-test-data.sh` - Interactive test data generation with customizable parameters
+- `./scripts/generate-test-data-automated.sh` - Automated test data generation (for cron jobs/CI/CD)
+- `./scripts/generate-test-data.js` - JavaScript data generation logic
+
+### Database Migration Scripts
+
+- `./scripts/family-migration.js` - Migrate existing data for multi-family support
+- `./scripts/family-update.sh` - Update database after multi-family migration
+- `./scripts/ensure-utc-dates-improved.js` - Convert all database dates to UTC format
+
+### Docker Management Scripts
+
+- `./scripts/docker-setup.sh {build|start|stop|restart|update|backup|logs|status|clean}` - Complete Docker management
 
 ### Updating the Application
 
@@ -249,12 +285,21 @@ The application can be configured using environment variables in the `.env` file
 | `IDLE_TIME` | Idle timeout before automatic logout in seconds | `"28800"` (8 hours) | `"3600"` (1 hour) |
 | `APP_VERSION` | Application version | `"0.9.0"` | `"1.0.0"` |
 | `COOKIE_SECURE` | Whether cookies require HTTPS connections | `"false"` | `"true"` |
+| `ENC_HASH` | Encryption hash for admin password security | Auto-generated | 64-character hex string |
+
+### Automatic Environment Setup
+
+The `./scripts/env-update.sh` script automatically manages environment variables:
+- Creates `.env` file if it doesn't exist
+- Generates a secure `ENC_HASH` (64-character random hex) if missing
+- Used during setup and deployment processes
 
 ### Important Notes:
 
 - **DATABASE_URL**: Changing this after initial setup requires migrating your data manually.
 - **AUTH_LIFE**: Lower values increase security but require more frequent logins.
 - **IDLE_TIME**: Determines how long a user can be inactive before being logged out.
+- **ENC_HASH**: Automatically generated for admin password encryption; do not modify manually.
 - **COOKIE_SECURE**: 
   - Set to `"false"` to allow cookies on non-HTTPS connections (development or initial setup)
   - Set to `"true"` when you have an SSL certificate in place (recommended for production)
