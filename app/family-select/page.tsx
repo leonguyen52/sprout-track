@@ -68,18 +68,17 @@ export default function FamilySelectPage() {
   // Filter families based on search term
   useEffect(() => {
     if (searchTerm.trim() === '') {
-      setFilteredFamilies(families);
-      setDropdownOpen(false);
+      setFilteredFamilies(dropdownOpen ? families : []);
     } else {
       const filtered = families.filter(family => 
         family.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         family.slug.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredFamilies(filtered);
-      setDropdownOpen(true);
+      // Don't automatically open dropdown here - let user interactions control it
     }
     setHighlightedIndex(-1);
-  }, [searchTerm, families]);
+  }, [searchTerm, families, dropdownOpen]);
 
   // Check if already authenticated on page load
   useEffect(() => {
@@ -106,19 +105,23 @@ export default function FamilySelectPage() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
-    setSelectedFamily(null);
+    if (selectedFamily) {
+      setSelectedFamily(null);
+    }
+    // Open dropdown when user actively types
+    if (value.trim() !== '') {
+      setDropdownOpen(true);
+    }
     setHighlightedIndex(-1);
   };
 
   const handleSearchFocus = () => {
-    if (searchTerm.trim() !== '') {
-      setDropdownOpen(true);
-    }
+    setDropdownOpen(true);
   };
 
   const handleFamilySelect = (family: FamilyResponse) => {
     setSelectedFamily(family);
-    setSearchTerm(family.name);
+    setSearchTerm('');
     setDropdownOpen(false);
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -243,15 +246,18 @@ export default function FamilySelectPage() {
                     <ChevronDown 
                       className="absolute right-3 h-4 w-4 text-gray-500 dark:text-gray-400 family-select-dropdown-icon"
                       onClick={() => {
-                        setDropdownOpen(!dropdownOpen);
-                        if (document.activeElement instanceof HTMLElement) {
+                        const willOpen = !dropdownOpen;
+                        setDropdownOpen(willOpen);
+                        if (willOpen && inputRef.current) {
+                          setTimeout(() => inputRef.current?.focus(), 0);
+                        } else if (document.activeElement instanceof HTMLElement) {
                           document.activeElement.blur();
                         }
                       }}
                     />
                   </div>
                   
-                  {dropdownOpen && (
+                  {dropdownOpen && filteredFamilies.length > 0 && (
                     <div 
                       ref={dropdownRef}
                       className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto family-select-dropdown"
