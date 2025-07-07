@@ -99,8 +99,21 @@ The component handles all database backup and restore logic internally:
 1. Accepts a `.db` file through a hidden file input
 2. Uploads the file to `/api/database` with POST method using FormData
 3. Shows progress during the upload
-4. Displays success message and reloads the page after successful restore
-5. Shows error messages if the restore fails
+4. **Automatically runs post-restore migrations** to update older database schemas
+5. Displays detailed progress during migration steps
+6. Reloads the page after successful restore and migration
+7. Shows detailed error messages if any step fails
+
+### Post-Restore Migration
+When restoring from an older backup, the component automatically runs a migration process that includes:
+- **Prisma Client Generation**: Ensures the client matches the current schema
+- **Schema Migrations**: Updates the database structure to the current version using Prisma migrations
+- **Family Data Migration**: Converts single-family data to multi-family structure if needed
+- **Database Seeding**: Adds any new default settings, units, and required data
+
+This ensures that restored databases are fully compatible with the current application version.
+
+**⚠️ Security Requirement**: Database migration operations require **system administrator authentication**. Only users authenticated as system administrators can perform post-restore migrations. Regular family administrators do not have sufficient privileges for these operations.
 
 ## Error Handling
 
@@ -108,7 +121,11 @@ The component provides comprehensive error handling:
 - Network failures during backup/restore operations
 - Invalid file types (only `.db` files accepted)
 - Authentication errors (uses stored auth token)
+- **Authorization errors**: Clear messages when system admin privileges are required
 - Server-side errors during processing
+- **Migration failures**: Detailed error messages when schema migrations fail
+- **Compatibility issues**: Clear feedback when database versions are incompatible
+- **Partial failures**: Distinguishes between restore failures and migration failures
 
 ## File Structure
 
@@ -119,6 +136,10 @@ src/components/BackupRestore/
 ├── backup-restore.styles.ts     # Tailwind CSS styles (light mode)
 ├── backup-restore.css          # Dark mode CSS overrides
 └── README.md                   # This documentation
+
+Related API Endpoints:
+├── /api/database                # Backup (GET) and restore (POST) operations
+└── /api/database/migrate        # Post-restore migration operations (System Admin only)
 ```
 
 ## Cross-Platform Considerations
@@ -165,10 +186,49 @@ export default function AppConfigForm({ isOpen, onClose }: AppConfigFormProps) {
 }
 ```
 
+## Migration Troubleshooting
+
+### Common Migration Issues
+- **Schema incompatibility**: Older databases may require manual schema updates
+- **Missing dependencies**: Ensure all npm packages are installed before migration
+- **Permission errors**: Database file must be writable by the application
+- **Family structure**: Very old databases may need manual family data conversion
+
+### Manual Migration Fallback
+If automatic migration fails, you can run migrations manually:
+```bash
+# Generate Prisma client
+npm run prisma:generate
+
+# Run schema migrations
+npx prisma migrate deploy
+# or for development
+npm run prisma:migrate
+
+# Run family migration (if needed)
+node scripts/family-migration.js
+
+# Seed with default data
+npm run prisma:seed
+```
+
+### Deployment Integration
+This component integrates with the project's deployment scripts:
+- Uses the same migration order as `scripts/update.sh`
+- Follows the same error handling patterns as `scripts/deployment.sh`
+- Leverages existing migration scripts (`family-migration.js`, `seed.ts`)
+
 ## Security Considerations
 
 - All API requests include authentication tokens when available
 - File upload validation is handled server-side
 - Only `.db` files are accepted for restore operations
 - Error messages don't expose sensitive system information
-- Temporary URLs are properly cleaned up after downloads 
+- Temporary URLs are properly cleaned up after downloads
+- **System Admin Authentication**: Database migration operations require system administrator privileges
+  - Regular family administrators cannot perform migrations
+  - Authentication is enforced at the API level using `withSysAdminAuth` middleware
+  - Clear error messages guide users who lack sufficient privileges
+- **Migration security**: Server-side scripts run with application privileges
+- **Backup validation**: Restored databases are validated before migration begins
+- **App Configuration Security**: System configuration endpoints also require system admin authentication 

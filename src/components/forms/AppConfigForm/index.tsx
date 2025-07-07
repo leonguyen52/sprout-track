@@ -54,8 +54,18 @@ export default function AppConfigForm({
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/app-config');
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/app-config', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
       const data = await response.json();
+      
+      if (response.status === 401 || response.status === 403) {
+        setError('Authentication required. Please ensure you are logged in as a system administrator.');
+        return;
+      }
       
       if (data.success) {
         setAppConfig(data.data);
@@ -139,10 +149,12 @@ export default function AppConfigForm({
         setError(null);
 
         // Update password in database immediately
+        const authToken = localStorage.getItem('authToken');
         const response = await fetch('/api/app-config', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
           },
           body: JSON.stringify({
             adminPass: newPassword
@@ -150,6 +162,11 @@ export default function AppConfigForm({
         });
 
         const data = await response.json();
+
+        if (response.status === 401 || response.status === 403) {
+          setError('Authentication required. Please ensure you are logged in as a system administrator.');
+          return;
+        }
 
         if (data.success) {
           // Update local state with new password data
@@ -226,15 +243,22 @@ export default function AppConfigForm({
       setError(null);
       setSuccess(null);
 
+      const authToken = localStorage.getItem('authToken');
       const response = await fetch('/api/app-config', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify(formData),
       });
 
       const data = await response.json();
+
+      if (response.status === 401 || response.status === 403) {
+        setError('Authentication required. Please ensure you are logged in as a system administrator.');
+        return;
+      }
 
       if (data.success) {
         setAppConfig(data.data);

@@ -31,9 +31,15 @@ export interface BackupRestoreState {
   /** Whether a restore operation is in progress */
   isRestoring: boolean;
   
+  /** Whether a migration is in progress after restore */
+  isMigrating: boolean;
+  
   /** Error message if operation fails */
   error: string | null;
   
   /** Success message if operation succeeds */
   success: string | null;
+  
+  /** Current migration step for progress tracking */
+  migrationStep: string | null;
 } 

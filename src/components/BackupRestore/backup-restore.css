@@ -55,4 +55,14 @@ html.dark .backup-restore-success-container {
 
 html.dark .backup-restore-success-text {
   color: #86efac !important; /* green-300 */
+}
+
+/* Migration progress styles in dark mode */
+html.dark .migration-progress-container {
+  background-color: #1e3a8a !important; /* blue-900/20 */
+  border-color: #2563eb !important; /* blue-600 */
+}
+
+html.dark .migration-progress-text {
+  color: #93c5fd !important; /* blue-300 */
 } 
