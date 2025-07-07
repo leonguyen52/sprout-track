@@ -161,7 +161,10 @@ export default function SetupPage() {
 
   return (
     <ThemeProvider>
-      <SetupWizard onComplete={handleSetupComplete} />
+      <SetupWizard 
+        onComplete={handleSetupComplete} 
+        initialSetup={true}
+      />
     </ThemeProvider>
   );
 } 

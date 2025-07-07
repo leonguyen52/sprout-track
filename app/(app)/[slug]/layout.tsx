@@ -276,6 +276,35 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
   }, [family?.id]);
   
+  // Validate family slug exists
+  const validateFamilySlug = useCallback(async (slug: string) => {
+    try {
+      const response = await fetch(`/api/family/by-slug/${encodeURIComponent(slug)}`);
+      const data = await response.json();
+      
+      // If family doesn't exist, redirect to home
+      if (!data.success || !data.data) {
+        console.log(`Family slug "${slug}" not found, redirecting to home...`);
+        router.push('/');
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error validating family slug:', error);
+      // On error, redirect to home to be safe
+      router.push('/');
+      return false;
+    }
+  }, [router]);
+
+  // Validate family slug on mount
+  useEffect(() => {
+    if (!mounted || !familySlug) return;
+    
+    validateFamilySlug(familySlug);
+  }, [mounted, familySlug, validateFamilySlug]);
+
   // Add continuous authentication check and redirect
   useEffect(() => {
     if (!mounted) return;

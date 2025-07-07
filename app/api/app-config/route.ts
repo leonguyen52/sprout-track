@@ -3,12 +3,14 @@ import prisma from '../db';
 import { ApiResponse } from '../types';
 import { AppConfig } from '@prisma/client';
 import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
+import { withSysAdminAuth } from '../utils/auth';
 
 /**
  * GET handler for AppConfig
  * Returns the current app configuration with decrypted adminPass
+ * Requires system administrator authentication
  */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest): Promise<NextResponse<ApiResponse<any>>> {
   try {
     let appConfig = await prisma.appConfig.findFirst();
     
@@ -35,7 +37,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching app config:', error);
-    return NextResponse.json<ApiResponse<AppConfig>>(
+    return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
         error: 'Failed to fetch app configuration',
@@ -48,15 +50,16 @@ export async function GET(req: NextRequest) {
 /**
  * PUT handler for AppConfig
  * Updates the app configuration with encrypted adminPass
+ * Requires system administrator authentication
  */
-export async function PUT(req: NextRequest) {
+async function putHandler(req: NextRequest): Promise<NextResponse<ApiResponse<any>>> {
   try {
     const body = await req.json();
     
     let existingConfig = await prisma.appConfig.findFirst();
     
     if (!existingConfig) {
-      return NextResponse.json<ApiResponse<AppConfig>>(
+      return NextResponse.json<ApiResponse<null>>(
         {
           success: false,
           error: 'App configuration not found. Please create one first.',
@@ -98,7 +101,7 @@ export async function PUT(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error updating app config:', error);
-    return NextResponse.json<ApiResponse<AppConfig>>(
+    return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
         error: 'Failed to update app configuration',
@@ -106,4 +109,8 @@ export async function PUT(req: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
+
+// Export handlers with system admin authentication
+export const GET = withSysAdminAuth(getHandler);
+export const PUT = withSysAdminAuth(putHandler); 

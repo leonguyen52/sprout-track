@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Input } from '@/src/components/ui/input';
 import { Button } from '@/src/components/ui/button';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { styles } from './setup-wizard.styles';
 import { FamilySetupStageProps } from './setup-wizard.types';
+import { BackupRestore } from '@/src/components/BackupRestore';
 
 /**
  * FamilySetupStage Component
@@ -16,11 +18,26 @@ const FamilySetupStage: React.FC<FamilySetupStageProps> = ({
   setFamilyName,
   familySlug,
   setFamilySlug,
-  token
+  token,
+  initialSetup = false
 }) => {
+  const router = useRouter();
   const [slugError, setSlugError] = useState('');
   const [checkingSlug, setCheckingSlug] = useState(false);
   const [generatingSlug, setGeneratingSlug] = useState(false);
+
+  // Handle post-import logout and redirect
+  const handleImportSuccess = useCallback(() => {
+    console.log('Database imported successfully during setup');
+    
+    // Clear all authentication data
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('unlockTime');
+    localStorage.removeItem('caretakerId');
+    
+    // Redirect to home page - user will need to login with imported data
+    router.push('/');
+  }, [router]);
 
   // Check slug uniqueness
   const checkSlugUniqueness = useCallback(async (slug: string) => {
@@ -218,6 +235,21 @@ const FamilySetupStage: React.FC<FamilySetupStageProps> = ({
           This will be the unique web address for your family. It can only contain lowercase letters, numbers, and hyphens.
         </p>
       </div>
+
+      {/* Import Section - only show during initial setup */}
+      {initialSetup && (
+        <div className={cn(styles.formGroup, "setup-wizard-form-group", "mt-6", "pt-6", "border-t", "border-gray-200", "dark:border-gray-700")}>
+          <BackupRestore
+            importOnly={true}
+            initialSetup={true}
+            onRestoreSuccess={handleImportSuccess}
+            onRestoreError={(error) => {
+              console.error('Database import failed during setup:', error);
+              // Error handling is managed by the BackupRestore component
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 };

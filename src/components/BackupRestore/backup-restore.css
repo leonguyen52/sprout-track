@@ -1,0 +1,68 @@
+/* Dark mode overrides for BackupRestore component */
+html.dark .backup-restore-title {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .backup-restore-button {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #4b5563 !important; /* gray-600 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .backup-restore-button:hover {
+  background-color: #4b5563 !important; /* gray-600 */
+}
+
+html.dark .backup-restore-backup-button {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #4b5563 !important; /* gray-600 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .backup-restore-backup-button:hover {
+  background-color: #4b5563 !important; /* gray-600 */
+}
+
+html.dark .backup-restore-restore-button {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #4b5563 !important; /* gray-600 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .backup-restore-restore-button:hover {
+  background-color: #4b5563 !important; /* gray-600 */
+}
+
+html.dark .backup-restore-help-text {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* Error message styles in dark mode */
+html.dark .backup-restore-error-container {
+  background-color: #7f1d1d !important; /* red-900/20 */
+  border-color: #dc2626 !important; /* red-600 */
+}
+
+html.dark .backup-restore-error-text {
+  color: #fca5a5 !important; /* red-300 */
+}
+
+/* Success message styles in dark mode */
+html.dark .backup-restore-success-container {
+  background-color: #14532d !important; /* green-900/20 */
+  border-color: #16a34a !important; /* green-600 */
+}
+
+html.dark .backup-restore-success-text {
+  color: #86efac !important; /* green-300 */
+}
+
+/* Migration progress styles in dark mode */
+html.dark .migration-progress-container {
+  background-color: #1e3a8a !important; /* blue-900/20 */
+  border-color: #2563eb !important; /* blue-600 */
+}
+
+html.dark .migration-progress-text {
+  color: #93c5fd !important; /* blue-300 */
+} 

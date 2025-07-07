@@ -15,10 +15,44 @@ export default function LoginPage() {
   const { family, loading: familyLoading } = useFamily();
   const [families, setFamilies] = useState<FamilyResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [slugValidated, setSlugValidated] = useState(false);
   const familySlug = params?.slug as string;
+
+  // Validate family slug exists first
+  useEffect(() => {
+    const validateSlug = async () => {
+      if (!familySlug) {
+        setSlugValidated(true);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/family/by-slug/${encodeURIComponent(familySlug)}`);
+        const data = await response.json();
+        
+        // If family doesn't exist, redirect to home
+        if (!data.success || !data.data) {
+          console.log(`Family slug "${familySlug}" not found during login, redirecting to home...`);
+          router.push('/');
+          return;
+        }
+        
+        // Family exists, allow login page to continue loading
+        setSlugValidated(true);
+      } catch (error) {
+        console.error('Error validating family slug during login:', error);
+        // On error, redirect to home to be safe
+        router.push('/');
+      }
+    };
+
+    validateSlug();
+  }, [familySlug, router]);
 
   // Load families for the dropdown only
   useEffect(() => {
+    // Don't load families until slug is validated
+    if (!slugValidated) return;
     const loadFamilies = async () => {
       try {
         setLoading(true);
@@ -37,7 +71,7 @@ export default function LoginPage() {
     };
 
     loadFamilies();
-  }, []);
+  }, [slugValidated]);
 
   // Handle successful authentication
   const handleUnlock = (caretakerId?: string) => {
@@ -51,6 +85,9 @@ export default function LoginPage() {
 
   // Check if already authenticated on page load
   useEffect(() => {
+    // Don't check auth until slug is validated
+    if (!slugValidated) return;
+    
     const authToken = localStorage.getItem('authToken');
     const unlockTime = localStorage.getItem('unlockTime');
     
@@ -63,21 +100,21 @@ export default function LoginPage() {
         router.push('/log-entry');
       }
     }
-  }, [router, familySlug]);
+  }, [router, familySlug, slugValidated]);
 
   // Check if family is inactive and redirect to root
   useEffect(() => {
-    // Only check after family context has finished loading
-    if (!familyLoading) {
-      if (family && family.isActive === false) {
-        // Family exists but is inactive - redirect to root
-        router.push('/');
-      } else if (!family && familySlug) {
-        // Family not found for the given slug - redirect to root
-        router.push('/');
-      }
+    // Only check after slug is validated and family context has finished loading
+    if (!slugValidated || familyLoading) return;
+    
+    if (family && family.isActive === false) {
+      // Family exists but is inactive - redirect to root
+      router.push('/');
+    } else if (!family && familySlug) {
+      // Family not found for the given slug - redirect to root
+      router.push('/');
     }
-  }, [family, familyLoading, familySlug, router]);
+  }, [family, familyLoading, familySlug, router, slugValidated]);
 
   // Handle family selection change
   const handleFamilyChange = (value: string) => {
@@ -86,6 +123,18 @@ export default function LoginPage() {
       router.push(`/${selectedFamily.slug}/login`);
     }
   };
+
+  // Show loading while validating slug
+  if (!slugValidated) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto mb-4"></div>
+          <p className="text-gray-500">Validating family...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center">
