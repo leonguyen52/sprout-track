@@ -25,17 +25,70 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
   const [editModalType, setEditModalType] = useState<'sleep' | 'feed' | 'diaper' | 'medicine' | 'note' | 'bath' | 'pump' | 'milestone' | 'measurement' | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
-  // Remove internal activity state management - use activities from parent
+  const [dateFilteredActivities, setDateFilteredActivities] = useState<ActivityType[]>([]);
+  
   const [isLoadingActivities, setIsLoadingActivities] = useState<boolean>(false);
   const [isFetchAnimated, setIsFetchAnimated] = useState<boolean>(true);
+  const lastRefreshTimestamp = useRef<number>(Date.now());
+  const wasIdle = useRef<boolean>(false);
 
   const babyId = useMemo(() => (activities.length > 0 ? activities[0].babyId : undefined), [activities]);
 
-  // Remove fetchActivitiesForDate - parent component handles data fetching
+  const fetchActivitiesForDate = async (babyId: string, date: Date, isAnimated: boolean) => {
+    setIsFetchAnimated(isAnimated);
+    if (isAnimated) {
+      setIsLoadingActivities(true);
+    }
+
+    try {
+      const formattedDate = date.toISOString();
+      const timestamp = new Date().getTime();
+      const urlPath = window.location.pathname;
+      const familySlugMatch = urlPath.match(/^\/([^\/]+)\//);
+      const familySlug = familySlugMatch ? familySlugMatch[1] : null;
+      
+      let url = `/api/timeline?babyId=${babyId}&date=${encodeURIComponent(formattedDate)}&_t=${timestamp}`;
+      
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(url, {
+        cache: 'no-store',
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Expires': '0',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setDateFilteredActivities(data.data);
+          lastRefreshTimestamp.current = Date.now();
+        } else {
+          setDateFilteredActivities([]);
+        }
+      } else {
+        console.error('Failed to fetch activities:', await response.text());
+        setDateFilteredActivities([]);
+      }
+    } catch (error) {
+      console.error('Error fetching activities for date:', error);
+      setDateFilteredActivities([]);
+    } finally {
+      if (isAnimated) {
+        setIsLoadingActivities(false);
+      }
+    }
+  };
 
   const handleFormSuccess = () => {
     setEditModalType(null);
     setSelectedActivity(null);
+
+    if (babyId) {
+      fetchActivitiesForDate(babyId, selectedDate, true);
+    }
 
     if (onActivityDeleted) {
       onActivityDeleted();
@@ -44,8 +97,11 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
 
   const handleDateSelection = (newDate: Date) => {
     setSelectedDate(newDate);
-    if (onActivityDeleted) {
-      onActivityDeleted(newDate);
+    if (babyId) {
+      fetchActivitiesForDate(babyId, newDate, true);
+      if (onActivityDeleted) {
+        onActivityDeleted(newDate);
+      }
     }
   };
 
@@ -68,12 +124,57 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
     fetchSettings();
   }, []);
   
-  // Remove periodic refresh logic - parent component handles data fetching
+  useEffect(() => {
+    if (babyId) {
+      fetchActivitiesForDate(babyId, selectedDate, true);
+    } else {
+      setDateFilteredActivities(activities);
+    }
+  }, [activities, selectedDate, babyId]);
+
+  useEffect(() => {
+    if (!babyId) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // User came back to the tab, refresh immediately
+        fetchActivitiesForDate(babyId, selectedDate, false);
+      }
+    };
+
+    const poll = setInterval(() => {
+      const idleThreshold = 5 * 60 * 1000; // 5 minutes
+      const activeRefreshRate = 30 * 1000; // 30 seconds
+
+      const idleTime = Date.now() - parseInt(localStorage.getItem('unlockTime') || `${Date.now()}`);
+      const isCurrentlyIdle = idleTime >= idleThreshold;
+      const timeSinceLastRefresh = Date.now() - lastRefreshTimestamp.current;
+
+      // Case 1: User just came back from an idle state (was idle, now is not)
+      if (wasIdle.current && !isCurrentlyIdle) {
+        fetchActivitiesForDate(babyId, selectedDate, false);
+      }
+      // Case 2: User is active and the regular refresh interval has passed
+      else if (!isCurrentlyIdle && timeSinceLastRefresh > activeRefreshRate) {
+        fetchActivitiesForDate(babyId, selectedDate, false);
+      }
+
+      // Update the idle state for the next check
+      wasIdle.current = isCurrentlyIdle;
+    }, 10000); // Check status every 10 seconds
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [babyId, selectedDate]);
 
   const sortedActivities = useMemo(() => {
     const filtered = !activeFilter || activeFilter === null
-      ? activities
-      : activities.filter(activity => {
+      ? dateFilteredActivities
+      : dateFilteredActivities.filter(activity => {
           switch (activeFilter) {
             case 'sleep':
               return 'duration' in activity;
@@ -105,7 +206,7 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
     });
 
     return sorted;
-  }, [activities, activeFilter]);
+  }, [dateFilteredActivities, activeFilter]);
 
   const handleDelete = async (activity: ActivityType) => {
     if (!confirm('Are you sure you want to delete this activity?')) return;
@@ -145,7 +246,7 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
 
       {/* Daily Stats Banner */}
       <DailyStats 
-        activities={activities} 
+        activities={dateFilteredActivities} 
         date={selectedDate} 
         isLoading={isLoadingActivities} 
       />

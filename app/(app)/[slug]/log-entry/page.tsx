@@ -53,14 +53,14 @@ function HomeContent(): React.ReactElement {
   // Track the currently selected date in the Timeline component
   const [selectedTimelineDate, setSelectedTimelineDate] = useState<Date | null>(null);
   
+  // Track polling state for activity timers (same as Timeline component)
+  const lastRefreshTimestamp = useRef<number>(Date.now());
+  const wasIdle = useRef<boolean>(false);
+  
   const [sleepData, setSleepData] = useState<{
     ongoingSleep?: SleepLogResponse;
     lastEndedSleep?: SleepLogResponse & { endTime: string };
   }>({});
-
-  // Add refresh tracking state (similar to Timeline component)
-  const lastRefreshTimestamp = useRef<number>(Date.now());
-  const wasIdle = useRef<boolean>(false);
 
   // Define checkSleepStatus before it's used
   const checkSleepStatus = useCallback(async (babyId: string) => {
@@ -117,12 +117,15 @@ function HomeContent(): React.ReactElement {
         ongoingSleep,
         lastEndedSleep: completedSleeps[0]
       });
+      
+      // Update refresh timestamp for polling mechanism
+      lastRefreshTimestamp.current = Date.now();
     } catch (error) {
       console.error('Error checking sleep status:', error);
     }
   }, [userTimezone, family]);
   
-  const refreshActivities = useCallback(async (babyId: string | undefined, dateFilter?: Date, isAnimated: boolean = true) => {
+  const refreshActivities = useCallback(async (babyId: string | undefined, dateFilter?: Date) => {
     if (!babyId) return;
     
     try {
@@ -213,8 +216,8 @@ function HomeContent(): React.ReactElement {
             [babyId]: new Date(completedSleeps[0].endTime)
           }));
         }
-
-        // Update last refresh timestamp
+        
+        // Update refresh timestamp for polling mechanism
         lastRefreshTimestamp.current = Date.now();
       }
     } catch (error) {
@@ -222,16 +225,12 @@ function HomeContent(): React.ReactElement {
     }
   }, [userTimezone, selectedTimelineDate, family]);
 
-  // Update unlock timer on any activity and refresh current time
+  // Update unlock timer on any activity
   const updateUnlockTimer = () => {
     const unlockTime = localStorage.getItem('unlockTime');
     if (unlockTime) {
       localStorage.setItem('unlockTime', Date.now().toString());
     }
-    
-    // Update current time for forms when user clicks activity button
-    const now = new Date();
-    setLocalTime(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
   };
 
   useEffect(() => {
@@ -271,49 +270,6 @@ function HomeContent(): React.ReactElement {
     initializeData();
   }, [selectedBaby, refreshActivities, checkSleepStatus]);
 
-  // Add periodic refresh logic (similar to Timeline component)
-  useEffect(() => {
-    if (!selectedBaby?.id) return;
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // User came back to the tab, refresh immediately
-        refreshActivities(selectedBaby.id, selectedTimelineDate || undefined, false);
-        checkSleepStatus(selectedBaby.id);
-      }
-    };
-
-    const poll = setInterval(() => {
-      const idleThreshold = 5 * 60 * 1000; // 5 minutes
-      const activeRefreshRate = 30 * 1000; // 30 seconds
-
-      const idleTime = Date.now() - parseInt(localStorage.getItem('unlockTime') || `${Date.now()}`);
-      const isCurrentlyIdle = idleTime >= idleThreshold;
-      const timeSinceLastRefresh = Date.now() - lastRefreshTimestamp.current;
-
-      // Case 1: User just came back from an idle state (was idle, now is not)
-      if (wasIdle.current && !isCurrentlyIdle) {
-        refreshActivities(selectedBaby.id, selectedTimelineDate || undefined, false);
-        checkSleepStatus(selectedBaby.id);
-      }
-      // Case 2: User is active and the regular refresh interval has passed
-      else if (!isCurrentlyIdle && timeSinceLastRefresh > activeRefreshRate) {
-        refreshActivities(selectedBaby.id, selectedTimelineDate || undefined, false);
-        checkSleepStatus(selectedBaby.id);
-      }
-
-      // Update the idle state for the next check
-      wasIdle.current = isCurrentlyIdle;
-    }, 10000); // Check status every 10 seconds
-
-    window.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      clearInterval(poll);
-      window.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [selectedBaby?.id, selectedTimelineDate, refreshActivities, checkSleepStatus]);
-
   // Handle sleep status changes
   useEffect(() => {
     if (!selectedBaby?.id) return;
@@ -351,6 +307,51 @@ function HomeContent(): React.ReactElement {
     }
   }, [sleepData, selectedBaby]);
 
+  // Activity timer polling mechanism (same intervals as Timeline component)
+  useEffect(() => {
+    if (!selectedBaby?.id) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // User came back to the tab, refresh immediately
+        refreshActivities(selectedBaby.id);
+        checkSleepStatus(selectedBaby.id);
+      }
+    };
+
+    const poll = setInterval(() => {
+      const idleThreshold = 5 * 60 * 1000; // 5 minutes
+      const activeRefreshRate = 30 * 1000; // 30 seconds
+
+      const idleTime = Date.now() - parseInt(localStorage.getItem('unlockTime') || `${Date.now()}`);
+      const isCurrentlyIdle = idleTime >= idleThreshold;
+      const timeSinceLastRefresh = Date.now() - lastRefreshTimestamp.current;
+
+      // Case 1: User just came back from an idle state (was idle, now is not)
+      if (wasIdle.current && !isCurrentlyIdle) {
+        refreshActivities(selectedBaby.id);
+        checkSleepStatus(selectedBaby.id);
+        lastRefreshTimestamp.current = Date.now();
+      }
+      // Case 2: User is active and the regular refresh interval has passed
+      else if (!isCurrentlyIdle && timeSinceLastRefresh > activeRefreshRate) {
+        refreshActivities(selectedBaby.id);
+        checkSleepStatus(selectedBaby.id);
+        lastRefreshTimestamp.current = Date.now();
+      }
+
+      // Update the idle state for the next check
+      wasIdle.current = isCurrentlyIdle;
+    }, 10000); // Check status every 10 seconds
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [selectedBaby?.id, refreshActivities, checkSleepStatus]);
+
   return (
     <div className="relative isolate">
       {/* Activity Tile Group */}
@@ -383,10 +384,12 @@ function HomeContent(): React.ReactElement {
               activities={activities} 
               onActivityDeleted={(dateFilter?: Date) => {
                 if (selectedBaby?.id) {
-                  // Refresh activities with the provided date filter
-                  refreshActivities(selectedBaby.id, dateFilter);
+                  // If a date filter is provided, use it when refreshing activities
                   if (dateFilter) {
-                    checkSleepStatus(selectedBaby.id);
+                    console.log(`Refreshing with date filter: ${dateFilter.toISOString()}`);
+                    // Don't call refreshActivities here, let the Timeline component handle it
+                  } else {
+                    refreshActivities(selectedBaby.id);
                   }
                 }
               }}
@@ -455,7 +458,6 @@ function HomeContent(): React.ReactElement {
         onSuccess={() => {
           if (selectedBaby?.id) {
             refreshActivities(selectedBaby.id);
-            checkSleepStatus(selectedBaby.id);
           }
         }}
       />
@@ -471,7 +473,6 @@ function HomeContent(): React.ReactElement {
         onSuccess={() => {
           if (selectedBaby?.id) {
             refreshActivities(selectedBaby.id);
-            checkSleepStatus(selectedBaby.id);
           }
         }}
       />
@@ -573,7 +574,6 @@ function HomeContent(): React.ReactElement {
           setShowSettingsModal(false);
           if (selectedBaby?.id) {
             refreshActivities(selectedBaby.id);
-            checkSleepStatus(selectedBaby.id);
           }
         }}
         variant="settings"
