@@ -231,7 +231,7 @@ export default function FamilySelectPage() {
                 <div className="relative w-full">
                   <div className="flex items-center w-full">
                     <div className="absolute left-3 z-10">
-                      <Search className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                      <Search className="h-4 w-4 text-gray-500 family-select-search-icon" />
                     </div>
                     <Input
                       ref={inputRef}
@@ -244,7 +244,7 @@ export default function FamilySelectPage() {
                       disabled={loading}
                     />
                     <ChevronDown 
-                      className="absolute right-3 h-4 w-4 text-gray-500 dark:text-gray-400 family-select-dropdown-icon"
+                      className="absolute right-3 h-4 w-4 text-gray-500 family-select-dropdown-icon"
                       onClick={() => {
                         const willOpen = !dropdownOpen;
                         setDropdownOpen(willOpen);
@@ -260,7 +260,7 @@ export default function FamilySelectPage() {
                   {dropdownOpen && filteredFamilies.length > 0 && (
                     <div 
                       ref={dropdownRef}
-                      className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto family-select-dropdown"
+                      className="absolute z-50 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto family-select-dropdown"
                       style={{ width: inputRef.current?.offsetWidth }}
                     >
                       {filteredFamilies.length > 0 ? (
@@ -270,18 +270,18 @@ export default function FamilySelectPage() {
                               key={family.id}
                               className={`px-4 py-3 cursor-pointer family-select-dropdown-item ${
                                 highlightedIndex === index 
-                                  ? 'bg-teal-50 dark:bg-teal-900/20' 
-                                  : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                                  ? 'bg-teal-50 family-select-dropdown-item-highlighted' 
+                                  : 'hover:bg-gray-50'
                               }`}
                               onClick={() => handleFamilySelect(family)}
                               onMouseEnter={() => setHighlightedIndex(index)}
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
-                                  <div className="font-medium text-gray-900 dark:text-gray-100">
+                                  <div className="font-medium text-gray-900 family-select-dropdown-family-name">
                                     {family.name}
                                   </div>
-                                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                                  <div className="text-sm text-gray-500 family-select-dropdown-family-slug">
                                     /{family.slug}
                                   </div>
                                 </div>
@@ -291,7 +291,7 @@ export default function FamilySelectPage() {
                           ))}
                         </div>
                       ) : (
-                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="px-4 py-3 text-sm text-gray-500 family-select-no-families">
                           {searchTerm.trim() !== '' ? 'No families found' : 'No families available'}
                         </div>
                       )}
@@ -303,22 +303,22 @@ export default function FamilySelectPage() {
             
             {/* Selected Family Display */}
             {selectedFamily && (
-              <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-4 border border-teal-200 dark:border-teal-800 family-select-selected-card">
+              <div className="bg-teal-50 rounded-lg p-4 border border-teal-200 family-select-selected-card">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-teal-100 dark:bg-teal-800 rounded-full flex items-center justify-center">
-                      <Users className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                    <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center family-select-selected-icon-container">
+                      <Users className="w-4 h-4 text-teal-600 family-select-selected-icon" />
                     </div>
                     <div>
-                      <div className="font-medium text-gray-900 dark:text-gray-100 family-select-selected-family-name">
+                      <div className="font-medium text-gray-900 family-select-selected-family-name">
                         {selectedFamily.name}
                       </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 family-select-selected-family-slug">
+                      <div className="text-sm text-gray-500 family-select-selected-family-slug">
                         /{selectedFamily.slug}
                       </div>
                     </div>
                   </div>
-                  <div className="text-teal-600 dark:text-teal-400 family-select-selected-label">
+                  <div className="text-teal-600 family-select-selected-label">
                     Selected
                   </div>
                 </div>
@@ -343,4 +343,4 @@ export default function FamilySelectPage() {
       </div>
     </div>
   );
-} 
+}
