@@ -21,6 +21,11 @@ html.dark .family-select-input {
   color: #e5e7eb; /* gray-200 */
 }
 
+/* Search icon styling */
+html.dark .family-select-search-icon {
+  color: #9ca3af !important; /* gray-400 */
+}
+
 html.dark .family-select-input::placeholder {
   color: #9ca3af; /* gray-400 */
 }
@@ -111,6 +116,27 @@ html.dark .family-select-selected-family-slug {
 
 html.dark .family-select-selected-label {
   color: #5eead4 !important; /* teal-300 */
+}
+
+/* Dropdown item highlighted state in dark mode */
+html.dark .family-select-dropdown-item-highlighted {
+  background-color: rgba(94, 234, 212, 0.2) !important; /* teal-300 with opacity */
+}
+
+/* Selected family card styling in dark mode */
+html.dark .family-select-selected-card {
+  background-color: rgba(94, 234, 212, 0.2) !important; /* teal-300 with opacity */
+  border-color: #5eead4 !important; /* teal-300 */
+}
+
+/* Selected family icon container in dark mode */
+html.dark .family-select-selected-icon-container {
+  background-color: #5eead4 !important; /* teal-300 */
+}
+
+/* Selected family icon in dark mode */
+html.dark .family-select-selected-icon {
+  color: #1f2937 !important; /* gray-800 - dark background for contrast */
 }
 
 .family-select-input {
@@ -206,4 +232,4 @@ html.dark .family-select-selected-label {
   50% {
     opacity: 0.5;
   }
-} 
+}
