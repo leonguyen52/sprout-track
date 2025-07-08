@@ -257,6 +257,85 @@ async function generateAppConfig() {
   return appConfig;
 }
 
+// Generate essential units data (copied from seed.ts)
+async function generateUnits() {
+  console.log('Ensuring essential units exist...');
+  
+  const unitData = [
+    { unitAbbr: 'OZ', unitName: 'Ounces', activityTypes: 'weight,feed,medicine' },
+    { unitAbbr: 'ML', unitName: 'Milliliters', activityTypes: 'medicine,feed' },
+    { unitAbbr: 'TBSP', unitName: 'Tablespoon', activityTypes: 'medicine,feed' },
+    { unitAbbr: 'LB', unitName: 'Pounds', activityTypes: 'weight' },
+    { unitAbbr: 'IN', unitName: 'Inches', activityTypes: 'height' },
+    { unitAbbr: 'CM', unitName: 'Centimeters', activityTypes: 'height' },
+    { unitAbbr: 'G', unitName: 'Grams', activityTypes: 'weight,feed,medicine' },
+    { unitAbbr: 'KG', unitName: 'Kilograms', activityTypes: 'weight' },
+    { unitAbbr: 'F', unitName: 'Fahrenheit', activityTypes: 'temp' },
+    { unitAbbr: 'C', unitName: 'Celsius', activityTypes: 'temp' },
+    { unitAbbr: 'MG', unitName: 'Milligrams', activityTypes: 'medicine' },
+    { unitAbbr: 'MCG', unitName: 'Micrograms', activityTypes: 'medicine' },
+    { unitAbbr: 'L', unitName: 'Liters', activityTypes: 'medicine' },
+    { unitAbbr: 'CC', unitName: 'Cubic Centimeters', activityTypes: 'medicine' },
+    { unitAbbr: 'MOL', unitName: 'Moles', activityTypes: 'medicine' },
+    { unitAbbr: 'MMOL', unitName: 'Millimoles', activityTypes: 'medicine' }
+  ];
+
+  // Get existing units from the database
+  const existingUnits = await prisma.unit.findMany({
+    select: { id: true, unitAbbr: true, activityTypes: true }
+  });
+  
+  // Create a map of existing unit abbreviations for faster lookups
+  const existingUnitsMap = new Map(
+    existingUnits.map(unit => [unit.unitAbbr, { id: unit.id, activityTypes: unit.activityTypes }])
+  );
+  
+  // Filter out units that already exist
+  const missingUnits = unitData.filter(unit => !existingUnitsMap.has(unit.unitAbbr));
+  
+  // Create the missing units
+  if (missingUnits.length > 0) {
+    console.log(`Creating ${missingUnits.length} missing units: ${missingUnits.map(u => u.unitAbbr).join(', ')}`);
+    
+    for (const unit of missingUnits) {
+      await prisma.unit.create({
+        data: {
+          id: randomUUID(),
+          ...unit
+        }
+      });
+    }
+  } else {
+    console.log('All essential units already exist in the database.');
+  }
+  
+  // Update activity types for existing units if needed
+  const unitsToUpdate = [];
+  for (const unit of unitData) {
+    const existingUnit = existingUnitsMap.get(unit.unitAbbr);
+    if (existingUnit && existingUnit.activityTypes !== unit.activityTypes) {
+      unitsToUpdate.push({
+        id: existingUnit.id,
+        unitAbbr: unit.unitAbbr,
+        activityTypes: unit.activityTypes
+      });
+    }
+  }
+  
+  if (unitsToUpdate.length > 0) {
+    console.log(`Updating activity types for ${unitsToUpdate.length} units: ${unitsToUpdate.map(u => u.unitAbbr).join(', ')}`);
+    
+    for (const unit of unitsToUpdate) {
+      await prisma.unit.update({
+        where: { id: unit.id },
+        data: { activityTypes: unit.activityTypes }
+      });
+    }
+  }
+  
+  console.log('Units generation completed successfully.');
+}
+
 // Generate a family
 async function generateFamily() {
   const lastName = randomChoice(lastNames);
@@ -291,21 +370,49 @@ async function generateFamily() {
 
 // Generate caretakers for a family
 async function generateCaretakers(family) {
-  const caretakerCount = randomInt(2, 4);
   const caretakers = [];
   
-  for (let i = 0; i < caretakerCount; i++) {
-    const isFirstCaretaker = i === 0;
+  // ALWAYS create the system user "00" first - this is required for the application to work
+  console.log(`    Creating system user "00"...`);
+  const systemCaretaker = await prisma.caretaker.create({
+    data: {
+      id: randomUUID(),
+      loginId: '00',
+      name: 'system',
+      type: 'System Administrator',
+      role: 'ADMIN',
+      inactive: false,
+      securityPin: '111222',
+      familyId: family.id
+    }
+  });
+  
+  // Create family member relationship for system user
+  await prisma.familyMember.create({
+    data: {
+      familyId: family.id,
+      caretakerId: systemCaretaker.id,
+      role: 'admin'
+    }
+  });
+  
+  caretakers.push(systemCaretaker);
+  
+  // Now create regular caretakers (2-4 additional caretakers)
+  const regularCaretakerCount = randomInt(2, 4);
+  
+  for (let i = 0; i < regularCaretakerCount; i++) {
+    const isFirstRegularCaretaker = i === 0;
     const gender = Math.random() > 0.5 ? 'male' : 'female';
     const firstName = gender === 'male' ? randomChoice(maleFirstNames) : randomChoice(femaleFirstNames);
     
     const caretaker = await prisma.caretaker.create({
       data: {
         id: randomUUID(),
-        loginId: (i + 1).toString().padStart(2, '0'),
+        loginId: (i + 1).toString().padStart(2, '0'), // Start from "01" for regular users
         name: firstName,
-        type: isFirstCaretaker ? 'Parent' : randomChoice(caretakerTypes),
-        role: isFirstCaretaker ? 'ADMIN' : 'USER',
+        type: isFirstRegularCaretaker ? 'Parent' : randomChoice(caretakerTypes),
+        role: isFirstRegularCaretaker ? 'ADMIN' : 'USER',
         inactive: false,
         securityPin: '111222',
         familyId: family.id
@@ -317,7 +424,7 @@ async function generateCaretakers(family) {
       data: {
         familyId: family.id,
         caretakerId: caretaker.id,
-        role: isFirstCaretaker ? 'admin' : 'member'
+        role: isFirstRegularCaretaker ? 'admin' : 'member'
       }
     });
     
@@ -693,6 +800,9 @@ async function generateTestData() {
     // Generate app configuration
     await generateAppConfig();
     
+    // Generate essential units
+    await generateUnits();
+    
     // Generate cutoff time (between 15 minutes and 3 hours ago)
     const cutoffTime = generateCutoffTime();
     const endDate = new Date(cutoffTime);
@@ -780,8 +890,9 @@ async function generateTestData() {
     console.log(`\nTest data generation completed successfully!`);
     console.log(`Generated:`);
     console.log(`- 1 app configuration (domain: demo.sprout-track.com, HTTPS: enabled)`);
+    console.log(`- Essential units (OZ, ML, TBSP, LB, IN, CM, G, KG, F, C, MG, MCG, L, CC, MOL, MMOL)`);
     console.log(`- ${familyCount} families`);
-    console.log(`- ${totalCaretakers} caretakers`);
+    console.log(`- ${totalCaretakers} caretakers (including system user "00" for each family)`);
     console.log(`- ${totalBabies} babies`);
     console.log(`- ${totalSleepLogs} sleep logs`);
     console.log(`- ${totalFeedLogs} feed logs`);
@@ -805,4 +916,4 @@ generateTestData()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  }); 
+  });
