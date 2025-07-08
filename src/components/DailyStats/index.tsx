@@ -14,7 +14,8 @@ import {
   Ruler,
   Scale,
   RotateCw,
-  Thermometer
+  Thermometer,
+  PillBottle
 } from 'lucide-react';
 import { diaper, bottleBaby } from '@lucide/lab';
 import { Card } from '@/src/components/ui/card';
@@ -124,7 +125,8 @@ export const DailyStats: React.FC<DailyStatsProps> = ({ activities, date, isLoad
     bathCount,
     milestoneCount,
     lastMeasurements,
-    pumpTotals
+    pumpTotals,
+    medicineCounts
   } = useMemo(() => {
     // Set start and end of the selected day
     const startOfDay = new Date(date);
@@ -164,6 +166,9 @@ export const DailyStats: React.FC<DailyStatsProps> = ({ activities, date, isLoad
     
     // For tracking pump totals by unit
     const pumpTotals: Record<string, number> = {};
+    
+    // For tracking medicine doses by medicine
+    const medicineDoses: Record<string, { count: number, total: number, unit: string }> = {};
 
     // Process each activity
     activities.forEach(activity => {
@@ -328,6 +333,35 @@ export const DailyStats: React.FC<DailyStatsProps> = ({ activities, date, isLoad
           }
         }
       }
+      
+      // Medicine activities
+      if ('doseAmount' in activity && 'medicineId' in activity) {
+        const time = new Date(activity.time);
+        
+        // Only count medicines that were given on the selected day
+        if (time >= startOfDay && time <= endOfDay) {
+          // Get medicine name
+          let medicineName = 'Unknown';
+          if ('medicine' in activity && activity.medicine && typeof activity.medicine === 'object' && 'name' in activity.medicine) {
+            medicineName = (activity.medicine as { name?: string }).name || medicineName;
+          }
+          
+          // Initialize medicine record if it doesn't exist
+          if (!medicineDoses[medicineName]) {
+            medicineDoses[medicineName] = { 
+              count: 0, 
+              total: 0, 
+              unit: activity.unitAbbr || '' 
+            };
+          }
+          
+          // Increment count and add to total
+          medicineDoses[medicineName].count += 1;
+          if (activity.doseAmount && typeof activity.doseAmount === 'number') {
+            medicineDoses[medicineName].total += activity.doseAmount;
+          }
+        }
+      }
     });
 
     // Calculate awake time (elapsed time today minus sleep minutes)
@@ -361,6 +395,16 @@ export const DailyStats: React.FC<DailyStatsProps> = ({ activities, date, isLoad
     const formattedPumpTotals = Object.entries(pumpTotals)
       .map(([unit, amount]) => `${amount.toFixed(1)} ${unit}`)
       .join(', ');
+      
+    // Format medicine counts
+    const formattedMedicineCounts = Object.entries(medicineDoses)
+      .map(([name, data]) => ({
+        name,
+        count: data.count,
+        total: data.total,
+        unit: data.unit,
+        display: `${data.count}x (${data.total}${data.unit})`
+      }));
     
     return {
       awakeTime: formatMinutes(awakeMinutes),
@@ -375,7 +419,8 @@ export const DailyStats: React.FC<DailyStatsProps> = ({ activities, date, isLoad
       bathCount: bathCount.toString(),
       milestoneCount: milestoneCount.toString(),
       lastMeasurements,
-      pumpTotals: formattedPumpTotals || 'None'
+      pumpTotals: formattedPumpTotals || 'None',
+      medicineCounts: formattedMedicineCounts
     };
   }, [activities, date]);
 
@@ -402,6 +447,11 @@ export const DailyStats: React.FC<DailyStatsProps> = ({ activities, date, isLoad
               ...(bathCount !== '0' ? [{ icon: <Bath className="h-3 w-3 text-orange-500" />, label: "Baths", value: bathCount }] : []),
               ...(milestoneCount !== '0' ? [{ icon: <Trophy className="h-3 w-3 text-blue-500" />, label: "Milestones", value: milestoneCount }] : []),
               ...(pumpTotals !== 'None' ? [{ icon: <LampWallDown className="h-3 w-3 text-purple-500" />, label: "Pumped", value: pumpTotals }] : []),
+              ...(medicineCounts.length > 0 ? medicineCounts.map(med => ({ 
+                icon: <PillBottle className="h-3 w-3 text-green-600" />, 
+                label: med.name, 
+                value: med.display 
+              })) : []),
               ...(lastMeasurements['HEIGHT'] ? [{ 
                 icon: <Ruler className="h-3 w-3 text-red-500" />, 
                 label: "Height", 
@@ -523,6 +573,14 @@ export const DailyStats: React.FC<DailyStatsProps> = ({ activities, date, isLoad
                   value={pumpTotals} 
                 />
               )}
+              {medicineCounts.length > 0 && medicineCounts.map((med, index) => (
+                <StatItem 
+                  key={`med-${index}`}
+                  icon={<PillBottle className="h-4 w-4 text-green-600" />} 
+                  label={med.name} 
+                  value={med.display} 
+                />
+              ))}
               {lastMeasurements['HEIGHT'] && (
                 <StatItem 
                   icon={<Ruler className="h-4 w-4 text-red-500" />} 

@@ -37,7 +37,8 @@ export default function DiaperForm({
   activity,
   onSuccess,
 }: DiaperFormProps) {
-  const { formatDate, toUTCString } = useTimezone();
+  const { toUTCString } = useTimezone();
+  
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime
@@ -117,6 +118,31 @@ export default function DiaperForm({
       setIsInitialized(false);
     }
   }, [isOpen, initialTime, activity, isInitialized]);
+
+  // Separate effect to handle initialTime changes for new entries
+  useEffect(() => {
+    if (isOpen && !activity && isInitialized) {
+      // Update the selected date time when initialTime changes for new entries
+      try {
+        const date = new Date(initialTime);
+        if (!isNaN(date.getTime())) {
+          setSelectedDateTime(date);
+          
+          // Also update the time in formData
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const formattedTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+          
+          setFormData(prev => ({ ...prev, time: formattedTime }));
+        }
+      } catch (error) {
+        console.error('Error parsing initialTime:', error);
+      }
+    }
+  }, [initialTime, isOpen, activity, isInitialized]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

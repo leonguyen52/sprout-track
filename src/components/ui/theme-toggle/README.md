@@ -14,6 +14,8 @@ A toggle button component that allows users to cycle between light, dark, and sy
 
 ## Usage
 
+### Default Theme Toggle
+
 ```tsx
 import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 
@@ -26,21 +28,47 @@ export default function MyComponent() {
 }
 ```
 
+### Light Theme Toggle
+
+```tsx
+import { ThemeToggle } from '@/src/components/ui/theme-toggle';
+
+export default function HeaderComponent() {
+  return (
+    <header>
+      <ThemeToggle variant="light" />
+    </header>
+  );
+}
+```
+
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `className` | `string` | `undefined` | Additional CSS class names to apply to the theme toggle |
+| `variant` | `"default" \| "light"` | `"default"` | Toggle variant - "default" has full styling with helper text and backgrounds, "light" is simplified with just icon and label |
 | `...props` | `ButtonHTMLAttributes<HTMLButtonElement>` | - | All standard button HTML attributes |
 
 ## Implementation Details
 
-The ThemeToggle component uses the application's theme context to determine the current theme and cycle between light, dark, and system modes. It displays:
+The ThemeToggle component uses the application's theme context to determine the current theme and cycle between light, dark, and system modes. 
+
+### Default Variant
+It displays:
 - A Sun icon with a blue circle when in light mode
 - A Moon icon with a purple circle when in dark mode
 - A Monitor icon with a green circle when in system mode
 
 The component shows both the current active theme and what the next theme will be when clicked, making it intuitive for users to understand the toggle behavior.
+
+### Light Variant
+The light variant provides a simplified interface with:
+- Smaller icons (14px vs 16px)
+- No colored circles or background highlighting
+- Only the current theme label (no helper text)
+- Smaller text size (12px vs 14px)
+- Minimal padding for compact layouts
 
 The component is styled using TailwindCSS for light mode styles and CSS classes for dark mode styles rather than Tailwind's dark mode variants for better cross-platform compatibility.
 

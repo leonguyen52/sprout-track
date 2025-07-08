@@ -1,0 +1,18 @@
+/* Dark mode overrides for Switch component */
+html.dark .switch-dark {
+  background-color: #374151; /* gray-700 for unchecked state */
+}
+
+html.dark .switch-dark[aria-checked="true"] {
+  background-color: #0d9488; /* teal-600 for checked state */
+}
+
+html.dark .switch-thumb-dark {
+  background-color: #f3f4f6; /* gray-100 */
+}
+
+/* Dark mode text for switch labels */
+html.dark label[for="active-status"],
+html.dark .text-sm.font-medium.leading-none {
+  color: #e5e7eb !important; /* gray-200 for better contrast in dark mode */
+}

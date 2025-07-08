@@ -9,7 +9,8 @@ import {
   Ruler,
   Scale,
   RotateCw,
-  Thermometer
+  Thermometer,
+  PillBottle
 } from 'lucide-react';
 import { diaper, bottleBaby } from '@lucide/lab';
 import { 
@@ -20,6 +21,10 @@ import {
 } from './types';
 
 export const getActivityIcon = (activity: ActivityType) => {
+  if ('doseAmount' in activity && 'medicineId' in activity) {
+    // Medicine log
+    return <PillBottle className="h-4 w-4 text-white" />;
+  }
   if ('type' in activity) {
     if ('duration' in activity) {
       return <Moon className="h-4 w-4 text-white" />; // Sleep activity
@@ -197,11 +202,12 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
         { label: 'Type', value: formatFeedType(activity.type) },
       ];
 
-      // Show amount for bottle and solids
+      // Show amount for bottle and solids - use unitAbbr instead of hardcoded units
       if (activity.amount && (activity.type === 'BOTTLE' || activity.type === 'SOLIDS')) {
+        const unit = (activity as any).unitAbbr || (activity.type === 'BOTTLE' ? 'oz' : 'g');
         details.push({ 
           label: 'Amount', 
-          value: `${activity.amount}${activity.type === 'BOTTLE' ? ' oz' : ' g'}`
+          value: `${activity.amount} ${unit}`
         });
       }
 
@@ -449,6 +455,21 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
 };
 
 export const getActivityDescription = (activity: ActivityType, settings: Settings | null): ActivityDescription => {
+  if ('doseAmount' in activity && 'medicineId' in activity) {
+    // Medicine log
+    let medName = 'Medicine';
+    if ('medicine' in activity && activity.medicine && typeof activity.medicine === 'object' && 'name' in activity.medicine) {
+      medName = (activity.medicine as { name?: string }).name || medName;
+    }
+    const dose = activity.doseAmount ? `${activity.doseAmount} ${activity.unitAbbr || ''}`.trim() : '';
+    const medTime = formatTime(activity.time, settings, true);
+    let notes = activity.notes ? activity.notes : '';
+    if (notes.length > 50) notes = notes.substring(0, 50) + '...';
+    return {
+      type: medName,
+      details: [medTime, `- ${dose}`, notes].filter(Boolean).join(' ')
+    };
+  }
   if ('type' in activity) {
     if ('duration' in activity) {
       const startTimeFormatted = activity.startTime ? formatTime(activity.startTime, settings, true) : 'unknown';
@@ -501,9 +522,13 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
         
         details = [side, duration].filter(Boolean).join(', ');
       } else if (activity.type === 'BOTTLE') {
-        details = `${activity.amount || 'unknown'} oz`;
+        // Use unitAbbr instead of hardcoded 'oz'
+        const unit = (activity as any).unitAbbr || 'oz';
+        details = `${activity.amount || 'unknown'} ${unit}`;
       } else if (activity.type === 'SOLIDS') {
-        details = `${activity.amount || 'unknown'} g`;
+        // Use unitAbbr instead of hardcoded 'g'
+        const unit = (activity as any).unitAbbr || 'g';
+        details = `${activity.amount || 'unknown'} ${unit}`;
         if (activity.food) {
           details += ` of ${activity.food}`;
         }
@@ -705,6 +730,7 @@ export const getActivityEndpoint = (activity: ActivityType): string => {
   if ('duration' in activity) return 'sleep-log';
   if ('amount' in activity) return 'feed-log';
   if ('condition' in activity) return 'diaper-log';
+  if ('doseAmount' in activity && 'medicineId' in activity) return 'medicine-log';
   if ('content' in activity) return 'note';
   if ('soapUsed' in activity) return 'bath-log';
   if ('title' in activity && 'category' in activity) return 'milestone-log';
@@ -717,6 +743,13 @@ export const getActivityEndpoint = (activity: ActivityType): string => {
 };
 
 export const getActivityStyle = (activity: ActivityType): ActivityStyle => {
+  if ('doseAmount' in activity && 'medicineId' in activity) {
+    // Medicine log: pill bottle green
+    return {
+      bg: 'bg-[#43B755]',
+      textColor: 'text-white',
+    };
+  }
   if ('type' in activity) {
     if ('duration' in activity) {
       return {

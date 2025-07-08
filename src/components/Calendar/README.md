@@ -20,22 +20,11 @@ A responsive calendar component for the Baby Tracker application that displays a
 import { Calendar } from '@/src/components/Calendar';
 
 function CalendarPage() {
-  const { selectedBaby } = useBaby();
   const { userTimezone } = useTimezone();
   
   return (
     <div className="h-full">
-      {selectedBaby ? (
-        <Calendar 
-          selectedBabyId={selectedBaby.id} 
-          userTimezone={userTimezone} 
-        />
-      ) : (
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-semibold">No Baby Selected</h2>
-          <p className="mt-2 text-gray-500">Please select a baby from the dropdown menu above.</p>
-        </div>
-      )}
+      <Calendar userTimezone={userTimezone} />
     </div>
   );
 }
@@ -51,7 +40,7 @@ Main component for displaying a monthly calendar with activity indicators.
 
 | Prop | Type | Description | Default |
 |------|------|-------------|---------|
-| `selectedBabyId` | `string \| undefined` | The ID of the currently selected baby | Required |
+| `onDateSelect` | `(date: Date) => void` | Optional callback when a date is selected | `undefined` |
 | `userTimezone` | `string` | The user's timezone for date calculations | Required |
 
 ## Visual Behavior
@@ -63,6 +52,7 @@ Main component for displaying a monthly calendar with activity indicators.
 - Month and year are displayed in the header
 - Navigation buttons allow moving to previous/next months
 - "Today" button returns to the current month
+- The component will handle sending this timezone to the API
 
 ## Implementation Details
 

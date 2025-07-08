@@ -95,6 +95,13 @@ export default function BreastFeedForm({
     setIsEditingRight(false);
   };
   
+  const handleKeyDown = (e: React.KeyboardEvent, saveFn: () => void) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveFn();
+    }
+  };
+  
   // Validate and handle input changes
   const handleTimeInputChange = (
     value: string, 
@@ -161,6 +168,7 @@ export default function BreastFeedForm({
                       type="number"
                       value={leftHours}
                       onChange={(e) => handleTimeInputChange(e.target.value, setLeftHours, 23)}
+                      onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
                       className="w-20 text-center"
                       min="0"
                       max="23"
@@ -171,6 +179,7 @@ export default function BreastFeedForm({
                       type="number"
                       value={leftMinutes}
                       onChange={(e) => handleTimeInputChange(e.target.value, setLeftMinutes, 59)}
+                      onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
                       className="w-20 text-center"
                       min="0"
                       max="59"
@@ -181,6 +190,7 @@ export default function BreastFeedForm({
                       type="number"
                       value={leftSeconds}
                       onChange={(e) => handleTimeInputChange(e.target.value, setLeftSeconds, 59)}
+                      onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
                       className="w-20 text-center"
                       min="0"
                       max="59"
@@ -258,6 +268,7 @@ export default function BreastFeedForm({
                       type="number"
                       value={rightHours}
                       onChange={(e) => handleTimeInputChange(e.target.value, setRightHours, 23)}
+                      onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
                       className="w-20 text-center"
                       min="0"
                       max="23"
@@ -268,6 +279,7 @@ export default function BreastFeedForm({
                       type="number"
                       value={rightMinutes}
                       onChange={(e) => handleTimeInputChange(e.target.value, setRightMinutes, 59)}
+                      onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
                       className="w-20 text-center"
                       min="0"
                       max="59"
@@ -278,6 +290,7 @@ export default function BreastFeedForm({
                       type="number"
                       value={rightSeconds}
                       onChange={(e) => handleTimeInputChange(e.target.value, setRightSeconds, 59)}
+                      onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
                       className="w-20 text-center"
                       min="0"
                       max="59"

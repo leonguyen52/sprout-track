@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
-import { ApiResponse, SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MilestoneResponse, MeasurementResponse } from '../types';
-import { withAuth } from '../utils/auth';
+import { ApiResponse, SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MilestoneResponse, MeasurementResponse, MedicineLogResponse, MedicineResponse } from '../types';
+import { withAuthContext, AuthResult } from '../utils/auth';
 import { toUTC, formatForResponse } from '../utils/timezone';
 
 // Extended activity types with caretaker information
-type ActivityTypeWithCaretaker = (SleepLogResponse | FeedLogResponse | DiaperLogResponse | NoteResponse | BathLogResponse | PumpLogResponse | MilestoneResponse | MeasurementResponse) & { 
+type ActivityTypeWithCaretaker = (
+  SleepLogResponse | FeedLogResponse | DiaperLogResponse | NoteResponse | BathLogResponse | PumpLogResponse | MilestoneResponse | MeasurementResponse | MedicineLogResponse
+) & {
   caretakerId?: string | null;
   caretakerName?: string;
+  medicine?: MedicineResponse;
 };
 
 type ActivityType = ActivityTypeWithCaretaker;
@@ -41,14 +44,55 @@ const getActivityTime = (activity: any): number => {
   return new Date().getTime();
 };
 
-async function handleGet(req: NextRequest) {
+async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
-    // Get the full URL to debug
-    const fullUrl = req.url;
-    console.log(`Full request URL: ${fullUrl}`);
+    const { caretakerId, familyId: caretakerFamilyId } = authContext;
+
+    if (!caretakerFamilyId) {
+        return NextResponse.json<ApiResponse<null>>(
+            { success: false, error: 'User is not associated with a family.' },
+            { status: 403 }
+        );
+    }
     
     const url = new URL(req.url);
     const { searchParams } = url;
+    
+    const babyId = searchParams.get('babyId');
+
+    if (!babyId) {
+      return NextResponse.json<ApiResponse<ActivityType[]>>(
+        {
+          success: false,
+          error: 'Baby ID is required',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Verify that the baby belongs to the caretaker's family
+    const baby = await prisma.baby.findFirst({
+        where: {
+            id: babyId,
+            familyId: caretakerFamilyId,
+        },
+        select: {
+            familyId: true,
+        },
+    });
+
+    if (!baby) {
+        return NextResponse.json<ApiResponse<null>>(
+            { success: false, error: "Baby not found in this family." },
+            { status: 404 }
+        );
+    }
+
+    const familyId = baby.familyId; // Use the verified family ID for all queries
+
+    // Get the full URL to debug
+    const fullUrl = req.url;
+    console.log(`Full request URL: ${fullUrl}`);
     
     // Log all search parameters for debugging
     console.log("All search parameters:");
@@ -56,7 +100,6 @@ async function handleGet(req: NextRequest) {
       console.log(`${key}: ${value}`);
     });
     
-    const babyId = searchParams.get('babyId');
     const limit = Number(searchParams.get('limit')) || 200;
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -106,16 +149,6 @@ async function handleGet(req: NextRequest) {
       console.log(`No date parameters provided, using limit: ${limit}`);
     }
 
-    if (!babyId) {
-      return NextResponse.json<ApiResponse<ActivityType[]>>(
-        {
-          success: false,
-          error: 'Baby ID is required',
-        },
-        { status: 400 }
-      );
-    }
-
     // Log query parameters
     console.log(`Query parameters - useLimit: ${useLimit}, limit: ${limit}`);
     console.log(`Date filtering: ${effectiveStartDate ? 'Yes' : 'No'}`);
@@ -127,7 +160,7 @@ async function handleGet(req: NextRequest) {
     const endDateUTC = effectiveEndDate ? toUTC(effectiveEndDate) : undefined;
     
     // Get recent activities from each type with caretaker information
-    const [sleepLogs, feedLogs, diaperLogs, noteLogs, bathLogs, pumpLogs, milestoneLogs, measurementLogs] = await Promise.all([
+    const [sleepLogs, feedLogs, diaperLogs, noteLogs, bathLogs, pumpLogs, milestoneLogs, measurementLogs, medicineLogs] = await Promise.all([
       prisma.sleepLog.findMany({
         where: {
           babyId,
@@ -153,13 +186,13 @@ async function handleGet(req: NextRequest) {
                 endTime: { gte: endDateUTC }
               }
             ]
-          } : {})
+          } : {}),
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
         },
-        orderBy: { startTime: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { startTime: 'desc' }
       }),
       prisma.feedLog.findMany({
         where: {
@@ -169,13 +202,13 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
         },
-        orderBy: { time: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { time: 'desc' }
       }),
       prisma.diaperLog.findMany({
         where: {
@@ -185,13 +218,13 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
         },
-        orderBy: { time: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { time: 'desc' }
       }),
       prisma.note.findMany({
         where: {
@@ -201,13 +234,13 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
         },
-        orderBy: { time: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { time: 'desc' }
       }),
       prisma.bathLog.findMany({
         where: {
@@ -217,13 +250,13 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
         },
-        orderBy: { time: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { time: 'desc' }
       }),
       prisma.pumpLog.findMany({
         where: {
@@ -233,13 +266,13 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
         },
-        orderBy: { startTime: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { startTime: 'desc' }
       }),
       prisma.milestone.findMany({
         where: {
@@ -249,13 +282,13 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
         },
-        orderBy: { date: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { date: 'desc' }
       }),
       prisma.measurement.findMany({
         where: {
@@ -265,13 +298,30 @@ async function handleGet(req: NextRequest) {
               gte: startDateUTC,
               lte: endDateUTC
             }
-          } : {})
+          } : {}),
+          familyId, // Filter by the verified family ID
         },
         include: {
           caretaker: true
         },
-        orderBy: { date: 'desc' },
-        ...(useLimit && limit ? { take: limit } : {})
+        orderBy: { date: 'desc' }
+      }),
+      prisma.medicineLog.findMany({
+        where: {
+          babyId,
+          ...(startDateUTC && endDateUTC ? {
+            time: {
+              gte: startDateUTC,
+              lte: endDateUTC
+            }
+          } : {}),
+          familyId, // Filter by the verified family ID
+        },
+        include: {
+          caretaker: true,
+          medicine: true
+        },
+        orderBy: { time: 'desc' }
       })
     ]);
     
@@ -386,6 +436,27 @@ async function handleGet(req: NextRequest) {
         };
       });
       
+    // Format medicine logs
+    const formattedMedicineLogs: ActivityTypeWithCaretaker[] = medicineLogs
+      .map(log => {
+        const { caretaker, medicine, ...logWithoutCaretaker } = log;
+        return {
+          ...logWithoutCaretaker,
+          time: formatForResponse(log.time) || '',
+          createdAt: formatForResponse(log.createdAt) || '',
+          updatedAt: formatForResponse(log.updatedAt) || '',
+          deletedAt: formatForResponse(log.deletedAt),
+          caretakerId: log.caretakerId,
+          caretakerName: caretaker ? caretaker.name : undefined,
+          medicine: medicine ? {
+            ...medicine,
+            createdAt: formatForResponse(medicine.createdAt) || '',
+            updatedAt: formatForResponse(medicine.updatedAt) || '',
+            deletedAt: formatForResponse(medicine.deletedAt)
+          } : undefined
+        };
+      });
+
     // Format milestone logs
     const formattedMilestoneLogs: ActivityTypeWithCaretaker[] = milestoneLogs
       .map(log => {
@@ -431,7 +502,8 @@ async function handleGet(req: NextRequest) {
       ...formattedBathLogs,
       ...formattedPumpLogs,
       ...formattedMilestoneLogs,
-      ...formattedMeasurementLogs
+      ...formattedMeasurementLogs,
+      ...formattedMedicineLogs
     ]
     .sort((a, b) => getActivityTime(b) - getActivityTime(a));
     
@@ -445,8 +517,8 @@ async function handleGet(req: NextRequest) {
       data: finalActivities
     });
   } catch (error) {
-    console.error('Error fetching timeline:', error);
-    return NextResponse.json<ApiResponse<ActivityType[]>>(
+    console.error(`Error fetching timeline:`, error);
+    return NextResponse.json<ApiResponse<null>>(
       {
         success: false,
         error: 'Failed to fetch timeline',
@@ -456,6 +528,4 @@ async function handleGet(req: NextRequest) {
   }
 }
 
-// Apply authentication middleware to all handlers
-// Use type assertions to handle the multiple return types
-export const GET = withAuth(handleGet as (req: NextRequest) => Promise<NextResponse<ApiResponse<any>>>);
+export const GET = withAuthContext(handleGet);

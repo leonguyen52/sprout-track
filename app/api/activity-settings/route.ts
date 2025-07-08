@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
 import { ApiResponse, ActivitySettings } from '../types';
-import { withAuth } from '../utils/auth';
+import { withAuthContext, AuthResult } from '../utils/auth';
 
 /**
  * GET /api/activity-settings
@@ -9,25 +9,35 @@ import { withAuth } from '../utils/auth';
  * Retrieves activity settings for the current user
  * If caretakerId is provided, retrieves settings for that caretaker
  * Otherwise, retrieves global settings
+ * 
+ * Automatically adds any new activities from the default list to a caretaker's settings
+ * if they don't already exist in their configuration
  */
-async function getActivitySettings(req: NextRequest): Promise<NextResponse<ApiResponse<ActivitySettings>>> {
+async function getActivitySettings(req: NextRequest, authContext: AuthResult): Promise<NextResponse<ApiResponse<ActivitySettings | null>>> {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     // Get caretakerId from query params if provided
     const url = new URL(req.url);
     const caretakerId = url.searchParams.get('caretakerId');
     
-    console.log(`GET /api/activity-settings - caretakerId: ${caretakerId || 'null'}`);
+    console.log(`GET /api/activity-settings - caretakerId: ${caretakerId || 'null'}, familyId: ${userFamilyId}`);
     
     // Default settings to use if none are found
     const defaultSettings: ActivitySettings = {
-      order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone'],
-      visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone'],
+      order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'],
+      visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'],
       caretakerId: caretakerId || null,
     };
     
     // Get settings from database
     const settings = await prisma.settings.findFirst({
-      where: { id: { not: '' } }, // Get any settings record
+      where: { 
+        familyId: userFamilyId
+      },
       orderBy: { updatedAt: 'desc' },
     });
 
@@ -57,9 +67,61 @@ async function getActivitySettings(req: NextRequest): Promise<NextResponse<ApiRe
     
     // If caretakerId is provided, try to get caretaker-specific settings
     if (caretakerId) {
-      // If caretaker-specific settings exist, return them
+      // If caretaker-specific settings exist, check for missing activities
       if (allSettings[caretakerId]) {
         console.log(`Found settings for caretakerId: ${caretakerId}`);
+        
+        // Check for missing activities in the caretaker's settings
+        const caretakerSettings = allSettings[caretakerId];
+        const defaultActivities = defaultSettings.order;
+        const missingActivities = defaultActivities.filter(
+          activity => !caretakerSettings.order.includes(activity)
+        );
+        
+        // If there are missing activities, update the caretaker's settings
+        if (missingActivities.length > 0) {
+          console.log(`Found ${missingActivities.length} missing activities for caretakerId: ${caretakerId}`, missingActivities);
+          
+          // Add missing activities to order and visible arrays
+          const updatedOrder = [...caretakerSettings.order, ...missingActivities];
+          
+          // Add missing activities to visible array if they're visible in default settings
+          const updatedVisible = [...caretakerSettings.visible];
+          for (const activity of missingActivities) {
+            if (defaultSettings.visible.includes(activity) && !updatedVisible.includes(activity)) {
+              updatedVisible.push(activity);
+            }
+          }
+          
+          // Update settings in the database
+          allSettings[caretakerId] = {
+            order: updatedOrder,
+            visible: updatedVisible
+          };
+          
+          // Save updated settings
+          await prisma.settings.update({
+            where: { id: settings.id },
+            data: {
+              // Use type assertion to allow activitySettings property
+              ...(({ activitySettings: JSON.stringify(allSettings) }) as any)
+            }
+          });
+          
+          console.log(`Updated settings for caretakerId: ${caretakerId} with missing activities`);
+          
+          // Return updated settings
+          return NextResponse.json({ 
+            success: true, 
+            data: {
+              order: updatedOrder,
+              visible: updatedVisible,
+              caretakerId
+            }
+          });
+        }
+        
+        // If no missing activities, return existing settings
         return NextResponse.json({ 
           success: true, 
           data: {
@@ -69,15 +131,70 @@ async function getActivitySettings(req: NextRequest): Promise<NextResponse<ApiRe
         });
       }
       
-      // If no caretaker-specific settings exist but global settings do, return global settings
-      // This ensures caretakers get default settings until they customize them
+      // If no caretaker-specific settings exist but global settings do, use global settings as a base
+      // and check for missing activities compared to defaults
       if (allSettings.global) {
         console.log(`No settings for caretakerId: ${caretakerId}, using global settings`);
+        
+        // Get global settings
+        const globalSettings = allSettings.global;
+        
+        // Check for missing activities in global settings
+        const defaultActivities = defaultSettings.order;
+        const missingActivities = defaultActivities.filter(
+          activity => !globalSettings.order.includes(activity)
+        );
+        
+        // Create caretaker settings based on global settings
+        const caretakerOrder = [...globalSettings.order];
+        const caretakerVisible = [...globalSettings.visible];
+        
+        // Add any missing activities
+        let settingsUpdated = false;
+        if (missingActivities.length > 0) {
+          console.log(`Found ${missingActivities.length} missing activities in global settings`, missingActivities);
+          
+          // Add missing activities to order and visible arrays
+          for (const activity of missingActivities) {
+            caretakerOrder.push(activity);
+            
+            // Add to visible if it's visible in default settings
+            if (defaultSettings.visible.includes(activity) && !caretakerVisible.includes(activity)) {
+              caretakerVisible.push(activity);
+            }
+          }
+          
+          settingsUpdated = true;
+        }
+        
+        // Create new caretaker settings
+        allSettings[caretakerId] = {
+          order: caretakerOrder,
+          visible: caretakerVisible
+        };
+        
+        // Save updated settings if needed
+        if (settingsUpdated) {
+          await prisma.settings.update({
+            where: { id: settings.id },
+            data: {
+              // Use type assertion to allow activitySettings property
+              ...(({ activitySettings: JSON.stringify(allSettings) }) as any)
+            }
+          });
+          
+          console.log(`Created settings for caretakerId: ${caretakerId} based on global settings with missing activities added`);
+        } else {
+          console.log(`Created settings for caretakerId: ${caretakerId} based on global settings (no missing activities)`);
+        }
+        
+        // Return the new caretaker settings
         return NextResponse.json({ 
           success: true, 
           data: {
-            ...allSettings.global,
-            caretakerId // Still include the caretakerId so it's saved with their settings
+            order: caretakerOrder,
+            visible: caretakerVisible,
+            caretakerId
           }
         });
       }
@@ -86,6 +203,61 @@ async function getActivitySettings(req: NextRequest): Promise<NextResponse<ApiRe
     }
     
     // Return global settings or default if no settings exist
+    // If returning global settings, check for missing activities
+    if (allSettings.global) {
+      const globalSettings = allSettings.global;
+      
+      // Check for missing activities in global settings
+      const defaultActivities = defaultSettings.order;
+      const missingActivities = defaultActivities.filter(
+        activity => !globalSettings.order.includes(activity)
+      );
+      
+      // If there are missing activities, update the global settings
+      if (missingActivities.length > 0) {
+        console.log(`Found ${missingActivities.length} missing activities in global settings`, missingActivities);
+        
+        // Add missing activities to order and visible arrays
+        const updatedOrder = [...globalSettings.order, ...missingActivities];
+        
+        // Add missing activities to visible array if they're visible in default settings
+        const updatedVisible = [...globalSettings.visible];
+        for (const activity of missingActivities) {
+          if (defaultSettings.visible.includes(activity) && !updatedVisible.includes(activity)) {
+            updatedVisible.push(activity);
+          }
+        }
+        
+        // Update settings in the database
+        allSettings.global = {
+          order: updatedOrder,
+          visible: updatedVisible
+        };
+        
+        // Save updated settings
+        await prisma.settings.update({
+          where: { id: settings.id },
+          data: {
+            // Use type assertion to allow activitySettings property
+            ...(({ activitySettings: JSON.stringify(allSettings) }) as any)
+          }
+        });
+        
+        console.log(`Updated global settings with missing activities`);
+        
+        // Return updated settings
+        return NextResponse.json({ 
+          success: true, 
+          data: {
+            order: updatedOrder,
+            visible: updatedVisible,
+            caretakerId: null
+          }
+        });
+      }
+    }
+    
+    // Return global settings or default if no updates needed
     return NextResponse.json({ 
       success: true, 
       data: {
@@ -102,8 +274,8 @@ async function getActivitySettings(req: NextRequest): Promise<NextResponse<ApiRe
     return NextResponse.json({ 
       success: true, 
       data: {
-        order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone'],
-        visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone'],
+        order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'],
+        visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'],
         caretakerId: errorCaretakerId || null,
       }
     });
@@ -116,13 +288,20 @@ async function getActivitySettings(req: NextRequest): Promise<NextResponse<ApiRe
  * Saves activity settings for the current user
  * If caretakerId is provided in the body, saves settings for that caretaker
  * Otherwise, saves global settings
+ * 
+ * Also ensures any new activities from the default list are included in the saved settings
  */
-async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiResponse<ActivitySettings>>> {
+async function saveActivitySettings(req: NextRequest, authContext: AuthResult): Promise<NextResponse<ApiResponse<ActivitySettings | null>>> {
   try {
+    const { familyId: userFamilyId } = authContext;
+    if (!userFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+    }
+
     const body = await req.json();
     const { order, visible, caretakerId } = body as ActivitySettings;
-
-    console.log(`POST /api/activity-settings - caretakerId: ${caretakerId || 'null'}`);
+    
+    console.log(`POST /api/activity-settings - caretakerId: ${caretakerId || 'null'}, familyId: ${userFamilyId}`);
 
     // Validate input
     if (!order || !Array.isArray(order) || !visible || !Array.isArray(visible)) {
@@ -132,10 +311,42 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
         { status: 400 }
       );
     }
+    
+    // Default activities list - keep in sync with the one in getActivitySettings
+    const defaultActivities = [
+      'sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'
+    ];
+    
+    // Check for any missing activities in the provided order
+    const missingActivities = defaultActivities.filter(
+      activity => !order.includes(activity)
+    );
+    
+    // If there are missing activities, add them to the order and visible arrays
+    let updatedOrder = [...order];
+    let updatedVisible = [...visible];
+    
+    if (missingActivities.length > 0) {
+      console.log(`Found ${missingActivities.length} missing activities in submitted settings`, missingActivities);
+      
+      // Add missing activities to order array
+      updatedOrder = [...order, ...missingActivities];
+      
+      // Add missing activities to visible array if they should be visible by default
+      for (const activity of missingActivities) {
+        if (defaultActivities.includes(activity) && !updatedVisible.includes(activity)) {
+          updatedVisible.push(activity);
+        }
+      }
+      
+      console.log('Updated order and visible arrays with missing activities');
+    }
 
     // Get current settings
     let currentSettings = await prisma.settings.findFirst({
-      where: { id: { not: '' } },
+      where: { 
+        familyId: userFamilyId
+      },
       orderBy: { updatedAt: 'desc' },
     });
 
@@ -144,6 +355,7 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
       console.log('No settings record found, creating a new one');
       currentSettings = await prisma.settings.create({
         data: {
+          familyId: userFamilyId,
           familyName: 'My Family',
           securityPin: '111222',
           defaultBottleUnit: 'OZ',
@@ -153,10 +365,10 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
           defaultTempUnit: 'F',
           activitySettings: JSON.stringify({
             global: {
-              order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone'],
-              visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone']
+              order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'],
+              visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine']
             }
-          })
+          }),
         }
       });
     }
@@ -183,8 +395,8 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
     const newSettings = {
       ...allSettings,
       [settingsKey]: {
-        order,
-        visible
+        order: updatedOrder,
+        visible: updatedVisible
       }
     };
     
@@ -205,8 +417,8 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
     return NextResponse.json({ 
       success: true, 
       data: {
-        order,
-        visible,
+        order: updatedOrder,
+        visible: updatedVisible,
         caretakerId: caretakerId || null
       }
     });
@@ -220,5 +432,5 @@ async function saveActivitySettings(req: NextRequest): Promise<NextResponse<ApiR
 }
 
 // Export handlers with authentication
-export const GET = withAuth(getActivitySettings);
-export const POST = withAuth(saveActivitySettings);
+export const GET = withAuthContext(getActivitySettings);
+export const POST = withAuthContext(saveActivitySettings);

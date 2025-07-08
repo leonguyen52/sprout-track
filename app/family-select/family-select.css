@@ -1,0 +1,235 @@
+/* Dark mode overrides for FamilySelect component */
+
+html.dark .family-select-container {
+  background-color: #1f2937 !important; /* gray-800 - override gradient */
+  background-image: none !important; /* Remove gradient in dark mode */
+  color: #e5e7eb; /* gray-200 */
+}
+
+html.dark .family-select-title {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .family-select-description {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* Search input styling */
+html.dark .family-select-input {
+  background-color: transparent !important;
+  border-color: #374151 !important; /* gray-700 */
+  color: #e5e7eb; /* gray-200 */
+}
+
+/* Search icon styling */
+html.dark .family-select-search-icon {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .family-select-input::placeholder {
+  color: #9ca3af; /* gray-400 */
+}
+
+html.dark .family-select-input:hover {
+  border-color: #4b5563 !important; /* gray-600 */
+}
+
+html.dark .family-select-input:focus {
+  border-color: #5eead4 !important; /* teal-300 */
+  outline: none !important;
+  ring-color: rgba(94, 234, 212, 0.5) !important; /* teal-300 with opacity */
+}
+
+/* Dropdown icon styling */
+html.dark .family-select-dropdown-icon {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* Dropdown container */
+html.dark .family-select-dropdown {
+  background-color: #1f2937; /* gray-800 */
+  border-color: #374151; /* gray-700 */
+}
+
+/* Dropdown items */
+html.dark .family-select-dropdown-item {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .family-select-dropdown-item:hover {
+  background-color: #374151 !important; /* gray-700 */
+}
+
+/* Dropdown item family names and slugs */
+html.dark .family-select-dropdown-family-name {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .family-select-dropdown-family-slug {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* No families found text */
+html.dark .family-select-no-families {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* Back button styling */
+html.dark .family-select-back-button {
+  border-color: #374151; /* gray-700 */
+  background-color: transparent;
+  color: #e5e7eb; /* gray-200 */
+}
+
+html.dark .family-select-back-button:hover {
+  background-color: #374151; /* gray-700 */
+}
+
+/* Light mode styles */
+.family-select-container {
+  background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 100%);
+}
+
+/* Family section title in dark mode */
+html.dark .family-select-section-title {
+  color: #5eead4 !important; /* teal-300 - matches LoginSecurity accent */
+}
+
+/* Family section icon in dark mode */  
+html.dark .family-select-section-icon {
+  color: #5eead4 !important; /* teal-300 - matches LoginSecurity accent */
+}
+
+/* Loading text in dark mode */
+html.dark .family-select-loading-text {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* Selected family card text in dark mode */
+html.dark .family-select-selected-family-name {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .family-select-selected-family-slug {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .family-select-selected-label {
+  color: #5eead4 !important; /* teal-300 */
+}
+
+/* Dropdown item highlighted state in dark mode */
+html.dark .family-select-dropdown-item-highlighted {
+  background-color: rgba(94, 234, 212, 0.2) !important; /* teal-300 with opacity */
+}
+
+/* Selected family card styling in dark mode */
+html.dark .family-select-selected-card {
+  background-color: rgba(94, 234, 212, 0.2) !important; /* teal-300 with opacity */
+  border-color: #5eead4 !important; /* teal-300 */
+}
+
+/* Selected family icon container in dark mode */
+html.dark .family-select-selected-icon-container {
+  background-color: #5eead4 !important; /* teal-300 */
+}
+
+/* Selected family icon in dark mode */
+html.dark .family-select-selected-icon {
+  color: #1f2937 !important; /* gray-800 - dark background for contrast */
+}
+
+.family-select-input {
+  transition: all 0.2s ease;
+  border-radius: 0.5rem;
+}
+
+.family-select-input:focus {
+  border-color: #0d9488; /* teal-600 */
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+}
+
+.family-select-dropdown {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-radius: 0.5rem;
+}
+
+.family-select-dropdown-item {
+  transition: all 0.15s ease;
+}
+
+.family-select-dropdown-item:first-child {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.family-select-dropdown-item:last-child {
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+/* Animation for dropdown appearance */
+.family-select-dropdown {
+  animation: slideIn 0.15s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Selected family card styling */
+.family-select-selected-card {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Button hover effects */
+.family-select-continue-button {
+  transition: all 0.2s ease;
+}
+
+.family-select-continue-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+.family-select-back-button {
+  transition: all 0.2s ease;
+}
+
+/* Focus styles for accessibility */
+.family-select-dropdown-item:focus {
+  outline: 2px solid #0d9488;
+  outline-offset: -2px;
+}
+
+/* Loading state styling */
+.family-select-loading {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

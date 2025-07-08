@@ -8,11 +8,10 @@ import {
   ChevronRight,
   Bath,
   ChevronDown,
-  Check,
-  Calendar as CalendarIcon,
   LampWallDown,
   Trophy,
   Ruler,
+  PillBottle,
 } from 'lucide-react';
 import { diaper, bottleBaby } from '@lucide/lab';
 import { FilterType, TimelineFilterProps } from './types';
@@ -20,11 +19,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuItem,
   DropdownMenuCheckboxItem,
 } from '@/src/components/ui/dropdown-menu';
-import { Checkbox } from '@/src/components/ui/checkbox';
 import {
   Popover,
   PopoverContent,
@@ -52,6 +48,7 @@ const TimelineFilter = ({
     { type: 'pump', icon: <LampWallDown className="h-4 w-4" />, label: 'Pump' },
     { type: 'milestone', icon: <Trophy className="h-4 w-4" />, label: 'Milestone' },
     { type: 'measurement', icon: <Ruler className="h-4 w-4" />, label: 'Measurement' },
+    { type: 'medicine', icon: <PillBottle className="h-4 w-4" />, label: 'Medicine' },
   ] as const;
 
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Input } from '@/src/components/ui/input';
 import { Button } from '@/src/components/ui/button';
 import {
@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/src/components/ui/select';
+import { AlertCircle } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { styles } from './setup-wizard.styles';
 import { SecuritySetupStageProps } from './setup-wizard.types';
@@ -31,6 +32,41 @@ const SecuritySetupStage: React.FC<SecuritySetupStageProps> = ({
   addCaretaker,
   removeCaretaker
 }) => {
+  const [loginIdError, setLoginIdError] = useState('');
+
+  // Validate login ID
+  const validateLoginId = (loginId: string) => {
+    if (!loginId) {
+      setLoginIdError('');
+      return true;
+    }
+    
+    if (!/^\d+$/.test(loginId)) {
+      setLoginIdError('Login ID must contain only digits');
+      return false;
+    }
+    
+    if (loginId === '00') {
+      setLoginIdError('Login ID "00" is reserved for system use');
+      return false;
+    }
+    
+    if (caretakers.some(c => c.loginId === loginId)) {
+      setLoginIdError('This Login ID is already taken');
+      return false;
+    }
+    
+    setLoginIdError('');
+    return true;
+  };
+
+  // Handle login ID change with validation
+  const handleLoginIdChange = (value: string) => {
+    if (value.length <= 2) {
+      setNewCaretaker({ ...newCaretaker, loginId: value });
+      validateLoginId(value);
+    }
+  };
   return (
     <div className={cn(styles.stageContainer, "setup-wizard-stage-container")}>
       <h2 className={cn(styles.stageTitle, "setup-wizard-stage-title")}>
@@ -138,21 +174,31 @@ const SecuritySetupStage: React.FC<SecuritySetupStageProps> = ({
                   className={cn(styles.formLabel, "setup-wizard-form-label")}
                   htmlFor="loginId"
                 >
-                  Login ID (2 chars)
+                  Login ID (2 digits)
                 </label>
-                <Input
-                  id="loginId"
-                  value={newCaretaker.loginId}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value.length <= 2) {
-                      setNewCaretaker({ ...newCaretaker, loginId: value });
-                    }
-                  }}
-                  placeholder="ID"
-                  className={cn(styles.formInput, "setup-wizard-form-input")}
-                  maxLength={2}
-                />
+                <div className="space-y-1">
+                  <Input
+                    id="loginId"
+                    value={newCaretaker.loginId}
+                    onChange={(e) => handleLoginIdChange(e.target.value)}
+                    placeholder="e.g., 01, 12, 99"
+                    className={cn(
+                      styles.formInput, 
+                      "setup-wizard-form-input",
+                      loginIdError ? 'border-red-500' : ''
+                    )}
+                    maxLength={2}
+                  />
+                  {loginIdError && (
+                    <div className="flex items-center gap-1 text-red-600 text-xs">
+                      <AlertCircle className="h-3 w-3" />
+                      {loginIdError}
+                    </div>
+                  )}
+                  <p className={cn(styles.formHelperText, "setup-wizard-form-helper-text")}>
+                    Use digits only (01-99). Cannot use "00" (reserved for system).
+                  </p>
+                </div>
               </div>
               <div>
                 <label 

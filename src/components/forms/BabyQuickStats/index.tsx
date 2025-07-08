@@ -20,6 +20,7 @@ import { Label } from '@/src/components/ui/label';
 import CardVisual from '@/src/components/reporting/CardVisual';
 import { Clock, Moon, Sun, Utensils, Droplet, Loader2 } from 'lucide-react';
 import { diaper } from '@lucide/lab';
+import { useFamily } from '@/src/context/family';
 
 /**
  * BabyQuickStats Component
@@ -45,6 +46,8 @@ export const BabyQuickStats: React.FC<BabyQuickStatsProps> = ({
   calculateAge,
   activities: initialActivities = []
 }) => {
+  const { family } = useFamily();
+  
   // State for time period selection
   const [mainPeriod, setMainPeriod] = useState<TimePeriod>('7day');
   const [comparePeriod, setComparePeriod] = useState<TimePeriod>('14day');
@@ -75,8 +78,20 @@ export const BabyQuickStats: React.FC<BabyQuickStatsProps> = ({
         // Add timestamp to prevent caching
         const timestamp = new Date().getTime();
         
-        // Make API call to get activities for the baby using the timeline endpoint
-        const url = `/api/timeline?babyId=${selectedBaby.id}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&_t=${timestamp}`;
+        // Build URL with family ID for proper data isolation
+        const urlParams = new URLSearchParams({
+          babyId: selectedBaby.id,
+          startDate: startDate,
+          endDate: endDate,
+          _t: timestamp.toString()
+        });
+        
+        // Include family ID if available for proper data filtering
+        if (family?.id) {
+          urlParams.append('familyId', family.id);
+        }
+        
+        const url = `/api/timeline?${urlParams.toString()}`;
         
         console.log(`Fetching activities from: ${url}`);
         
@@ -112,7 +127,7 @@ export const BabyQuickStats: React.FC<BabyQuickStatsProps> = ({
     };
     
     fetchActivities();
-  }, [selectedBaby]);
+  }, [selectedBaby, family?.id]);
 
   // Helper function to format minutes into hours and minutes
   const formatMinutes = (minutes: number): string => {

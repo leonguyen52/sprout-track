@@ -19,12 +19,27 @@
   align-items: center;
 }
 
+/* Light variant button */
+.theme-toggle-button-light {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
 /* Theme icon container and styling */
 .theme-icon-container {
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 12px;
+}
+
+/* Light variant icon container - smaller margin */
+.theme-icon-container-light {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
 }
 
 .theme-icon {
@@ -37,6 +52,17 @@
   color: #6b7280; /* gray-500 */
 }
 
+/* Light variant icon - smaller */
+.theme-icon-light {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #ffffff; /* white */
+}
+
 /* Circle indicator for active theme */
 .theme-icon::before {
   content: '';
@@ -46,6 +72,11 @@
   border-radius: 50%;
   border: 2px solid transparent;
   transition: all 0.2s ease;
+}
+
+/* Light variant - no circle indicator */
+.theme-icon-light::before {
+  display: none;
 }
 
 /* Active theme indicators - light mode styles */
@@ -70,10 +101,23 @@
   flex-direction: column;
 }
 
+/* Light variant theme info - single line with smaller text */
+.theme-info-light {
+  display: flex;
+  flex-direction: column;
+}
+
 .current-theme {
   font-size: 0.875rem; /* text-sm */
   font-weight: 500; /* font-medium */
   color: #111827; /* gray-900 */
+}
+
+/* Light variant current theme - smaller text */
+.current-theme-light {
+  font-size: 0.75rem; /* text-xs */
+  font-weight: 500; /* font-medium */
+  color: #ffffff; /* white */
 }
 
 .next-theme {
@@ -91,11 +135,28 @@ html.dark .theme-toggle-button:hover {
   color: #e5e7eb !important; /* gray-200 - keep same color on hover */
 }
 
+/* Dark mode overrides for light variant */
+html.dark .theme-toggle-button-light {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .theme-toggle-button-light:hover {
+  color: #5eead4 !important; /* teal-300 - just color change, no background */
+}
+
 html.dark .theme-icon {
   color: #9ca3af; /* gray-400 */
 }
 
+html.dark .theme-icon-light {
+  color: #9ca3af; /* gray-400 */
+}
+
 html.dark .current-theme {
+  color: #f3f4f6; /* gray-100 */
+}
+
+html.dark .current-theme-light {
   color: #f3f4f6; /* gray-100 */
 }
 

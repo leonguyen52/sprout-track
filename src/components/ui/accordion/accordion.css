@@ -1,0 +1,51 @@
+/* Dark mode overrides for Accordion component */
+html.dark .accordion-dark {
+  color: #e5e7eb; /* gray-200 */
+}
+
+html.dark .accordion-item-dark {
+  border-color: #374151; /* gray-700 */
+}
+
+html.dark .accordion-trigger-dark {
+  color: #e5e7eb; /* gray-200 */
+}
+
+html.dark .accordion-trigger-dark:hover {
+  color: #5eead4; /* teal-300 */
+}
+
+html.dark .accordion-icon-dark {
+  color: #9ca3af; /* gray-400 */
+}
+
+html.dark .accordion-content-dark {
+  color: #d1d5db; /* gray-300 */
+}
+
+/* Animations for accordion */
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+.animate-accordion-down {
+  animation: accordion-down 0.2s ease-out;
+}
+
+.animate-accordion-up {
+  animation: accordion-up 0.2s ease-out;
+}

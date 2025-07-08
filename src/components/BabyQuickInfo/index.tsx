@@ -60,12 +60,17 @@ const BabyQuickInfo: React.FC<BabyQuickInfoProps> = ({
     setError(null);
     
     try {
+      const authToken = localStorage.getItem('authToken');
+      const fetchOptions = authToken ? {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      } : {};
+      
       // Fetch data in parallel
       const [lastActivitiesRes, upcomingEventsRes, contactsRes, activitiesRes] = await Promise.all([
-        fetch(`/api/baby-last-activities?babyId=${selectedBaby.id}`),
-        fetch(`/api/baby-upcoming-events?babyId=${selectedBaby.id}&limit=5`),
-        fetch(`/api/contact`),
-        fetch(`/api/timeline?babyId=${selectedBaby.id}&limit=30`)
+        fetch(`/api/baby-last-activities?babyId=${selectedBaby.id}`, fetchOptions),
+        fetch(`/api/baby-upcoming-events?babyId=${selectedBaby.id}&limit=5`, fetchOptions),
+        fetch(`/api/contact`, fetchOptions),
+        fetch(`/api/timeline?babyId=${selectedBaby.id}&limit=30`, fetchOptions)
       ]);
       
       // Process responses

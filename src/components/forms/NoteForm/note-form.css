@@ -38,6 +38,11 @@ html.dark .category-dropdown-item:hover {
   background-color: #374151; /* dark:gray-700 */
 }
 
+/* Dropdown item text color in dark mode */
+html.dark .category-dropdown-item {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
 /* Dropdown container */
 .category-dropdown-container {
   max-height: 200px;
@@ -49,4 +54,19 @@ html.dark .category-dropdown-item:hover {
 html.dark .category-dropdown-container {
   background-color: #1f2937; /* dark:gray-800 */
   border-color: #374151; /* dark:gray-700 */
+}
+
+/* Dropdown item highlighted state in dark mode */
+html.dark .category-dropdown-item-highlighted {
+  background-color: #374151 !important; /* gray-700 */
+}
+
+/* No matching categories text in dark mode */
+html.dark .category-dropdown-no-match {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* No categories found text in dark mode */
+html.dark .category-dropdown-no-categories {
+  color: #9ca3af !important; /* gray-400 */
 }
