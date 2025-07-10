@@ -34,7 +34,19 @@ export function TimezoneDebug() {
   // Fetch settings to check if debug timezone tool is enabled
   const fetchSettings = async () => {
     try {
-      const response = await fetch('/api/settings');
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
+      const response = await fetch('/api/settings', {
+        headers
+      });
+      
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
