@@ -10,7 +10,6 @@ services:
       - "${PORT:-3000}:3000"
     volumes:
       - db-data:/db
-      - ./.env:/app/.env:ro
     environment:
       - NODE_ENV=production
     healthcheck:

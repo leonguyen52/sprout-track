@@ -17,35 +17,6 @@ if [ -n "$TZ" ]; then
   fi
 fi
 
-# Check and generate ENC_HASH for data encryption
-echo "Checking for ENC_HASH in environment..."
-ENV_FILE="/app/.env"
-
-# Create .env file if it doesn't exist
-if [ ! -f "$ENV_FILE" ]; then
-    echo "Creating .env file..."
-    touch "$ENV_FILE"
-fi
-
-# Check if ENC_HASH exists and has a value
-ENC_HASH_EXISTS=$(grep -E "^ENC_HASH=" "$ENV_FILE" 2>/dev/null | cut -d '=' -f2)
-
-if [ -z "$ENC_HASH_EXISTS" ]; then
-    echo "Adding ENC_HASH to .env file..."
-    
-    # Generate a secure random hash (64 characters)
-    RANDOM_HASH=$(openssl rand -hex 32)
-    
-    # Add comment and ENC_HASH to .env file
-    echo "" >> "$ENV_FILE"
-    echo "# Encryption hash for data encryption" >> "$ENV_FILE"
-    echo "ENC_HASH=\"$RANDOM_HASH\"" >> "$ENV_FILE"
-    
-    echo "ENC_HASH generated and added to .env file"
-else
-    echo "ENC_HASH already exists in .env file"
-fi
-
 echo "Generating Prisma client..."
 DATABASE_URL="file:/db/baby-tracker.db" npx prisma generate
 
