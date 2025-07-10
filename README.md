@@ -49,8 +49,14 @@ The demo is populated with semi-realistic 🙃 test data spanning multiple famil
 
 To deploy the latest version using Docker:
 
+x64:
 ```bash
 docker pull sprouttrack/sprout-track:0.92.0
+```
+
+arm64:
+```bash
+docker pull sprouttrack/sprout-track:0.92.0arm64
 ```
 
 ## Table of Contents
