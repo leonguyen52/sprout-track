@@ -36,6 +36,7 @@ if [ -z "$ENC_HASH_EXISTS" ]; then
     echo "DATABASE_URL=\"file:./prisma/baby-tracker.db\"" >> "$ENV_FILE"
     echo "NODE_ENV=development" >> "$ENV_FILE"
     echo "PORT=3000" >> "$ENV_FILE"
+    echo "TZ=UTC" >> "$ENV_FILE"
     echo "AUTH_LIFE=86400" >> "$ENV_FILE"
     echo "IDLE_TIME=28800" >> "$ENV_FILE"
     echo "APP_VERSION=0.92.0" >> "$ENV_FILE"
