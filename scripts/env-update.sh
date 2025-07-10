@@ -33,7 +33,7 @@ if [ -z "$ENC_HASH_EXISTS" ]; then
     # Add default environment variables and ENC_HASH to .env file
     echo "" >> "$ENV_FILE"
     echo "# Default environment variables for local deployment" >> "$ENV_FILE"
-    echo "DATABASE_URL=\"file:./prisma/baby-tracker.db\"" >> "$ENV_FILE"
+    echo "DATABASE_URL=\"file:../db/baby-tracker.db\"" >> "$ENV_FILE"
     echo "NODE_ENV=development" >> "$ENV_FILE"
     echo "PORT=3000" >> "$ENV_FILE"
     echo "TZ=UTC" >> "$ENV_FILE"
