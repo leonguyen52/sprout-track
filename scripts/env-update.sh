@@ -2,8 +2,9 @@
 
 # This script checks and updates the .env file:
 # - Creates .env file if it doesn't exist
+# - Adds default environment variables for local deployment
 # - Checks for ENC_HASH and generates one if missing or blank
-# - Used for local deployment data encryption
+# - Used for local deployment configuration and data encryption
 
 # Get the project directory (one level up from the script location)
 PROJECT_DIR=$(dirname "$(dirname "$(readlink -f "$0")")")
@@ -29,12 +30,22 @@ if [ -z "$ENC_HASH_EXISTS" ]; then
     # Generate a secure random hash (64 characters)
     RANDOM_HASH=$(openssl rand -hex 32)
     
-    # Add comment and ENC_HASH to .env file
+    # Add default environment variables and ENC_HASH to .env file
+    echo "" >> "$ENV_FILE"
+    echo "# Default environment variables for local deployment" >> "$ENV_FILE"
+    echo "DATABASE_URL=\"file:./prisma/baby-tracker.db\"" >> "$ENV_FILE"
+    echo "NODE_ENV=development" >> "$ENV_FILE"
+    echo "PORT=3000" >> "$ENV_FILE"
+    echo "TZ=UTC" >> "$ENV_FILE"
+    echo "AUTH_LIFE=86400" >> "$ENV_FILE"
+    echo "IDLE_TIME=28800" >> "$ENV_FILE"
+    echo "APP_VERSION=0.92.0" >> "$ENV_FILE"
+    echo "COOKIE_SECURE=false" >> "$ENV_FILE"
     echo "" >> "$ENV_FILE"
     echo "# Encryption hash for local deployment data encryption" >> "$ENV_FILE"
     echo "ENC_HASH=\"$RANDOM_HASH\"" >> "$ENV_FILE"
     
-    echo "ENC_HASH generated and added to .env file"
+    echo "Environment variables and ENC_HASH generated and added to .env file"
 else
     echo "ENC_HASH already exists in .env file"
 fi
