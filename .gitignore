@@ -37,3 +37,6 @@ next-env.d.ts
 
 # custom port configuration
 scripts/port-config.sh
+
+# environment variables
+.env
