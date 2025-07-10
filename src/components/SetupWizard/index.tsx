@@ -139,6 +139,13 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
           return;
         }
         
+        // For token-based setup, defer system PIN saving until final stage
+        // to avoid authentication conflicts
+        if (token) {
+          setStage(3);
+          return;
+        }
+        
         try {
           setLoading(true);
           
@@ -155,12 +162,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
             throw new Error('Failed to save security PIN to settings');
           }
           
-          // For token-based auth, skip system caretaker update since:
-          // 1. We don't have a caretakerId in localStorage
-          // 2. The settings API already handles updating the system caretaker
+          // For non-token auth, update system caretaker if we have a caretaker ID
           const caretakerId = localStorage.getItem('caretakerId');
           if (caretakerId) {
-            // Only update system caretaker if we have a caretaker ID (non-token auth)
             const caretakerResponse = await fetch('/api/caretaker', {
               method: 'PUT',
               headers: getAuthHeaders(),
@@ -172,7 +176,6 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
             
             if (!caretakerResponse.ok) {
               console.warn('Failed to update system caretaker PIN (non-fatal)');
-              // Don't fail the setup for this - settings API already handles it
             }
           }
           
@@ -190,16 +193,23 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
           return;
         }
         
+        // For token-based setup, defer caretaker creation until final stage
+        // to avoid authentication conflicts
+        if (token) {
+          setStage(3);
+          return;
+        }
+        
         try {
           setLoading(true);
-          // Save caretakers for the created family
+          // Save caretakers for the created family (non-token setup only)
           for (const caretaker of caretakers) {
             const response = await fetch('/api/caretaker', {
               method: 'POST',
               headers: getAuthHeaders(),
               body: JSON.stringify({
                 ...caretaker,
-                familyId: createdFamily?.id, // Ensure familyId is included for token-based auth
+                familyId: createdFamily?.id,
               }),
             });
             
@@ -240,23 +250,79 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
       
       try {
         setLoading(true);
-        // Save baby information for the created family
-        const response = await fetch('/api/baby', {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            firstName: babyFirstName,
-            lastName: babyLastName,
-            birthDate: new Date(babyBirthDate),
-            gender: babyGender,
-            feedWarningTime,
-            diaperWarningTime,
-            familyId: createdFamily?.id, // Ensure familyId is included for token-based auth
-          }),
-        });
         
-        if (!response.ok) {
-          throw new Error('Failed to save baby information');
+        // For token-based setup, save baby first, then security settings/caretakers
+        // This avoids authentication conflicts where creating caretakers disables token access
+        if (token) {
+          // Step 1: Save baby information first
+          const babyResponse = await fetch('/api/baby', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              firstName: babyFirstName,
+              lastName: babyLastName,
+              birthDate: new Date(babyBirthDate),
+              gender: babyGender,
+              feedWarningTime,
+              diaperWarningTime,
+              familyId: createdFamily?.id,
+            }),
+          });
+          
+          if (!babyResponse.ok) {
+            throw new Error('Failed to save baby information');
+          }
+          
+          // Step 2: Save security settings/caretakers after baby is created
+          if (useSystemPin) {
+            // Save system PIN to settings
+            const settingsResponse = await fetch(`/api/settings?familyId=${createdFamily?.id}`, {
+              method: 'PUT',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                securityPin: systemPin,
+              }),
+            });
+            
+            if (!settingsResponse.ok) {
+              throw new Error('Failed to save security PIN to settings');
+            }
+          } else {
+            // Save caretakers
+            for (const caretaker of caretakers) {
+              const caretakerResponse = await fetch('/api/caretaker', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                  ...caretaker,
+                  familyId: createdFamily?.id,
+                }),
+              });
+              
+              if (!caretakerResponse.ok) {
+                throw new Error(`Failed to save caretaker: ${caretaker.name}`);
+              }
+            }
+          }
+        } else {
+          // For non-token setup, just save baby (security was already handled in stage 2)
+          const babyResponse = await fetch('/api/baby', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              firstName: babyFirstName,
+              lastName: babyLastName,
+              birthDate: new Date(babyBirthDate),
+              gender: babyGender,
+              feedWarningTime,
+              diaperWarningTime,
+              familyId: createdFamily?.id,
+            }),
+          });
+          
+          if (!babyResponse.ok) {
+            throw new Error('Failed to save baby information');
+          }
         }
         
         // Setup complete - logout and pass the family data to the callback
@@ -269,8 +335,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
           onComplete(createdFamily);
         }
       } catch (error) {
-        console.error('Error saving baby information:', error);
-        setError('Failed to save baby information. Please try again.');
+        console.error('Error completing setup:', error);
+        setError(error instanceof Error ? error.message : 'Failed to complete setup. Please try again.');
       } finally {
         setLoading(false);
       }
