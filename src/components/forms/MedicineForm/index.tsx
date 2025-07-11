@@ -117,6 +117,7 @@ import './medicine-form.css';
               babyId={babyId}
               refreshData={refreshData}
               onGiveMedicine={handleOpenGiveMedicine}
+              refreshTrigger={refreshTrigger}
             />
           )}
           

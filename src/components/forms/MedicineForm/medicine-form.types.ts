@@ -58,6 +58,11 @@ export interface ActiveDosesTabProps {
    * Function to open the Give Medicine form
    */
   onGiveMedicine?: () => void;
+  
+  /**
+   * Trigger value that changes when data should be refreshed
+   */
+  refreshTrigger?: number;
 }
 
 /**

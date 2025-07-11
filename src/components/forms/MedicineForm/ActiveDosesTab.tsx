@@ -39,7 +39,7 @@ import { useTimezone } from '@/app/context/timezone';
  * Displays active medicine doses for a baby with countdown timers
  * showing when the next dose is safe to administer.
  */
-const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData, onGiveMedicine }) => {
+const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData, onGiveMedicine, refreshTrigger }) => {
   const { formatDate, calculateDurationMinutes } = useTimezone();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -282,6 +282,13 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData, on
     
     return () => clearInterval(timer);
   }, [babyId, fetchActiveDoses]);
+  
+  // Listen for external refresh requests (e.g., after GiveMedicineForm success)
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      fetchActiveDoses();
+    }
+  }, [refreshTrigger, fetchActiveDoses]);
   
   // Refresh data when requested
   const handleRefresh = useCallback(() => {

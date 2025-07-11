@@ -26,6 +26,31 @@ import MedicineForm from './MedicineForm';
  * Uses an accordion-style list with expandable details and a form-page component for adding/editing
  */
 const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) => {
+  
+  // Helper function to format doseMinTime from DD:HH:MM to user-friendly format
+  const formatDoseMinTimeDisplay = (doseMinTime: string): string => {
+    if (!doseMinTime) return 'Not specified';
+    
+    const timeRegex = /^([0-9]{1,2}):([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
+    if (!timeRegex.test(doseMinTime)) return doseMinTime; // Return as-is if invalid format
+    
+    const [days, hours, minutes] = doseMinTime.split(':').map(Number);
+    
+    // Convert to total hours for easier calculation
+    const totalHours = (days * 24) + hours + (minutes / 60);
+    
+    // If less than 24 hours, show in hours, otherwise show in days
+    if (totalHours < 24) {
+      if (totalHours === 1) return '1 Hour';
+      if (totalHours % 1 === 0) return `${totalHours} Hours`;
+      return `${totalHours} Hours`; // Show decimal hours if needed
+    } else {
+      const totalDays = totalHours / 24;
+      if (totalDays === 1) return '1 Day';
+      if (totalDays % 1 === 0) return `${totalDays} Days`;
+      return `${totalDays} Days`; // Show decimal days if needed
+    }
+  };
   // Loading and error states
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
@@ -241,7 +266,7 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
                     <div className={cn(styles.medicineListDetailsContent)}>
                       <p className={cn(styles.medicineListDetailItem, "medicine-form-medicine-list-detail-item")}>
                         <Clock className={cn(styles.medicineListDetailIcon)} /> 
-                        Minimum time between doses: {medicine.doseMinTime}
+                        Minimum time between doses: {formatDoseMinTimeDisplay(medicine.doseMinTime || '')}
                       </p>
                       {medicine.notes && <p className={cn(styles.medicineListNotes, "medicine-form-medicine-list-notes")}>{medicine.notes}</p>}
                       <div className={cn(styles.medicineListContactsContainer)}>
