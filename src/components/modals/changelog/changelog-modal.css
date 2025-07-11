@@ -32,3 +32,13 @@ html.dark .changelog-modal-content h4 {
 html.dark .changelog-modal-markdown {
   color: #e5e7eb; /* gray-200 */
 }
+
+/* Text formatting support in dark mode */
+html.dark .changelog-modal-content strong {
+  color: #f3f4f6; /* gray-100 - slightly lighter for bold text */
+  font-weight: 600;
+}
+
+html.dark .changelog-modal-content em {
+  color: #d1d5db; /* gray-300 - slightly muted for italic text */
+}

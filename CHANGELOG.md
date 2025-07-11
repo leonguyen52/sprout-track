@@ -15,6 +15,7 @@
 - Fixed local env file generation when building the app for the first time
 - Fixed styling for calendar components in baby form and setup forms so that they do not look disabled
 - Added new select baby pages when a user logs in with multiple babies tied to the family
+- **Security Fix** Fixed the Docker build process to not generate the hash until the container starts of when the image is built
 
 ---
 
