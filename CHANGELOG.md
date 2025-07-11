@@ -1,6 +1,6 @@
 # Sprout Track Changelog
 
-## v0.92.8 - Multi-family Edition Enhancements and Bugfixs - July 2025
+## v0.92.10 - Multi-family Edition Enhancements and Bugfixs - July 2025
 
 ### Changes
 
@@ -13,6 +13,8 @@
 - Added correct light\dark mode theming to the Medicine activity forms
 - Fixes for docker builds with enviornment files in both arm64 and x64 architectures
 - Fixed local env file generation when building the app for the first time
+- Fixed styling for calendar components in baby form and setup forms so that they do not look disabled
+- Added new select baby pages when a user logs in with multiple babies tied to the family
 
 ## v0.92.0 - Multi-family Edition - July 2025
 
