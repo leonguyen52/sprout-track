@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { cn } from '@/src/lib/utils';
-import { medicineFormStyles as styles } from './medicine-form.styles';
-import { GiveMedicineTabProps, MedicineWithContacts, MedicineLogFormData } from './medicine-form.types';
+import { GiveMedicineTabProps, MedicineWithContacts, MedicineLogFormData } from '../MedicineForm/medicine-form.types';
 import { Loader2, AlertCircle, ChevronDown } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -18,24 +16,39 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator
 } from '@/src/components/ui/dropdown-menu';
+import { 
+  FormPage, 
+  FormPageContent, 
+  FormPageFooter 
+} from '@/src/components/ui/form-page';
 import { useTimezone } from '@/app/context/timezone';
-import { useTheme } from '@/src/context/theme';
+
+interface GiveMedicineFormProps {
+  isOpen: boolean;
+  onClose: () => void;
+  babyId: string | undefined;
+  initialTime: string;
+  onSuccess?: () => void;
+  refreshData?: () => void;
+  activity?: any;
+}
 
 /**
- * GiveMedicineTab Component
+ * GiveMedicineForm Component
  * 
- * Form for recording medicine administration
+ * A standalone form for recording medicine administration
+ * Follows the same pattern as other forms in the app (CaretakerForm, etc.)
  */
-const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({ 
+const GiveMedicineForm: React.FC<GiveMedicineFormProps> = ({ 
+  isOpen,
+  onClose,
   babyId, 
   initialTime, 
   onSuccess,
   refreshData,
-  setIsSubmitting,
   activity,
 }) => {
   const { toUTCString } = useTimezone();
-  const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,39 +106,41 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   }, [activity, babyId, initialTime, toUTCString, medicines]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsFetching(true);
-      setError(null);
-      const authToken = localStorage.getItem('authToken');
-      try {
-        const fetchOptions = { headers: { 'Authorization': `Bearer ${authToken}` } };
-        const medicinesResponse = await fetch('/api/medicine?active=true', fetchOptions);
-        if (!medicinesResponse.ok) throw new Error('Failed to load medicines');
-        const medicinesData = await medicinesResponse.json();
-        if (medicinesData.success) {
-          setMedicines(medicinesData.data);
-          if (activity?.medicineId) {
-            const currentMedicine = medicinesData.data.find((m: MedicineWithContacts) => m.id === activity.medicineId);
-            setSelectedMedicine(currentMedicine || null);
+    if (isOpen) {
+      const fetchData = async () => {
+        setIsFetching(true);
+        setError(null);
+        const authToken = localStorage.getItem('authToken');
+        try {
+          const fetchOptions = { headers: { 'Authorization': `Bearer ${authToken}` } };
+          const medicinesResponse = await fetch('/api/medicine?active=true', fetchOptions);
+          if (!medicinesResponse.ok) throw new Error('Failed to load medicines');
+          const medicinesData = await medicinesResponse.json();
+          if (medicinesData.success) {
+            setMedicines(medicinesData.data);
+            if (activity?.medicineId) {
+              const currentMedicine = medicinesData.data.find((m: MedicineWithContacts) => m.id === activity.medicineId);
+              setSelectedMedicine(currentMedicine || null);
+            }
+          } else {
+            setError(medicinesData.error || 'Failed to load medicines');
           }
-        } else {
-          setError(medicinesData.error || 'Failed to load medicines');
+
+          const unitsResponse = await fetch('/api/units?activityType=medicine', fetchOptions);
+          if (!unitsResponse.ok) throw new Error('Failed to load units');
+          const unitsData = await unitsResponse.json();
+          if (unitsData.success) setUnits(unitsData.data);
+          else setError(unitsData.error || 'Failed to load units');
+
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+        } finally {
+          setIsFetching(false);
         }
-
-        const unitsResponse = await fetch('/api/units?activityType=medicine', fetchOptions);
-        if (!unitsResponse.ok) throw new Error('Failed to load units');
-        const unitsData = await unitsResponse.json();
-        if (unitsData.success) setUnits(unitsData.data);
-        else setError(unitsData.error || 'Failed to load units');
-
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred.');
-      } finally {
-        setIsFetching(false);
-      }
-    };
-    fetchData();
-  }, [activity]);
+      };
+      fetchData();
+    }
+  }, [isOpen, activity]);
   
   const handleDateTimeChange = (date: Date) => {
     setSelectedDateTime(date);
@@ -188,7 +203,6 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
     if (!validateForm()) return;
 
     setIsLoading(true);
-    setIsSubmitting?.(true);
     setError(null);
 
     try {
@@ -232,97 +246,135 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
     } finally {
       setIsLoading(false);
-      setIsSubmitting?.(false);
     }
   };
   
   return (
-    <form id="give-medicine-form" onSubmit={handleSubmit} className="h-full flex flex-col">
-      <div className="flex-1 overflow-y-auto p-1">
-        {isFetching ? (
-          <div className={cn(styles.loadingContainer, "medicine-form-loading-container")}>
-            <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-            <p className="mt-2 text-gray-600">Loading form data...</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {error && (
-              <div className={cn(styles.errorContainer, "medicine-form-error-container flex items-center text-red-500 p-2 bg-red-50 rounded-md")}>
-                <AlertCircle className="mr-2 h-4 w-4" />
-                <span>{error}</span>
-              </div>
-            )}
-            
-            <div className={cn(styles.formGroup, "medicine-form-group")}>
-              <Label>Medicine</Label>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
-                    {selectedMedicine ? selectedMedicine.name : 'Select a medicine'}
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  <DropdownMenuLabel>Available Medicines</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {medicines.map(med => (
-                    <DropdownMenuItem key={med.id} onSelect={() => handleMedicineChange(med.id)}>
-                      {med.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {errors.medicineId && <p className={cn(styles.formError, "medicine-form-error")}>{errors.medicineId}</p>}
+    <FormPage
+      isOpen={isOpen}
+      onClose={onClose}
+      title={activity ? 'Edit Medicine Log' : 'Give Medicine'}
+      description={activity ? 'Update medicine administration details' : 'Record medicine administration'}
+    >
+      <form id="give-medicine-form" onSubmit={handleSubmit} className="h-full flex flex-col">
+        <FormPageContent>
+          {isFetching ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+              <p className="mt-2 text-gray-600">Loading form data...</p>
             </div>
-
-            <div className={cn(styles.formGroup, "medicine-form-group")}>
-              <Label>Time</Label>
-              <DateTimePicker value={selectedDateTime} onChange={handleDateTimeChange} />
-              {errors.time && <p className={cn(styles.formError, "medicine-form-error")}>{errors.time}</p>}
-            </div>
-
-            <div className={cn(styles.formGroup, "medicine-form-group")}>
-              <Label>Dose</Label>
-              <div className="flex items-center space-x-2">
-                <Input
-                  id="doseAmount"
-                  name="doseAmount"
-                  type="number"
-                  value={formData.doseAmount || ''}
-                  onChange={handleNumberChange}
-                  className="flex-1"
-                  step="0.1"
-                  min="0"
-                  placeholder="Enter dose amount"
-                />
+          ) : (
+            <div className="space-y-6">
+              {error && (
+                <div className="flex items-center text-red-500 p-3 bg-red-50 rounded-md border border-red-200">
+                  <AlertCircle className="mr-2 h-4 w-4" />
+                  <span>{error}</span>
+                </div>
+              )}
+              
+              <div>
+                <Label htmlFor="medicine">Medicine</Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="min-w-[70px]">
-                      {formData.unitAbbr || 'Unit'}
+                    <Button variant="outline" className="w-full justify-between">
+                      {selectedMedicine ? selectedMedicine.name : 'Select a medicine'}
+                      <ChevronDown className="ml-2 h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    {units.map(unit => (
-                      <DropdownMenuItem key={unit.unitAbbr} onSelect={() => handleUnitChange(unit.unitAbbr)}>
-                        {unit.unitName} ({unit.unitAbbr})
+                  <DropdownMenuContent className="w-56">
+                    <DropdownMenuLabel>Available Medicines</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {medicines.map(med => (
+                      <DropdownMenuItem key={med.id} onSelect={() => handleMedicineChange(med.id)}>
+                        {med.name}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+                {errors.medicineId && <p className="text-sm text-red-500 mt-1">{errors.medicineId}</p>}
               </div>
-              {errors.doseAmount && <p className={cn(styles.formError, "medicine-form-error")}>{errors.doseAmount}</p>}
-              {errors.unitAbbr && <p className={cn(styles.formError, "medicine-form-error")}>{errors.unitAbbr}</p>}
-            </div>
 
-            <div className={cn(styles.formGroup, "medicine-form-group")}>
-              <Label>Notes (optional)</Label>
-              <Textarea id="notes" name="notes" value={formData.notes} onChange={handleChange} />
+              <div>
+                <Label htmlFor="time">Time</Label>
+                <DateTimePicker value={selectedDateTime} onChange={handleDateTimeChange} />
+                {errors.time && <p className="text-sm text-red-500 mt-1">{errors.time}</p>}
+              </div>
+
+              <div>
+                <Label htmlFor="dose">Dose</Label>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    id="doseAmount"
+                    name="doseAmount"
+                    type="number"
+                    value={formData.doseAmount || ''}
+                    onChange={handleNumberChange}
+                    className="flex-1"
+                    step="0.1"
+                    min="0"
+                    placeholder="Enter dose amount"
+                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="min-w-[70px]">
+                        {formData.unitAbbr || 'Unit'}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      {units.map(unit => (
+                        <DropdownMenuItem key={unit.unitAbbr} onSelect={() => handleUnitChange(unit.unitAbbr)}>
+                          {unit.unitName} ({unit.unitAbbr})
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                {errors.doseAmount && <p className="text-sm text-red-500 mt-1">{errors.doseAmount}</p>}
+                {errors.unitAbbr && <p className="text-sm text-red-500 mt-1">{errors.unitAbbr}</p>}
+              </div>
+
+              <div>
+                <Label htmlFor="notes">Notes (optional)</Label>
+                <Textarea 
+                  id="notes" 
+                  name="notes" 
+                  value={formData.notes} 
+                  onChange={handleChange}
+                  placeholder="Enter any additional notes about this medicine administration"
+                />
+              </div>
             </div>
+          )}
+        </FormPageContent>
+        
+        <FormPageFooter>
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading || isFetching}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                activity ? 'Update' : 'Save'
+              )}
+            </Button>
           </div>
-        )}
-      </div>
-    </form>
+        </FormPageFooter>
+      </form>
+    </FormPage>
   );
 };
 
-export default GiveMedicineTab;
+export default GiveMedicineForm;

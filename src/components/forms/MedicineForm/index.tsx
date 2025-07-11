@@ -8,8 +8,8 @@ import { PillBottle, Loader2 } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { FormPage, FormPageContent, FormPageFooter } from '@/src/components/ui/form-page';
 import ActiveDosesTab from './ActiveDosesTab';
-import GiveMedicineTab from './GiveMedicineTab';
 import ManageMedicinesTab from './ManageMedicinesTab';
+import GiveMedicineForm from '../GiveMedicineForm';
 import './medicine-form.css';
 
 /**
@@ -40,31 +40,35 @@ import './medicine-form.css';
 }) => {
   const [activeTab, setActiveTab] = useState<MedicineFormTab>('active-doses');
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showGiveMedicineForm, setShowGiveMedicineForm] = useState(false);
   
   // Function to refresh data in all tabs
   const refreshData = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
   
-  // Handle success from GiveMedicineTab - close the form and call onSuccess if provided
+  // Handle opening the Give Medicine form
+  const handleOpenGiveMedicine = useCallback(() => {
+    setShowGiveMedicineForm(true);
+  }, []);
+  
+  // Handle success from GiveMedicineForm
   const handleGiveMedicineSuccess = useCallback(() => {
-    // Close the form
-    onClose();
+    setShowGiveMedicineForm(false);
+    refreshData();
     
     // Call the original onSuccess if provided
     if (onSuccess) {
       onSuccess();
     }
-  }, [onClose, onSuccess]);
+  }, [onSuccess, refreshData]);
   
   // Set the active tab when form opens
   useEffect(() => {
     if (isOpen) {
-      // If we have an activity passed in, open the Give Medicine tab for editing
-      // Otherwise default to active doses tab
+      // If we have an activity passed in, open the Give Medicine form for editing
       if (activity) {
-        setActiveTab('give-medicine');
+        setShowGiveMedicineForm(true);
       } else {
         setActiveTab('active-doses');
       }
@@ -94,18 +98,6 @@ import './medicine-form.css';
           </Button>
           <Button
             variant="ghost"
-            onClick={() => setActiveTab('give-medicine')}
-            className={cn(
-              styles.tabButton, 
-              "medicine-form-tab-button",
-              activeTab === 'give-medicine' && styles.tabButtonActive,
-              activeTab === 'give-medicine' && "medicine-form-tab-button-active"
-            )}
-          >
-            Give Medicine
-          </Button>
-          <Button
-            variant="ghost"
             onClick={() => setActiveTab('manage-medicines')}
             className={cn(
               styles.tabButton, 
@@ -124,17 +116,7 @@ import './medicine-form.css';
             <ActiveDosesTab
               babyId={babyId}
               refreshData={refreshData}
-            />
-          )}
-          
-          {activeTab === 'give-medicine' && (
-            <GiveMedicineTab
-              babyId={babyId}
-              initialTime={initialTime}
-              onSuccess={handleGiveMedicineSuccess}
-              refreshData={refreshData}
-              setIsSubmitting={setIsSubmitting}
-              activity={activity}
+              onGiveMedicine={handleOpenGiveMedicine}
             />
           )}
           
@@ -148,54 +130,26 @@ import './medicine-form.css';
       
       <FormPageFooter>
         <div className="flex justify-end space-x-2">
-          {activeTab === 'active-doses' && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-            >
-              Close
-            </Button>
-          )}
-          
-          {activeTab === 'give-medicine' && (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                form="give-medicine-form"
-                type="submit"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save'
-                )}
-              </Button>
-            </>
-          )}
-          
-          {activeTab === 'manage-medicines' && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-            >
-              Close
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+          >
+            Close
+          </Button>
         </div>
       </FormPageFooter>
+      
+      {/* Give Medicine Form - overlays the main form */}
+      <GiveMedicineForm
+        isOpen={showGiveMedicineForm}
+        onClose={() => setShowGiveMedicineForm(false)}
+        babyId={babyId}
+        initialTime={initialTime}
+        onSuccess={handleGiveMedicineSuccess}
+        refreshData={refreshData}
+        activity={activity}
+      />
     </FormPage>
   );
 };
