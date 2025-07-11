@@ -16,6 +16,8 @@
 - Fixed styling for calendar components in baby form and setup forms so that they do not look disabled
 - Added new select baby pages when a user logs in with multiple babies tied to the family
 
+---
+
 ## v0.92.0 - Multi-family Edition - July 2025
 
 ### Changes
@@ -58,6 +60,8 @@
 - Improved error handling and user feedback across the application
 - Fixed the caretaker form so that users can only correctly enter in numbers instead of characters
 
+---
+
 ## v0.91.4 - Added Medicine Tracker - (Beta) - April 2025
 
 ### Changes
@@ -75,6 +79,8 @@
 - Ability to see doses, and when a new dose is safe to administer
 - Added medicine tracking to log-entry and full-log views
 
+---
+
 ## v0.9.3 (Beta Patch) - April 2025
 
 ### Changes
@@ -82,8 +88,8 @@
   - Fixed an issue where etc/timezones isn't available in docker images
   - Added the ability to set cookie auth to require HTTPS or not.  This is added to the .env file.  When enabled the cookie will only be valid and sent when the app is accessed over HTTPS.  When set to false the cookie will be valid and sent over HTTP or HTTPS.  IMPORTANT: When setting this to true you must have an SSL certificate in place otherwise all main API's will be blocked.
   - Added the ability to disable Next.js telemetry collection in the setup scripts
-  
 
+---
 
 ## v0.9.0 (Beta Release) - April 2025
 

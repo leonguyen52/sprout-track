@@ -142,6 +142,14 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
         continue;
       }
       
+      // Horizontal rules (---)
+      if (line.trim() === '---') {
+        processedContent.push(
+          <hr key={i} className="my-8 border-t border-gray-300 dark:border-gray-600" />
+        );
+        continue;
+      }
+      
       // Empty lines
       if (line.trim() === '') {
         processedContent.push(<br key={i} />);
