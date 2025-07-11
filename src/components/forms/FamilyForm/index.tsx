@@ -931,7 +931,7 @@ export default function FamilyForm({
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
-                      variant="outline"
+                      variant="input"
                       className={cn(
                         "w-full justify-start text-left font-normal",
                         !babyBirthDate && "text-gray-400"

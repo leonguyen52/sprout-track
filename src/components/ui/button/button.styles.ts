@@ -33,6 +33,8 @@ export const buttonVariants = cva(
           "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5",
         warning:
           "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5",
+        input:
+          "flex h-10 w-full rounded-xl border-2 border-indigo-200 bg-white px-4 py-2 text-base text-gray-900 ring-offset-background transition-all duration-200 file:border-0 file:bg-transparent file:text-base file:font-medium placeholder:text-gray-400 hover:border-indigo-300 hover:bg-indigo-50 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
         custom:
           "", // Empty string to allow full customization through className
       },
