@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/src/lib/utils';
-import { medicineFormStyles as styles } from './medicine-form.styles';
 import { Check, X, Plus, Phone, Mail, Edit, User } from 'lucide-react';
 import { Input } from '@/src/components/ui/input';
 import { Button } from '@/src/components/ui/button';
-import { Badge } from '@/src/components/ui/badge';
 import ContactForm from '@/src/components/forms/ContactForm';
 import { Contact } from '@/src/components/CalendarEvent/calendar-event.types';
 

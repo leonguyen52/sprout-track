@@ -42,10 +42,7 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* Form elements */
-.dark .medicine-form-label {
-  color: rgba(255, 255, 255, 0.8);
-}
+/* Form elements - Labels handled by Label component */
 
 /* Medicine items */
 .dark .medicine-form-medicine-item {
@@ -121,4 +118,22 @@
 
 .dark .text-teal-600 {
   color: #4fd1c5;
+}
+
+/* Give Medicine Tab Dark Mode */
+.dark .medicine-form-group {
+  /* Form group styling handled by individual elements */
+}
+
+.dark .medicine-form-error {
+  color: #ef4444 !important; /* red-500 */
+}
+
+/* Error container for Give Medicine Tab */
+.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+.dark .text-red-500 {
+  color: #ef4444 !important;
 }

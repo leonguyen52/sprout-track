@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/src/lib/utils';
+import { medicineFormStyles as styles } from './medicine-form.styles';
 import { GiveMedicineTabProps, MedicineWithContacts, MedicineLogFormData } from './medicine-form.types';
-import { PillBottle, Loader2, AlertCircle, Check, ChevronDown } from 'lucide-react';
+import { Loader2, AlertCircle, ChevronDown } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Textarea } from '@/src/components/ui/textarea';
 import { DateTimePicker } from '@/src/components/ui/date-time-picker';
+import { Label } from '@/src/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +53,43 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedMedicine, setSelectedMedicine] = useState<MedicineWithContacts | null>(null);
   
+  // Update form data when activity changes (for editing)
+  useEffect(() => {
+    if (activity) {
+      setFormData({
+        babyId: babyId || '',
+        medicineId: activity.medicineId || '',
+        time: activity.time || toUTCString(new Date(initialTime)) || new Date(initialTime).toISOString(),
+        doseAmount: activity.doseAmount || 0,
+        unitAbbr: activity.unitAbbr || '',
+        notes: activity.notes || '',
+      });
+      
+      // Update the selected date time as well
+      if (activity.time) {
+        setSelectedDateTime(new Date(activity.time));
+      }
+      
+      // Find and set the selected medicine if we have medicines loaded
+      if (medicines.length > 0 && activity.medicineId) {
+        const currentMedicine = medicines.find((m: MedicineWithContacts) => m.id === activity.medicineId);
+        setSelectedMedicine(currentMedicine || null);
+      }
+    } else {
+      // Reset form for new entry
+      setFormData({
+        babyId: babyId || '',
+        medicineId: '',
+        time: toUTCString(new Date(initialTime)) || new Date(initialTime).toISOString(),
+        doseAmount: 0,
+        unitAbbr: '',
+        notes: '',
+      });
+      setSelectedDateTime(new Date(initialTime));
+      setSelectedMedicine(null);
+    }
+  }, [activity, babyId, initialTime, toUTCString, medicines]);
+
   useEffect(() => {
     const fetchData = async () => {
       setIsFetching(true);
@@ -112,8 +151,18 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const numValue = parseFloat(value);
-    setFormData(prev => ({ ...prev, [name]: isNaN(numValue) ? 0 : numValue }));
+    
+    // Handle empty string case - allow it to be empty
+    if (value === '') {
+      setFormData(prev => ({ ...prev, [name]: 0 }));
+    } else {
+      const numValue = parseFloat(value);
+      // Only update if it's a valid number
+      if (!isNaN(numValue)) {
+        setFormData(prev => ({ ...prev, [name]: numValue }));
+      }
+    }
+    
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
   
@@ -162,8 +211,20 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
         throw new Error(errorData.error || `Failed to ${activity ? 'update' : 'save'} log`);
       }
       
-      refreshData?.();
-      onSuccess?.();
+      const result = await response.json();
+      
+      if (result.success) {
+        // Clear any existing errors
+        setError(null);
+        
+        // Refresh data first
+        refreshData?.();
+        
+        // Then call onSuccess to close the form
+        onSuccess?.();
+      } else {
+        throw new Error(result.error || `Failed to ${activity ? 'update' : 'save'} log`);
+      }
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
@@ -189,8 +250,8 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
               </div>
             )}
             
-            <div className="space-y-2">
-              <label>Medicine</label>
+            <div className={cn(styles.formGroup, "medicine-form-group")}>
+              <Label>Medicine</Label>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full justify-between">
@@ -208,25 +269,28 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              {errors.medicineId && <p className="text-red-500 text-sm">{errors.medicineId}</p>}
+              {errors.medicineId && <p className={cn(styles.formError, "medicine-form-error")}>{errors.medicineId}</p>}
             </div>
 
-            <div className="space-y-2">
-              <label>Time</label>
+            <div className={cn(styles.formGroup, "medicine-form-group")}>
+              <Label>Time</Label>
               <DateTimePicker value={selectedDateTime} onChange={handleDateTimeChange} />
-              {errors.time && <p className="text-red-500 text-sm">{errors.time}</p>}
+              {errors.time && <p className={cn(styles.formError, "medicine-form-error")}>{errors.time}</p>}
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="doseAmount">Dose</label>
+            <div className={cn(styles.formGroup, "medicine-form-group")}>
+              <Label>Dose</Label>
               <div className="flex items-center space-x-2">
                 <Input
                   id="doseAmount"
                   name="doseAmount"
                   type="number"
-                  value={formData.doseAmount}
+                  value={formData.doseAmount || ''}
                   onChange={handleNumberChange}
                   className="flex-1"
+                  step="0.1"
+                  min="0"
+                  placeholder="Enter dose amount"
                 />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -243,12 +307,12 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              {errors.doseAmount && <p className="text-red-500 text-sm">{errors.doseAmount}</p>}
-              {errors.unitAbbr && <p className="text-red-500 text-sm">{errors.unitAbbr}</p>}
+              {errors.doseAmount && <p className={cn(styles.formError, "medicine-form-error")}>{errors.doseAmount}</p>}
+              {errors.unitAbbr && <p className={cn(styles.formError, "medicine-form-error")}>{errors.unitAbbr}</p>}
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="notes">Notes (optional)</label>
+            <div className={cn(styles.formGroup, "medicine-form-group")}>
+              <Label>Notes (optional)</Label>
               <Textarea id="notes" name="notes" value={formData.notes} onChange={handleChange} />
             </div>
           </div>

@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { cn } from '@/src/lib/utils';
 import { medicineFormStyles as styles } from './medicine-form.styles';
 import { MedicineFormData } from './medicine-form.types';
-import { PillBottle, Loader2, AlertCircle, Clock, User, Check, FileText } from 'lucide-react';
+import { PillBottle, Loader2, AlertCircle, Clock, FileText } from 'lucide-react';
 import { FormPage, FormPageContent, FormPageFooter } from '@/src/components/ui/form-page';
 import { Input } from '@/src/components/ui/input';
 import { ExtendedTimeInput } from '@/src/components/ui/extended-time-input';
@@ -317,7 +316,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
           <div className="space-y-4">
             {/* Medicine Name */}
             <div className={styles.formGroup}>
-              <Label htmlFor="name" className={styles.formLabel}>
+              <Label htmlFor="name">
                 Medicine Name
                 <span className="text-red-500 ml-1">*</span>
               </Label>
@@ -343,7 +342,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
             {/* Typical Dose Size and Unit */}
             <div className="grid grid-cols-2 gap-4">
               <div className={styles.formGroup}>
-                <Label htmlFor="typicalDoseSize" className={styles.formLabel}>
+                <Label htmlFor="typicalDoseSize">
                   Typical Dose Size
                 </Label>
                 <Input
@@ -364,7 +363,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
               </div>
               
               <div className={styles.formGroup}>
-                <Label htmlFor="unitAbbr" className={styles.formLabel}>
+                <Label htmlFor="unitAbbr">
                   Unit
                 </Label>
                 <Select
@@ -393,7 +392,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
             
             {/* Minimum Time Between Doses */}
             <div className={styles.formGroup}>
-              <Label htmlFor="doseMinTime" className={styles.formLabel}>
+              <Label htmlFor="doseMinTime">
                 Minimum Time Between Doses
               </Label>
               <div className="relative">
@@ -436,7 +435,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
             
             {/* Notes */}
             <div className={styles.formGroup}>
-              <Label htmlFor="notes" className={styles.formLabel}>
+              <Label htmlFor="notes">
                 Notes
               </Label>
               <div className="relative">
@@ -454,7 +453,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
             
             {/* Associated Contacts */}
             <div className={styles.formGroup}>
-              <Label htmlFor="contacts" className={styles.formLabel}>
+              <Label htmlFor="contacts">
                 Associated Contacts
               </Label>
               <ContactSelector

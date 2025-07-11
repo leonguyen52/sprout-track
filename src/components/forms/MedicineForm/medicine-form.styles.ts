@@ -25,7 +25,6 @@ export const medicineFormStyles = {
   
   // Give medicine tab
   formGroup: "mb-4",
-  formLabel: "block text-sm font-medium text-gray-700 mb-1",
   formError: "text-sm text-red-500 mt-1",
   selectContainer: "relative",
   
