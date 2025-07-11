@@ -42,10 +42,7 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* Form elements */
-.dark .medicine-form-label {
-  color: rgba(255, 255, 255, 0.8);
-}
+/* Form elements - Labels handled by Label component */
 
 /* Medicine items */
 .dark .medicine-form-medicine-item {
@@ -87,6 +84,43 @@
 }
 
 /* Manage Medicines Tab Dark Mode */
+.dark .medicine-form-manage-medicines-title {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark .medicine-form-medicine-list-item {
+  background-color: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .medicine-form-medicine-list-icon {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .medicine-form-medicine-list-name {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark .medicine-form-medicine-list-dose {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dark .medicine-form-medicine-list-details {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .medicine-form-medicine-list-detail-item {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .medicine-form-medicine-list-notes {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .medicine-form-medicine-list-no-contacts {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .dark .bg-gray-50 {
   background-color: rgba(30, 41, 59, 0.8);
 }
@@ -121,4 +155,81 @@
 
 .dark .text-teal-600 {
   color: #4fd1c5;
+}
+
+/* Give Medicine Tab Dark Mode */
+.dark .medicine-form-group {
+  /* Form group styling handled by individual elements */
+}
+
+.dark .medicine-form-error {
+  color: #ef4444 !important; /* red-500 */
+}
+
+/* Error container for Give Medicine Tab */
+.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+.dark .text-red-500 {
+  color: #ef4444 !important;
+}
+
+/* ContactSelector Dark Mode Styles */
+.dark .contact-selector-clear-button:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .contact-selector-list {
+  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+.dark .contact-selector-role-header {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dark .contact-selector-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .contact-selector-item-selected {
+  background-color: rgba(45, 212, 191, 0.1);
+}
+
+.dark .contact-selector-check-icon {
+  color: #4fd1c5;
+}
+
+.dark .contact-selector-contact-info {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .contact-selector-contact-details {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dark .contact-selector-edit-button:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .contact-selector-empty-state {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dark .contact-selector-selected-tag {
+  background-color: rgba(45, 212, 191, 0.2);
+  color: #4fd1c5;
+}
+
+.dark .contact-selector-selected-tag-icon {
+  color: #4fd1c5;
+}
+
+.dark .contact-selector-remove-tag-button {
+  color: #4fd1c5;
+}
+
+.dark .contact-selector-remove-tag-button:hover {
+  color: rgba(45, 212, 191, 0.8);
 }

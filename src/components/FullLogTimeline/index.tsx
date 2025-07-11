@@ -9,7 +9,7 @@ import BathForm from '@/src/components/forms/BathForm';
 import PumpForm from '@/src/components/forms/PumpForm';
 import MilestoneForm from '@/src/components/forms/MilestoneForm';
 import MeasurementForm from '@/src/components/forms/MeasurementForm';
-import MedicineForm from '@/src/components/forms/MedicineForm';
+import GiveMedicineForm from '@/src/components/forms/GiveMedicineForm';
 import { ActivityType, FilterType, FullLogTimelineProps } from './full-log-timeline.types';
 import FullLogFilter from './FullLogFilter';
 import FullLogSearchBar from './FullLogSearchBar';
@@ -518,7 +518,7 @@ const FullLogTimeline: React.FC<FullLogTimelineProps> = ({
               onActivityDeleted?.();
             }}
           />
-          <MedicineForm
+          <GiveMedicineForm
             isOpen={editModalType === 'medicine'}
             onClose={() => {
               setEditModalType(null);

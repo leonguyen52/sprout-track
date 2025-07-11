@@ -388,7 +388,7 @@ export default function NoteForm({
                       disabled={loading}
                     />
                     <ChevronDown 
-                      className="absolute right-3 h-4 w-4 text-gray-500 dark:text-gray-400 note-form-dropdown-icon"
+                      className="absolute right-3 h-4 w-4 text-gray-500 note-form-dropdown-icon"
                       onClick={() => {
                         setDropdownOpen(!dropdownOpen);
                         // Remove focus when toggling dropdown with the icon
@@ -402,7 +402,7 @@ export default function NoteForm({
                   {dropdownOpen && (
                     <div 
                       ref={dropdownRef}
-                      className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto category-dropdown-container"
+                      className="absolute z-50 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto category-dropdown-container"
                       style={{ width: inputRef.current?.offsetWidth }}
                     >
                       {filteredCategories.length > 0 ? (
@@ -412,8 +412,8 @@ export default function NoteForm({
                               key={category}
                               className={`px-3 py-2 text-sm cursor-pointer category-dropdown-item ${
                                 highlightedIndex === index 
-                                  ? 'bg-gray-100 dark:bg-gray-700' 
-                                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                                  ? 'bg-gray-100 category-dropdown-item-highlighted' 
+                                  : 'hover:bg-gray-100'
                               }`}
                               onClick={() => handleCategorySelect(category)}
                               onMouseEnter={() => setHighlightedIndex(index)}
@@ -424,11 +424,11 @@ export default function NoteForm({
                         </div>
                       ) : (
                         formData.category.trim() !== '' ? (
-                          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                          <div className="px-3 py-2 text-sm text-gray-500 category-dropdown-no-match">
                             No matching categories. Press Enter to create "{formData.category}".
                           </div>
                         ) : (
-                          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                          <div className="px-3 py-2 text-sm text-gray-500 category-dropdown-no-categories">
                             No categories found
                           </div>
                         )

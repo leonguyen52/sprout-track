@@ -1,9 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { format } from 'date-fns';
+import { Calendar } from 'lucide-react';
 import { Baby, Gender } from '@prisma/client';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
+import { Calendar as CalendarComponent } from '@/src/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/src/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -16,6 +20,7 @@ import {
   FormPageContent, 
   FormPageFooter 
 } from '@/src/components/ui/form-page';
+import { cn } from '@/src/lib/utils';
 import { babyFormStyles } from './baby-form.styles';
 
 interface BabyFormProps {
@@ -29,7 +34,7 @@ interface BabyFormProps {
 const defaultFormData = {
   firstName: '',
   lastName: '',
-  birthDate: '',
+  birthDate: undefined as Date | undefined,
   gender: '',
   inactive: false,
   feedWarningTime: '03:00',
@@ -50,8 +55,8 @@ export default function BabyForm({
   useEffect(() => {
     if (baby && isOpen) {
       const birthDate = baby.birthDate instanceof Date 
-        ? baby.birthDate.toISOString().split('T')[0]
-        : new Date(baby.birthDate as string).toISOString().split('T')[0];
+        ? baby.birthDate
+        : new Date(baby.birthDate as string);
 
       setFormData({
         firstName: baby.firstName,
@@ -73,15 +78,24 @@ export default function BabyForm({
 
     try {
       setIsSubmitting(true);
+      
+      // Get auth token for API request
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
       const response = await fetch('/api/baby', {
         method: isEditing ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           ...formData,
           id: baby?.id,
-          birthDate: new Date(formData.birthDate),
+          birthDate: formData.birthDate,
           gender: formData.gender as Gender,
         }),
       });
@@ -142,15 +156,29 @@ export default function BabyForm({
           </div>
           <div>
             <label className="form-label">Birth Date</label>
-            <Input
-              type="date"
-              value={formData.birthDate}
-              onChange={(e) =>
-                setFormData({ ...formData, birthDate: e.target.value })
-              }
-              className="w-full"
-              required
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="input"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !formData.birthDate && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {formData.birthDate ? format(formData.birthDate, "PPP") : "Select date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={formData.birthDate}
+                  onSelect={(date) => setFormData({ ...formData, birthDate: date })}
+                  maxDate={new Date()} // Can't select future dates
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           <div>
             <label className="form-label">Gender</label>

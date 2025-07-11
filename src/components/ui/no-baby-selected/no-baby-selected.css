@@ -1,0 +1,25 @@
+/* Dark mode overrides for NoBabySelected component */
+html.dark .no-baby-selected-container {
+  background-color: #1f2937 !important; /* gray-800 */
+}
+
+/* Light mode explicit background to ensure it overrides parent styles */
+.no-baby-selected-container {
+  background-color: #ffffff !important; /* white */
+}
+
+html.dark .no-baby-selected-icon-container {
+  background-color: #0d9488 !important; /* teal-700 - darker teal for dark mode */
+}
+
+html.dark .no-baby-selected-icon {
+  color: #5eead4 !important; /* teal-300 - lighter teal for contrast */
+}
+
+html.dark .no-baby-selected-title {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .no-baby-selected-description {
+  color: #9ca3af !important; /* gray-400 */
+} 

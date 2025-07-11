@@ -9,7 +9,7 @@ import BathForm from '@/src/components/forms/BathForm';
 import PumpForm from '@/src/components/forms/PumpForm';
 import MilestoneForm from '@/src/components/forms/MilestoneForm';
 import MeasurementForm from '@/src/components/forms/MeasurementForm';
-import MedicineForm from '@/src/components/forms/MedicineForm';
+import GiveMedicineForm from '@/src/components/forms/GiveMedicineForm';
 import DailyStats from '@/src/components/DailyStats';
 import { ActivityType, FilterType, TimelineProps } from './types';
 import TimelineFilter from './TimelineFilter';
@@ -354,7 +354,7 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
             activity={'value' in selectedActivity && 'unit' in selectedActivity ? selectedActivity : undefined}
             onSuccess={handleFormSuccess}
           />
-          <MedicineForm
+          <GiveMedicineForm
             isOpen={editModalType === 'medicine'}
             onClose={() => {
               setEditModalType(null);

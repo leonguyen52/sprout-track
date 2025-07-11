@@ -17,6 +17,29 @@ if [ -n "$TZ" ]; then
   fi
 fi
 
+# Check and generate ENC_HASH if missing
+echo "Checking for ENC_HASH in .env file..."
+ENV_FILE="/app/.env"
+
+# Check if ENC_HASH exists and has a value
+ENC_HASH_EXISTS=$(grep -E "^ENC_HASH=" "$ENV_FILE" 2>/dev/null | cut -d '=' -f2 | tr -d '"')
+
+if [ -z "$ENC_HASH_EXISTS" ]; then
+    echo "ENC_HASH not found. Generating unique ENC_HASH for this container..."
+    
+    # Generate a secure random hash (64 characters)
+    RANDOM_HASH=$(openssl rand -hex 32)
+    
+    # Add ENC_HASH to .env file
+    echo "" >> "$ENV_FILE"
+    echo "# Encryption hash for data encryption (generated at container startup)" >> "$ENV_FILE"
+    echo "ENC_HASH=\"$RANDOM_HASH\"" >> "$ENV_FILE"
+    
+    echo "ENC_HASH generated and added to .env file"
+else
+    echo "ENC_HASH already exists in .env file"
+fi
+
 echo "Generating Prisma client..."
 DATABASE_URL="file:/db/baby-tracker.db" npx prisma generate
 

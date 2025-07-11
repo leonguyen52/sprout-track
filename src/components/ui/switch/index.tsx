@@ -27,13 +27,21 @@ import "./switch.css";
  * ```
  */
 const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
-  ({ className, checked, onCheckedChange, disabled, ...props }, ref) => {
+  ({ className, checked, onCheckedChange, disabled, variant = 'default', ...props }, ref) => {
     const { theme } = useTheme();
     
     const handleClick = () => {
       if (!disabled && onCheckedChange) {
         onCheckedChange(!checked);
       }
+    };
+    
+    // Determine background color based on variant and checked state
+    const getBackgroundStyle = () => {
+      if (variant === 'green') {
+        return checked ? switchStyles.greenChecked : switchStyles.greenUnchecked;
+      }
+      return checked ? switchStyles.checked : switchStyles.unchecked;
     };
     
     return (
@@ -46,7 +54,7 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         ref={ref}
         className={cn(
           switchStyles.base,
-          checked ? switchStyles.checked : switchStyles.unchecked,
+          getBackgroundStyle(),
           disabled && switchStyles.disabled,
           className,
           theme === 'dark' && "switch-dark"

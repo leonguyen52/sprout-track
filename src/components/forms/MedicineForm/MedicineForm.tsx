@@ -1,13 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { cn } from '@/src/lib/utils';
 import { medicineFormStyles as styles } from './medicine-form.styles';
 import { MedicineFormData } from './medicine-form.types';
-import { PillBottle, Loader2, AlertCircle, Clock, User, Check, FileText } from 'lucide-react';
+import { PillBottle, Loader2, AlertCircle, Clock, FileText } from 'lucide-react';
 import { FormPage, FormPageContent, FormPageFooter } from '@/src/components/ui/form-page';
 import { Input } from '@/src/components/ui/input';
-import { ExtendedTimeInput } from '@/src/components/ui/extended-time-input';
 import { Textarea } from '@/src/components/ui/textarea';
 import { Button } from '@/src/components/ui/button';
 import { Switch } from '@/src/components/ui/switch';
@@ -62,6 +60,58 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
   // State for contacts
   const [localContacts, setLocalContacts] = useState<Contact[]>(convertedContacts);
   
+  // State for dose minimum time selector
+  const [doseTimeValue, setDoseTimeValue] = useState<string>('');
+  const [doseTimeUnit, setDoseTimeUnit] = useState<'hours' | 'days'>('hours');
+  
+  // Helper function to parse doseMinTime from DD:HH:MM format
+  const parseDoseMinTime = (doseMinTime: string) => {
+    if (!doseMinTime) {
+      setDoseTimeValue('');
+      setDoseTimeUnit('hours');
+      return;
+    }
+    
+    const timeRegex = /^([0-9]{1,2}):([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
+    if (timeRegex.test(doseMinTime)) {
+      const [days, hours, minutes] = doseMinTime.split(':').map(Number);
+      
+      // Convert to total hours for easier handling
+      const totalHours = (days * 24) + hours + (minutes / 60);
+      
+      // If less than 24 hours, show in hours, otherwise show in days
+      if (totalHours < 24) {
+        setDoseTimeValue(totalHours.toString());
+        setDoseTimeUnit('hours');
+      } else {
+        const totalDays = totalHours / 24;
+        setDoseTimeValue(totalDays.toString());
+        setDoseTimeUnit('days');
+      }
+    }
+  };
+  
+  // Helper function to format time value and unit to DD:HH:MM format
+  const formatDoseMinTime = (value: string, unit: 'hours' | 'days'): string => {
+    if (!value || value === '0') return '';
+    
+    const numValue = parseFloat(value);
+    if (isNaN(numValue) || numValue <= 0) return '';
+    
+    let totalHours: number;
+    if (unit === 'days') {
+      totalHours = numValue * 24;
+    } else {
+      totalHours = numValue;
+    }
+    
+    const days = Math.floor(totalHours / 24);
+    const hours = Math.floor(totalHours % 24);
+    const minutes = Math.floor((totalHours % 1) * 60);
+    
+    return `${days.toString().padStart(2, '0')}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
+  
   // Initialize form data
   const [formData, setFormData] = useState<MedicineFormData>(() => {
     if (medicine) {
@@ -92,7 +142,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
   // Update form data when medicine changes or when form opens/closes
   useEffect(() => {
     if (medicine) {
-      setFormData({
+      const medicineData = {
         id: medicine.id,
         name: medicine.name,
         typicalDoseSize: medicine.typicalDoseSize,
@@ -101,7 +151,10 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
         notes: medicine.notes || '',
         active: medicine.active,
         contactIds: medicine.contacts?.map((c: any) => c.contact.id) || [],
-      });
+      };
+      setFormData(medicineData);
+      // Parse the existing doseMinTime for the time selector
+      parseDoseMinTime(medicine.doseMinTime || '');
     } else {
       setFormData({
         name: '',
@@ -112,6 +165,9 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
         active: true,
         contactIds: [],
       });
+      // Reset time selector for new medicine
+      setDoseTimeValue('');
+      setDoseTimeUnit('hours');
     }
     // Reset errors when form data changes
     setErrors({});
@@ -186,6 +242,36 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
   // Handle active state toggle
   const handleActiveToggle = (checked: boolean) => {
     setFormData(prev => ({ ...prev, active: checked }));
+  };
+  
+  // Handle dose time value change
+  const handleDoseTimeValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setDoseTimeValue(value);
+    
+    // Update the formData with the formatted time
+    const formattedTime = formatDoseMinTime(value, doseTimeUnit);
+    setFormData(prev => ({ ...prev, doseMinTime: formattedTime }));
+    
+    // Clear error for the field
+    if (errors.doseMinTime) {
+      setErrors(prev => ({ ...prev, doseMinTime: '' }));
+    }
+  };
+  
+  // Handle dose time unit toggle
+  const handleDoseTimeUnitToggle = (checked: boolean) => {
+    const newUnit = checked ? 'days' : 'hours';
+    setDoseTimeUnit(newUnit);
+    
+    // Update the formData with the formatted time using the new unit
+    const formattedTime = formatDoseMinTime(doseTimeValue, newUnit);
+    setFormData(prev => ({ ...prev, doseMinTime: formattedTime }));
+    
+    // Clear error for the field
+    if (errors.doseMinTime) {
+      setErrors(prev => ({ ...prev, doseMinTime: '' }));
+    }
   };
   
   // Handle contact selection change
@@ -317,7 +403,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
           <div className="space-y-4">
             {/* Medicine Name */}
             <div className={styles.formGroup}>
-              <Label htmlFor="name" className={styles.formLabel}>
+              <Label htmlFor="name">
                 Medicine Name
                 <span className="text-red-500 ml-1">*</span>
               </Label>
@@ -343,7 +429,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
             {/* Typical Dose Size and Unit */}
             <div className="grid grid-cols-2 gap-4">
               <div className={styles.formGroup}>
-                <Label htmlFor="typicalDoseSize" className={styles.formLabel}>
+                <Label htmlFor="typicalDoseSize">
                   Typical Dose Size
                 </Label>
                 <Input
@@ -364,7 +450,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
               </div>
               
               <div className={styles.formGroup}>
-                <Label htmlFor="unitAbbr" className={styles.formLabel}>
+                <Label htmlFor="unitAbbr">
                   Unit
                 </Label>
                 <Select
@@ -393,24 +479,51 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
             
             {/* Minimum Time Between Doses */}
             <div className={styles.formGroup}>
-              <Label htmlFor="doseMinTime" className={styles.formLabel}>
+              <Label htmlFor="doseMinTime">
                 Minimum Time Between Doses
               </Label>
-              <div className="relative">
-                <div className="relative">
-                  <ExtendedTimeInput
-                    name="doseMinTime"
-                    value={formData.doseMinTime}
-                    onChange={handleChange}
-                    className="w-full pl-9"
-                    errorMessage="Please enter a valid time in DD:HH:MM format"
-                  />
-                  <Clock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 z-10" />
+              <div className="space-y-3">
+                {/* Time Input and Unit Toggle */}
+                <div className="flex items-center space-x-3">
+                  <div className="relative flex-1">
+                    <Input
+                      type="number"
+                      value={doseTimeValue}
+                      onChange={handleDoseTimeValueChange}
+                      className="w-full pl-9"
+                      placeholder="Enter time"
+                      min="0"
+                      step="0.1"
+                    />
+                    <Clock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  </div>
+                  
+                  {/* Unit Toggle */}
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="dose-time-unit" className="text-sm font-medium">
+                      Hours
+                    </Label>
+                    <Switch
+                      id="dose-time-unit"
+                      checked={doseTimeUnit === 'days'}
+                      onCheckedChange={handleDoseTimeUnitToggle}
+                      variant="green"
+                    />
+                    <Label htmlFor="dose-time-unit" className="text-sm font-medium">
+                      Days
+                    </Label>
+                  </div>
+                </div>
+                
+                {/* Helper Text */}
+                <div className="text-xs text-gray-500">
+                  {doseTimeUnit === 'hours' 
+                    ? 'Enter the minimum time in hours (e.g., 6 for 6 hours, 0.5 for 30 minutes)'
+                    : 'Enter the minimum time in days (e.g., 1 for 1 day, 0.5 for 12 hours)'
+                  }
                 </div>
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Format: Days:Hours:Minutes (e.g., 01:06:00 for 1 day and 6 hours)
-              </div>
+              
               {errors.doseMinTime && (
                 <div className="text-xs text-red-500 mt-1">
                   <AlertCircle className="h-3 w-3 inline mr-1" />
@@ -436,7 +549,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
             
             {/* Notes */}
             <div className={styles.formGroup}>
-              <Label htmlFor="notes" className={styles.formLabel}>
+              <Label htmlFor="notes">
                 Notes
               </Label>
               <div className="relative">
@@ -454,7 +567,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
             
             {/* Associated Contacts */}
             <div className={styles.formGroup}>
-              <Label htmlFor="contacts" className={styles.formLabel}>
+              <Label htmlFor="contacts">
                 Associated Contacts
               </Label>
               <ContactSelector

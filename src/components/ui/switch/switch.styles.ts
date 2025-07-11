@@ -15,6 +15,10 @@ export const switchStyles = {
   // Styles for unchecked state
   unchecked: "bg-gray-200",
   
+  // Green variant styles
+  greenChecked: "bg-green-600",
+  greenUnchecked: "bg-green-400",
+  
   // Styles for disabled state
   disabled: "opacity-50 cursor-not-allowed",
   

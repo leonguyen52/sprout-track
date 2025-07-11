@@ -122,8 +122,26 @@ The component handles authentication automatically:
 - **Token-based**: Uses JWT token with `isSetupAuth: true` and `setupToken`
 - **Authentication headers**: Added automatically via `getAuthHeaders()`
 
+### Token-Based Authentication Conflict Resolution
+
+During token-based setup, a critical authentication conflict can occur:
+
+1. **The Problem**: When caretakers are created during stage 2, the system may disable the token-based authentication's access to the family, causing subsequent API calls (like creating a baby) to fail with a 403 "User is not associated with a family" error.
+
+2. **The Solution**: For token-based setup, the component uses a deferred save strategy:
+   - Stage 1: Create family immediately
+   - Stage 2: Collect security data but don't save it
+   - Stage 3: Save baby FIRST, then save security settings/caretakers
+   
+3. **Why This Works**: By saving the baby before creating caretakers, the token-based authentication maintains its family association throughout the entire process. Once the baby is saved, creating caretakers doesn't affect the ability to complete the setup.
+
+This conflict resolution is automatically handled based on the presence of the `token` prop - no additional configuration is required.
+
 ## Workflow
 
+The SetupWizard handles two different authentication scenarios with different workflows to avoid authentication conflicts:
+
+### Non-Token Setup (System Admin or Initial Setup)
 1. **Stage 1: Family Setup**
    - User enters the family name and URL slug
    - Real-time slug validation and uniqueness checking
@@ -134,11 +152,11 @@ The component handles authentication automatically:
    - User chooses between system-wide PIN or individual caretaker PINs
    - For system-wide PIN:
      - User enters and confirms a PIN (6-10 digits)
-     - Updates family settings and system caretaker
+     - Immediately updates family settings and system caretaker
    - For individual caretaker PINs:
      - User adds one or more caretakers with login IDs, names, roles, and PINs
      - Validates login ID format and uniqueness
-     - Creates caretaker records in the database
+     - Immediately creates caretaker records in the database
 
 3. **Stage 3: Baby Setup**
    - User enters baby's personal information
@@ -148,6 +166,27 @@ The component handles authentication automatically:
 
 4. **Completion**
    - Clears authentication tokens to force re-login
+   - Calls the `onComplete` callback with family data
+
+### Token-Based Setup (Invitation Setup)
+1. **Stage 1: Family Setup**
+   - Same as non-token setup
+   - Creates family using token-based authentication
+
+2. **Stage 2: Security Setup**
+   - User chooses between system-wide PIN or individual caretaker PINs
+   - **Data is collected but NOT saved immediately**
+   - This prevents authentication conflicts where creating caretakers would disable the token-based access
+
+3. **Stage 3: Baby Setup and Final Save**
+   - User enters baby's personal information
+   - User sets warning times for feeding and diaper changes
+   - Validates all required fields
+   - **Critical Order**: Saves baby information FIRST, then security settings/caretakers
+   - This order prevents the 403 "User is not associated with a family" error that occurs when caretakers are created before the baby
+
+4. **Completion**
+   - Clears authentication tokens to force re-login with new caretaker credentials
    - Calls the `onComplete` callback with family data
 
 ## Error Handling

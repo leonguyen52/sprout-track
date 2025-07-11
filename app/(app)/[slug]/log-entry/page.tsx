@@ -24,6 +24,7 @@ import MeasurementForm from '@/src/components/forms/MeasurementForm';
 import MilestoneForm from '@/src/components/forms/MilestoneForm';
 import MedicineForm from '@/src/components/forms/MedicineForm';
 import { useParams } from 'next/navigation';
+import { NoBabySelected } from '@/src/components/ui/no-baby-selected';
 
 function HomeContent(): React.ReactElement {
   const { selectedBaby, sleepingBabies, setSleepingBabies } = useBaby();
@@ -410,9 +411,8 @@ function HomeContent(): React.ReactElement {
 
       {/* No Baby Selected Screen */}
       {!selectedBaby && (
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">No Baby Selected</h2>
-          <p className="mt-2 text-gray-500 dark:text-gray-400">Please select a baby from the dropdown menu above.</p>
+        <div className="h-full">
+          <NoBabySelected />
         </div>
       )}
 

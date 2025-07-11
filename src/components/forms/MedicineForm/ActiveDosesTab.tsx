@@ -29,7 +29,7 @@ interface ActiveDose {
   hasRecentDoses: boolean; // Track if there are doses in the last 24 hours
   contacts?: Contact[]; // Add contacts to the ActiveDose interface
 }
-import { PillBottle, Clock, AlertCircle, Loader2, ChevronDown, Phone, Mail } from 'lucide-react';
+import { PillBottle, Clock, AlertCircle, Loader2, ChevronDown, Phone, Mail, Plus } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { useTimezone } from '@/app/context/timezone';
 
@@ -39,7 +39,7 @@ import { useTimezone } from '@/app/context/timezone';
  * Displays active medicine doses for a baby with countdown timers
  * showing when the next dose is safe to administer.
  */
-const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) => {
+const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData, onGiveMedicine, refreshTrigger }) => {
   const { formatDate, calculateDurationMinutes } = useTimezone();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -283,6 +283,13 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
     return () => clearInterval(timer);
   }, [babyId, fetchActiveDoses]);
   
+  // Listen for external refresh requests (e.g., after GiveMedicineForm success)
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      fetchActiveDoses();
+    }
+  }, [refreshTrigger, fetchActiveDoses]);
+  
   // Refresh data when requested
   const handleRefresh = useCallback(() => {
     fetchActiveDoses();
@@ -309,6 +316,18 @@ const ActiveDosesTab: React.FC<ActiveDosesTabProps> = ({ babyId, refreshData }) 
   
   return (
     <div className={cn(styles.tabContent, "medicine-form-tab-content")}>
+      {/* Give Medicine Button */}
+      <div className="mb-4">
+        <Button 
+          onClick={onGiveMedicine}
+          className="w-full"
+          disabled={!babyId}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Give Medicine
+        </Button>
+      </div>
+      
       {/* Loading state */}
       {isLoading && (
         <div className={cn(styles.loadingContainer, "medicine-form-loading-container")}>

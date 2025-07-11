@@ -35,7 +35,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const darkModeClass = variant === 'outline' ? 'button-dark-outline' : 
                           variant === 'ghost' ? 'button-dark-ghost' : 
                           variant === 'link' ? 'button-dark-link' : 
-                          variant === 'secondary' ? 'button-dark-secondary' : '';
+                          variant === 'secondary' ? 'button-dark-secondary' : 
+                          variant === 'input' ? 'button-dark-input' : '';
     const Comp = asChild ? Slot : "button"
     return (
       <Comp
