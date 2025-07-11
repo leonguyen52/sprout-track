@@ -6,6 +6,7 @@ import { useTimezone } from '../../../context/timezone';
 import { useFamily } from '@/src/context/family';
 import { useParams } from 'next/navigation';
 import { Calendar } from '@/src/components/Calendar';
+import { NoBabySelected } from '@/src/components/ui/no-baby-selected';
 
 function CalendarPage() {
   const { selectedBaby } = useBaby();
@@ -49,9 +50,11 @@ function CalendarPage() {
           // we would need to modify the Calendar component itself
         />
       ) : (
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">No Baby Selected</h2>
-          <p className="mt-2 text-gray-500 dark:text-gray-400">Please select a baby from the dropdown menu above.</p>
+        <div className="h-full">
+          <NoBabySelected 
+            title="Choose a Baby"
+            description="Select a baby to view their calendar activities."
+          />
         </div>
       )}
     </div>
