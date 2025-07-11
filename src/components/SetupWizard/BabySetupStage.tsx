@@ -89,7 +89,7 @@ const BabySetupStage: React.FC<BabySetupStageProps> = ({
           <PopoverTrigger asChild>
             <Button
               id="babyBirthDate"
-              variant="outline"
+              variant="input"
               className={cn(
                 styles.datePickerButton, 
                 "setup-wizard-date-picker-button",

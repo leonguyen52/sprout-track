@@ -3,7 +3,7 @@ import { Medicine, MedicineLog } from '@prisma/client';
 /**
  * Tab types for the MedicineForm component
  */
-export type MedicineFormTab = 'active-doses' | 'give-medicine' | 'manage-medicines';
+export type MedicineFormTab = 'active-doses' | 'manage-medicines';
 
 /**
  * Props for the MedicineForm component
@@ -53,6 +53,16 @@ export interface ActiveDosesTabProps {
    * Function to refresh the active doses data
    */
   refreshData: () => void;
+  
+  /**
+   * Function to open the Give Medicine form
+   */
+  onGiveMedicine?: () => void;
+  
+  /**
+   * Trigger value that changes when data should be refreshed
+   */
+  refreshTrigger?: number;
 }
 
 /**

@@ -16,4 +16,9 @@ export interface SwitchProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
    * Whether the switch is disabled
    */
   disabled?: boolean;
+  
+  /**
+   * Color variant for the switch
+   */
+  variant?: 'default' | 'green';
 }

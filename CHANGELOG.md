@@ -1,5 +1,24 @@
 # Sprout Track Changelog
 
+## v0.92.11 - Multi-family Edition Enhancements and Bugfixs - July 2025
+
+### Changes
+
+#### Enhancements and Bugfixes
+- Fixed sysadmin level authentication for the session and timezone debug tools
+- Fixed sysadmin level authenciation for settings and baby API's in settings forms and setup pages
+- Fixed bugs where duplicate medicines would get generated when editing a medicine dose from the timeline
+- Enhanced the Medicine activities to streamline giving doses with active doses, removing an uneccessary tab
+- Streamlined the Medicine form so the user does not have to enter DD:HH:MM for the minimum dose time
+- Added correct light\dark mode theming to the Medicine activity forms
+- Fixes for docker builds with enviornment files in both arm64 and x64 architectures
+- Fixed local env file generation when building the app for the first time
+- Fixed styling for calendar components in baby form and setup forms so that they do not look disabled
+- Added new select baby pages when a user logs in with multiple babies tied to the family
+- **Security Fix** Fixed the Docker build process to not generate the hash until the container starts of when the image is built
+
+---
+
 ## v0.92.0 - Multi-family Edition - July 2025
 
 ### Changes
@@ -42,20 +61,26 @@
 - Improved error handling and user feedback across the application
 - Fixed the caretaker form so that users can only correctly enter in numbers instead of characters
 
+---
+
 ## v0.91.4 - Added Medicine Tracker - (Beta) - April 2025
 
 ### Changes
 
-  - Removed duplicate scripts directory (thanks, [@need4swede](https://github.com/need4swede))
-  - Added fixes so that new activities show up if config doesn't exist
-  - Updated the prisma/seed.ts script to add units for medicines and update units with activity groups when they do not exist
-  - Updated the scripts/update.sh script to add seed step after migrations
+#### Fixes and Improvements
 
-  #### Medicine Tracker
-  - Added ability to add medicines and link contacts to medicines
-  - Ability to track the dose given
-  - Ability to see doses, and when a new dose is safe to administer
-  - Added medicine tracking to log-entry and full-log views
+- Removed duplicate scripts directory (thanks, [@need4swede](https://github.com/need4swede))
+- Added fixes so that new activities show up if config doesn't exist
+- Updated the prisma/seed.ts script to add units for medicines and update units with activity groups when they do not exist
+- Updated the scripts/update.sh script to add seed step after migrations
+
+#### Medicine Tracker
+- Added ability to add medicines and link contacts to medicines
+- Ability to track the dose given
+- Ability to see doses, and when a new dose is safe to administer
+- Added medicine tracking to log-entry and full-log views
+
+---
 
 ## v0.9.3 (Beta Patch) - April 2025
 
@@ -64,8 +89,8 @@
   - Fixed an issue where etc/timezones isn't available in docker images
   - Added the ability to set cookie auth to require HTTPS or not.  This is added to the .env file.  When enabled the cookie will only be valid and sent when the app is accessed over HTTPS.  When set to false the cookie will be valid and sent over HTTP or HTTPS.  IMPORTANT: When setting this to true you must have an SSL certificate in place otherwise all main API's will be blocked.
   - Added the ability to disable Next.js telemetry collection in the setup scripts
-  
 
+---
 
 ## v0.9.0 (Beta Release) - April 2025
 

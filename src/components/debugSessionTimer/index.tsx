@@ -118,7 +118,19 @@ const DebugSessionTimer: React.FC<DebugSessionTimerProps> = () => {
   // Fetch settings to check if debug timer is enabled
   const fetchSettings = async () => {
     try {
-      const response = await fetch('/api/settings');
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
+      const response = await fetch('/api/settings', {
+        headers
+      });
+      
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
@@ -144,7 +156,16 @@ const DebugSessionTimer: React.FC<DebugSessionTimerProps> = () => {
       setAuthLifeSeconds(parseInt(storedAuthLife, 10));
     } else {
       // Fetch from API if not in localStorage
-      fetch('/api/settings/auth-life')
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
+      fetch('/api/settings/auth-life', { headers })
         .then(response => response.json())
         .then(data => {
           if (data.success) {
@@ -162,7 +183,16 @@ const DebugSessionTimer: React.FC<DebugSessionTimerProps> = () => {
       setIdleTimeSeconds(parseInt(storedIdleTime, 10));
     } else {
       // Fetch from API if not in localStorage
-      fetch('/api/settings/idle-time')
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
+      fetch('/api/settings/idle-time', { headers })
         .then(response => response.json())
         .then(data => {
           if (data.success) {

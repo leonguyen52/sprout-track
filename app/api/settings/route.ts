@@ -6,32 +6,14 @@ import { withAuthContext, AuthResult } from '../utils/auth';
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId, isSysAdmin, isSetupAuth } = authContext;
-
-    // System administrators and setup auth need a family context for settings
-    if (!familyId && !isSysAdmin && !isSetupAuth) {
+    const { familyId: userFamilyId } = authContext;
+    
+    if (!userFamilyId) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
 
-    // For system administrators and setup auth, require familyId to be passed as query parameter
-    let targetFamilyId = familyId;
-    if (isSysAdmin || isSetupAuth) {
-      const { searchParams } = new URL(req.url);
-      const queryFamilyId = searchParams.get('familyId');
-      
-      if (!queryFamilyId) {
-        const userType = isSysAdmin ? 'System administrators' : 'Setup authentication';
-        return NextResponse.json<ApiResponse<null>>({ 
-          success: false, 
-          error: `${userType} must specify familyId parameter.` 
-        }, { status: 400 });
-      }
-      
-      targetFamilyId = queryFamilyId;
-    }
-
     let settings = await prisma.settings.findFirst({
-      where: { familyId: targetFamilyId },
+      where: { familyId: userFamilyId },
     });
     
     if (!settings) {
@@ -43,7 +25,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
           defaultHeightUnit: 'IN',
           defaultWeightUnit: 'LB',
           defaultTempUnit: 'F',
-          familyId: targetFamilyId,
+          familyId: userFamilyId,
         },
       });
     }
@@ -66,34 +48,16 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId, isSysAdmin, isSetupAuth } = authContext;
-
-    // System administrators and setup auth need a family context for settings
-    if (!familyId && !isSysAdmin && !isSetupAuth) {
+    const { familyId: userFamilyId } = authContext;
+    
+    if (!userFamilyId) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
-    }
-
-    // For system administrators and setup auth, require familyId to be passed as query parameter
-    let targetFamilyId = familyId;
-    if (isSysAdmin || isSetupAuth) {
-      const { searchParams } = new URL(req.url);
-      const queryFamilyId = searchParams.get('familyId');
-      
-      if (!queryFamilyId) {
-        const userType = isSysAdmin ? 'System administrators' : 'Setup authentication';
-        return NextResponse.json<ApiResponse<null>>({ 
-          success: false, 
-          error: `${userType} must specify familyId parameter.` 
-        }, { status: 400 });
-      }
-      
-      targetFamilyId = queryFamilyId;
     }
 
     const body = await req.json();
     
     let existingSettings = await prisma.settings.findFirst({
-      where: { familyId: targetFamilyId },
+      where: { familyId: userFamilyId },
     });
     
     if (!existingSettings) {
@@ -130,7 +94,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
         const systemCaretaker = await prisma.caretaker.findFirst({
           where: { 
             loginId: '00',
-            familyId: targetFamilyId 
+            familyId: userFamilyId 
           }
         });
 

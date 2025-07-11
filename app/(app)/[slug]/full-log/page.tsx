@@ -6,6 +6,7 @@ import { useTimezone } from '../../../context/timezone';
 import { useFamily } from '@/src/context/family';
 import { useParams } from 'next/navigation';
 import FullLogTimeline from '@/src/components/FullLogTimeline';
+import { NoBabySelected } from '@/src/components/ui/no-baby-selected';
 
 function FullLogPage() {
   const { selectedBaby } = useBaby();
@@ -108,9 +109,11 @@ function FullLogPage() {
           />
         </div>
       ) : (
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-semibold text-gray-900">No Baby Selected</h2>
-          <p className="mt-2 text-gray-500">Please select a baby from the dropdown menu above.</p>
+        <div className="h-full">
+          <NoBabySelected 
+            title="Start Logging"
+            description="Choose a baby to view their full activity log."
+          />
         </div>
       )}
     </div>

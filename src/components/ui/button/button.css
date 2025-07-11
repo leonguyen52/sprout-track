@@ -40,3 +40,30 @@ html.dark .button-dark-ghost:hover {
 html.dark .button-dark-link {
   color: #2dd4bf; /* dark:text-teal-400 */
 }
+
+html.dark .button-dark-input {
+  background-color: #1f2937 !important; /* gray-800 */
+  border-color: #4b5563 !important; /* gray-600 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .button-dark-input::placeholder {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .button-dark-input:hover {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #6b7280 !important; /* gray-500 */
+}
+
+html.dark .button-dark-input:focus {
+  border-color: #6366f1 !important; /* indigo-500 */
+  background-color: #1f2937 !important; /* gray-800 */
+  ring-color: rgba(99, 102, 241, 0.2) !important; /* indigo-500 with opacity */
+}
+
+html.dark .button-dark-input:disabled {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #4b5563 !important; /* gray-600 */
+  color: #9ca3af !important; /* gray-400 */
+}
