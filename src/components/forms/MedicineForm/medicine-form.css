@@ -84,6 +84,43 @@
 }
 
 /* Manage Medicines Tab Dark Mode */
+.dark .medicine-form-manage-medicines-title {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark .medicine-form-medicine-list-item {
+  background-color: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .medicine-form-medicine-list-icon {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .medicine-form-medicine-list-name {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark .medicine-form-medicine-list-dose {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dark .medicine-form-medicine-list-details {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .medicine-form-medicine-list-detail-item {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .medicine-form-medicine-list-notes {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .medicine-form-medicine-list-no-contacts {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .dark .bg-gray-50 {
   background-color: rgba(30, 41, 59, 0.8);
 }

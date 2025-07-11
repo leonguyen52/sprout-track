@@ -205,9 +205,9 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
       
       {!isFetching && !error && !showMedicineForm && (
         <>
-          <div className="flex justify-between items-center p-1 mb-2">
-            <h3 className="text-lg font-semibold">Manage Medicines</h3>
-            <div className="flex items-center space-x-2">
+          <div className={cn(styles.manageMedicinesHeader)}>
+            <h3 className={cn(styles.manageMedicinesTitle, "medicine-form-manage-medicines-title")}>Manage Medicines</h3>
+            <div className={cn(styles.showInactiveContainer)}>
               <Label htmlFor="show-inactive">Show Inactive</Label>
               <Switch
                 id="show-inactive"
@@ -217,14 +217,18 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
             </div>
           </div>
           
-          <div className="space-y-2">
+          <div className={cn(styles.medicinesList)}>
             {filteredMedicines.map(medicine => (
-              <div key={medicine.id} className={cn(styles.doseCard, !medicine.active && 'opacity-60')}>
-                <div className="flex items-center cursor-pointer" onClick={() => handleAccordionToggle(medicine.id)}>
-                  <PillBottle className="h-5 w-5 mr-3" />
-                  <div className="flex-1">
-                    <p className="font-semibold">{medicine.name}</p>
-                    <p className="text-sm text-gray-500">
+              <div key={medicine.id} className={cn(
+                styles.medicineListItem,
+                "medicine-form-medicine-list-item",
+                !medicine.active && styles.medicineListItemInactive
+              )}>
+                <div className={cn(styles.medicineListItemHeader)} onClick={() => handleAccordionToggle(medicine.id)}>
+                  <PillBottle className={cn(styles.medicineListIcon, "medicine-form-medicine-list-icon")} />
+                  <div className={cn(styles.medicineListContent)}>
+                    <p className={cn(styles.medicineListName, "medicine-form-medicine-list-name")}>{medicine.name}</p>
+                    <p className={cn(styles.medicineListDose, "medicine-form-medicine-list-dose")}>
                       Typical dose: {medicine.typicalDoseSize} {medicine.unitAbbr}
                     </p>
                   </div>
@@ -233,17 +237,20 @@ const ManageMedicinesTab: React.FC<ManageMedicinesTabProps> = ({ refreshData }) 
                   </Button>
                 </div>
                 {expandedMedicine === medicine.id && (
-                  <div className="mt-2 pt-2 border-t">
-                    <div className="text-sm space-y-1">
-                      <p className="flex items-center"><Clock className="h-4 w-4 mr-2" /> Minimum time between doses: {medicine.doseMinTime}</p>
-                      {medicine.notes && <p>{medicine.notes}</p>}
-                      <div className="flex items-center pt-1">
-                        <User className="h-4 w-4 mr-2" />
-                        <div className="flex flex-wrap gap-1">
+                  <div className={cn(styles.medicineListDetails, "medicine-form-medicine-list-details")}>
+                    <div className={cn(styles.medicineListDetailsContent)}>
+                      <p className={cn(styles.medicineListDetailItem, "medicine-form-medicine-list-detail-item")}>
+                        <Clock className={cn(styles.medicineListDetailIcon)} /> 
+                        Minimum time between doses: {medicine.doseMinTime}
+                      </p>
+                      {medicine.notes && <p className={cn(styles.medicineListNotes, "medicine-form-medicine-list-notes")}>{medicine.notes}</p>}
+                      <div className={cn(styles.medicineListContactsContainer)}>
+                        <User className={cn(styles.medicineListDetailIcon)} />
+                        <div className={cn(styles.medicineListContactsList)}>
                           {medicine.contacts.length > 0 ? (
                             medicine.contacts.map(c => <Badge key={c.contact.id} variant="secondary">{c.contact.name}</Badge>)
                           ) : (
-                            <span className="text-gray-500">No associated contacts</span>
+                            <span className={cn(styles.medicineListNoContacts, "medicine-form-medicine-list-no-contacts")}>No associated contacts</span>
                           )}
                         </div>
                       </div>
