@@ -24,9 +24,8 @@ RUN npm exec next telemetry disable
 # Copy application files
 COPY . .
 
-# Generate ENC_HASH and create .env file
-RUN echo "Generating ENC_HASH for data encryption..." && \
-    RANDOM_HASH=$(openssl rand -hex 32) && \
+# Create base .env file (ENC_HASH will be generated at container startup)
+RUN echo "Creating base .env file..." && \
     echo "# Environment variables for Docker container" > .env && \
     echo "DATABASE_URL=\"file:/db/baby-tracker.db\"" >> .env && \
     echo "NODE_ENV=production" >> .env && \
@@ -36,10 +35,7 @@ RUN echo "Generating ENC_HASH for data encryption..." && \
     echo "IDLE_TIME=28800" >> .env && \
     echo "APP_VERSION=0.92.0" >> .env && \
     echo "COOKIE_SECURE=false" >> .env && \
-    echo "" >> .env && \
-    echo "# Encryption hash for data encryption" >> .env && \
-    echo "ENC_HASH=\"$RANDOM_HASH\"" >> .env && \
-    echo "Environment variables and ENC_HASH generated and added to .env file"
+    echo "Base .env file created (ENC_HASH will be generated at startup)"
 
 # Build the application
 RUN npm run build
