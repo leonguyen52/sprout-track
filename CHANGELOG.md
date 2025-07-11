@@ -1,5 +1,19 @@
 # Sprout Track Changelog
 
+## v0.92.8 - Multi-family Edition Enhancements and Bugfixs - July 2025
+
+### Changes
+
+#### Enhancements and Bugfixes
+- Fixed sysadmin level authentication for the session and timezone debug tools
+- Fixed sysadmin level authenciation for settings and baby API's in settings forms and setup pages
+- Fixed bugs where duplicate medicines would get generated when editing a medicine dose from the timeline
+- Enhanced the Medicine activities to streamline giving doses with active doses, removing an uneccessary tab
+- Streamlined the Medicine form so the user does not have to enter DD:HH:MM for the minimum dose time
+- Added correct light\dark mode theming to the Medicine activity forms
+- Fixes for docker builds with enviornment files in both arm64 and x64 architectures
+- Fixed local env file generation when building the app for the first time
+
 ## v0.92.0 - Multi-family Edition - July 2025
 
 ### Changes
