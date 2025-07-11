@@ -62,16 +62,18 @@
 
 ### Changes
 
-  - Removed duplicate scripts directory (thanks, [@need4swede](https://github.com/need4swede))
-  - Added fixes so that new activities show up if config doesn't exist
-  - Updated the prisma/seed.ts script to add units for medicines and update units with activity groups when they do not exist
-  - Updated the scripts/update.sh script to add seed step after migrations
+#### Fixes and Improvements
 
-  #### Medicine Tracker
-  - Added ability to add medicines and link contacts to medicines
-  - Ability to track the dose given
-  - Ability to see doses, and when a new dose is safe to administer
-  - Added medicine tracking to log-entry and full-log views
+- Removed duplicate scripts directory (thanks, [@need4swede](https://github.com/need4swede))
+- Added fixes so that new activities show up if config doesn't exist
+- Updated the prisma/seed.ts script to add units for medicines and update units with activity groups when they do not exist
+- Updated the scripts/update.sh script to add seed step after migrations
+
+#### Medicine Tracker
+- Added ability to add medicines and link contacts to medicines
+- Ability to track the dose given
+- Ability to see doses, and when a new dose is safe to administer
+- Added medicine tracking to log-entry and full-log views
 
 ## v0.9.3 (Beta Patch) - April 2025
 
