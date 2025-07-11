@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/src/lib/utils';
 import { Check, X, Plus, Phone, Mail, Edit, User } from 'lucide-react';
+import { Label } from '@/src/components/ui/label';
 import { Input } from '@/src/components/ui/input';
 import { Button } from '@/src/components/ui/button';
 import ContactForm from '@/src/components/forms/ContactForm';
@@ -182,7 +183,7 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
           <button
             type="button"
             onClick={() => setSearchTerm('')}
-            className="absolute right-2 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="contact-selector-clear-button absolute right-2 top-2 text-gray-400 hover:text-gray-600"
           >
             <X className="h-4 w-4" />
           </button>
@@ -190,18 +191,18 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
       </div>
       
       {/* Contact list */}
-      <div className="max-h-40 overflow-y-auto rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-1">
+      <div className="contact-selector-list max-h-40 overflow-y-auto rounded-md border border-gray-300 bg-white p-1">
         {Object.entries(contactsByRole).map(([role, roleContacts]) => (
           <div key={role} className="mb-2 last:mb-0">
-            <div className="px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+            <div className="contact-selector-role-header px-2 py-1 text-xs font-semibold text-gray-500 uppercase">
               {role}
             </div>
             {roleContacts.map(contact => (
               <div
                 key={contact.id}
                 className={cn(
-                  "flex items-center px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700",
-                  selectedContactIds.includes(contact.id) && "bg-teal-50 dark:bg-teal-900/20",
+                  "contact-selector-item flex items-center px-2 py-1 rounded-md hover:bg-gray-100",
+                  selectedContactIds.includes(contact.id) && "contact-selector-item-selected bg-teal-50",
                   "cursor-pointer flex justify-between"
                 )}
               >
@@ -211,12 +212,12 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
                 >
                   <div className="flex-shrink-0 w-4 mt-1">
                     {selectedContactIds.includes(contact.id) && (
-                      <Check className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                      <Check className="contact-selector-check-icon h-4 w-4 text-teal-600" />
                     )}
                   </div>
-                  <div className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  <div className="ml-2 text-sm text-gray-700 contact-selector-contact-info">
                     <div className="font-medium">{contact.name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 flex flex-wrap gap-2">
+                    <div className="contact-selector-contact-details text-xs text-gray-500 flex flex-wrap gap-2">
                       {contact.phone && (
                         <span className="flex items-center">
                           <Phone className="h-3 w-3 mr-1" />
@@ -240,7 +241,7 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
                       setSelectedContact(contact);
                       setShowContactForm(true);
                     }}
-                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="contact-selector-edit-button p-1 text-gray-400 hover:text-gray-600"
                     aria-label={`Edit ${contact.name}`}
                   >
                     <Edit className="h-3.5 w-3.5" />
@@ -252,7 +253,7 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
         ))}
         
         {filteredContacts.length === 0 && (
-          <div className="p-2 text-sm text-gray-500 dark:text-gray-400 text-center">
+          <div className="contact-selector-empty-state p-2 text-sm text-gray-500 text-center">
             {searchTerm ? 'No contacts found' : 'No contacts available'}
           </div>
         )}
@@ -277,8 +278,8 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
       {selectedContacts.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2">
           {selectedContacts.map(contact => (
-            <div key={contact.id} className="flex items-center rounded-full bg-teal-100 dark:bg-teal-900/30 px-2 py-1 text-xs text-teal-800 dark:text-teal-300">
-              <User className="h-3 w-3 mr-1 text-teal-600 dark:text-teal-400" />
+            <div key={contact.id} className="contact-selector-selected-tag flex items-center rounded-full bg-teal-100 px-2 py-1 text-xs text-teal-800">
+              <User className="contact-selector-selected-tag-icon h-3 w-3 mr-1 text-teal-600" />
               <span>{contact.name}</span>
               <button
                 type="button"
@@ -286,7 +287,7 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
                   e.stopPropagation();
                   removeContact(contact.id);
                 }}
-                className="ml-1 h-3 w-3 text-teal-600 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-200"
+                className="contact-selector-remove-tag-button ml-1 h-3 w-3 text-teal-600 hover:text-teal-800"
               >
                 <X className="h-3 w-3" />
               </button>
