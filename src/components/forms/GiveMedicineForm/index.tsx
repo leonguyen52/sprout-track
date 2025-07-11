@@ -310,7 +310,7 @@ const GiveMedicineForm: React.FC<GiveMedicineFormProps> = ({
                     value={formData.doseAmount || ''}
                     onChange={handleNumberChange}
                     className="flex-1"
-                    step="0.1"
+                    step="1"
                     min="0"
                     placeholder="Enter dose amount"
                   />
