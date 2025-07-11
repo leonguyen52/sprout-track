@@ -507,6 +507,7 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
                       id="dose-time-unit"
                       checked={doseTimeUnit === 'days'}
                       onCheckedChange={handleDoseTimeUnitToggle}
+                      variant="green"
                     />
                     <Label htmlFor="dose-time-unit" className="text-sm font-medium">
                       Days

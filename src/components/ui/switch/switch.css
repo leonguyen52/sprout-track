@@ -7,6 +7,15 @@ html.dark .switch-dark[aria-checked="true"] {
   background-color: #0d9488; /* teal-600 for checked state */
 }
 
+/* Green variant dark mode overrides */
+html.dark .switch-dark.bg-green-600 {
+  background-color: #059669; /* green-600 for dark mode */
+}
+
+html.dark .switch-dark.bg-green-400 {
+  background-color: #10b981; /* green-500 for dark mode unchecked */
+}
+
 html.dark .switch-thumb-dark {
   background-color: #f3f4f6; /* gray-100 */
 }
