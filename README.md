@@ -49,14 +49,19 @@ The demo is populated with semi-realistic 🙃 test data spanning multiple famil
 
 To deploy the latest version using Docker:
 
+#### For image pulls:
 x64:
 ```bash
-docker pull sprouttrack/sprout-track:0.92.0
+docker pull sprouttrack/sprout-track:0.92.11x64
 ```
 
 arm64:
 ```bash
-docker pull sprouttrack/sprout-track:0.92.0arm64
+docker pull sprouttrack/sprout-track:0.92.11arm64
+```
+#### Build locally
+```bash
+docker-compose up -d
 ```
 
 ## Table of Contents
@@ -76,13 +81,6 @@ docker pull sprouttrack/sprout-track:0.92.0arm64
   - [Utility Scripts](#utility-scripts)
   - [Updating the Application](#updating-the-application)
 - [Environment Variables](#environment-variables)
-- [Docker Deployment](#docker-deployment)
-  - [Prerequisites](#prerequisites-1)
-  - [Quick Docker Setup](#quick-docker-setup)
-  - [Docker Management Commands](#docker-management-commands)
-  - [Updating Docker Deployment](#updating-docker-deployment)
-  - [Database Backups in Docker](#database-backups-in-docker)
-  - [Data Persistence](#data-persistence)
 
 ## Tech Stack
 
@@ -263,25 +261,24 @@ This change will persist across application updates. For Docker deployments, use
 - `./scripts/family-update.sh` - Update database after multi-family migration
 - `./scripts/ensure-utc-dates-improved.js` - Convert all database dates to UTC format
 
-### Docker Management Scripts
-
-- `./scripts/docker-setup.sh {build|start|stop|restart|update|backup|logs|status|clean}` - Complete Docker management
-
 ### Updating the Application
 
-For a full update/deployment process:
-```bash
-./scripts/deployment.sh
-```
+**1. Backup your database:**  
+Before upgrading, it is recommended to back up your `baby-tracker.db` file. You can do this by downloading the file from the settings page in either the main app or the family manager pages.
 
-This will:
-1. Create a backup of the current application
-2. Pull latest changes from git
-3. Run Prisma operations
-4. Build the application
-5. Manage service stop/start as needed
+**2. For Docker deployments:**  
+- Stop the old container.
+- Pull the latest Docker image.
+- Start the new container.
+- Import your backed-up database file from the inital setup page.
+The import process will automatically handle any required database migrations or updates.
 
-Each script can also be run independently for specific operations.
+**3. For local (non-Docker) builds:**  
+- Run the deployment script:  
+  ```bash
+  ./scripts/deployment.sh
+  ```
+  This script will handle all necessary updates and migrations. You do **not** need to re-import your database, as the script manages updates in place.
 
 ## Environment Variables
 
@@ -314,84 +311,3 @@ The `./scripts/env-update.sh` script automatically manages environment variables
   - Set to `"false"` to allow cookies on non-HTTPS connections (development or initial setup)
   - Set to `"true"` when you have an SSL certificate in place (recommended for production)
   - When set to `"true"`, the application will only work over HTTPS connections
-
-## Docker Deployment
-
-The application can be easily deployed using Docker. This method provides a consistent environment and simplifies the setup process.
-
-### Prerequisites
-
-- Docker and Docker Compose installed on your system
-- Git to clone the repository
-
-### Quick Docker Setup
-
-1. Clone the repository:
-```bash
-git clone https://github.com/Oak-and-Sprout/sprout-track.git
-cd sprout-track
-```
-
-2. Make the Docker setup script executable:
-```bash
-chmod +x scripts/docker-setup.sh
-```
-
-3. Build the Docker image:
-```bash
-./scripts/docker-setup.sh build
-```
-
-4. Start the application:
-```bash
-./scripts/docker-setup.sh start
-```
-
-The application will be available at http://localhost:3000 by default.
-
-### Docker Management Commands
-
-The `docker-setup.sh` script provides several commands to manage the Docker deployment:
-
-- `./scripts/docker-setup.sh build` - Build the Docker image
-- `./scripts/docker-setup.sh start` - Start the Docker containers
-- `./scripts/docker-setup.sh stop` - Stop the Docker containers
-- `./scripts/docker-setup.sh restart` - Restart the Docker containers
-- `./scripts/docker-setup.sh update` - Update the container with latest code and run migrations
-- `./scripts/docker-setup.sh backup` - Create a backup of the database volume
-- `./scripts/docker-setup.sh logs` - View container logs
-- `./scripts/docker-setup.sh status` - Check container status
-- `./scripts/docker-setup.sh clean` - Remove containers, images, and volumes (caution: data loss)
-
-You can customize the port by setting the PORT environment variable:
-```bash
-PORT=8080 ./scripts/docker-setup.sh start
-```
-
-### Updating Docker Deployment
-
-To update your Docker deployment with the latest code and run any necessary database migrations:
-
-```bash
-./scripts/docker-setup.sh update
-```
-
-This command will:
-1. Pull the latest code from git
-2. Create a backup of your database
-3. Rebuild the Docker image with the latest code
-4. Stop and restart the container (which automatically runs migrations)
-
-### Database Backups in Docker
-
-You can create a backup of your database at any time with:
-
-```bash
-./scripts/docker-setup.sh backup
-```
-
-Backups are stored in the `backups` directory in your project folder with timestamps in the filename format `sprout-track-db-YYYYMMDD_HHMMSS.tar`.
-
-### Data Persistence
-
-The application data is stored in a Docker volume named `sprout-track-db`. This ensures that your data persists even if the container is removed or rebuilt.
