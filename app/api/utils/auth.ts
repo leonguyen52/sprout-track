@@ -293,6 +293,54 @@ export function withAuthContext<T>(
       );
     }
     
+    // Setup authentication: extract family context from query params during family setup
+    if (authResult.isSetupAuth && authResult.setupToken) {
+      // Try to get familyId from query parameter
+      const { searchParams } = new URL(req.url);
+      let familyId = searchParams.get('familyId');
+      
+      // If familyId is provided, validate that the setup token is authorized for this family
+      if (familyId) {
+        try {
+          const setupToken = await prisma.familySetup.findUnique({
+            where: { token: authResult.setupToken }
+          });
+          
+          // Validate that the setup token exists and is associated with this family
+          // For active setup processes, the familyId might be set in the token
+          if (setupToken && (setupToken.familyId === familyId || !setupToken.familyId)) {
+            // Create modified auth result with the family context
+            const modifiedAuthResult = {
+              ...authResult,
+              familyId: familyId
+            };
+            
+            return handler(req, modifiedAuthResult);
+          } else {
+            return NextResponse.json<ApiResponse<null>>(
+              {
+                success: false,
+                error: 'Setup token is not authorized for this family',
+              },
+              { status: 403 }
+            );
+          }
+        } catch (error) {
+          console.error('Error validating setup token for family context:', error);
+          return NextResponse.json<ApiResponse<null>>(
+            {
+              success: false,
+              error: 'Failed to validate setup authorization',
+            },
+            { status: 500 }
+          );
+        }
+      }
+      
+      // If no familyId provided, continue with original auth result
+      return handler(req, authResult);
+    }
+
     // System administrators: extract family context from URL, query params, or referer
     if (authResult.isSysAdmin) {
       // Try to get familyId from query parameter first

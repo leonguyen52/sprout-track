@@ -75,6 +75,18 @@ async function postHandler(req: NextRequest, authContext: AuthResult) {
       },
     });
 
+    // Create the FamilyMember association for regular caretakers only
+    // System caretakers (loginId '00') don't need FamilyMember associations
+    if (targetFamilyId && caretaker.loginId !== '00') {
+      await prisma.familyMember.create({
+        data: {
+          familyId: targetFamilyId,
+          caretakerId: caretaker.id,
+          role: caretaker.role === 'ADMIN' ? 'admin' : 'member',
+        },
+      });
+    }
+
     const response: CaretakerResponse = {
       ...caretaker,
       createdAt: formatForResponse(caretaker.createdAt) || '',
@@ -232,6 +244,17 @@ async function deleteHandler(req: NextRequest, authContext: AuthResult) {
       where: { id },
       data: { deletedAt: new Date() },
     });
+
+    // Also remove the FamilyMember association for regular caretakers only
+    // System caretakers don't have FamilyMember associations
+    if (existingCaretaker.loginId !== '00') {
+      await prisma.familyMember.deleteMany({
+        where: {
+          caretakerId: id,
+          familyId: userFamilyId,
+        },
+      });
+    }
 
     return NextResponse.json<ApiResponse<null>>({ success: true, data: null });
   } catch (error) {

@@ -6,10 +6,27 @@ This document outlines the design for adding account-based authentication to sup
 
 The account system introduces a new authentication layer that sits above the existing family structure, enabling:
 
-1. **SaaS Account Management**: Email/password accounts that own families
+1. **SaaS Account Management**: OAuth (Google, Apple, GitHub) and email/password accounts that own families
 2. **Preserved PIN Access**: Existing caretaker PIN system remains unchanged
 3. **Streamlined UX**: Account holders get seamless access without PIN entry
 4. **Simple Billing Integration**: Clear ownership model for future billing
+5. **Hybrid Authentication**: NextAuth.js for account holders, existing JWT/PIN system for caretakers
+
+## Service Scenarios
+
+This system is designed for a **fresh SaaS service** with the following user scenarios:
+
+### Primary Scenario: New SaaS Users
+- Users sign up with OAuth or email/password
+- Immediate family creation with auto-generated PIN
+- Progressive setup for baby information and caretaker invitations
+- Account holders get enhanced permissions and billing access
+
+### Secondary Scenario: Family Recovery (Future Feature)
+- Account loss due to OAuth provider issues, separation, death, etc.
+- Family ownership transfer process with verification
+- Maintains data continuity while changing account ownership
+- Documented for future implementation, not part of initial release
 
 ## System Architecture
 
@@ -18,36 +35,58 @@ The account system introduces a new authentication layer that sits above the exi
 The design follows a simple ownership model where one account owns one family, avoiding complex multi-tenancy issues while enabling SaaS features.
 
 ```
-┌─────────────────┐
-│    ACCOUNTS     │  ← SaaS users (email/password)
-│  - id           │
-│  - email        │  
-│  - password     │
-│  - verified     │
-│  - stripeId     │  (future billing)
-└─────────────────┘
-         │
-         │ 1:1 (account owns family)
-         ▼
-┌─────────────────┐
-│    FAMILIES     │  ← Existing family structure
-│  - id           │
-│  - accountId    │  ← NEW: Link to owning account
-│  - slug         │
-│  - name         │
-└─────────────────┘
-         │
-         │ 1:M 
-         ▼
-┌─────────────────┐
-│   CARETAKERS    │  ← Existing PIN system (unchanged)
-│  - familyId     │
-│  - accountId    │  ← NEW: Optional link to account
-│  - loginId      │
-│  - pin          │
-│  - role         │  (USER/ADMIN)
-└─────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    NEXTAUTH.JS v5                           │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
+│  │   Apple     │ │   Google    │ │   GitHub    │           │
+│  │    OAuth    │ │    OAuth    │ │    OAuth    │           │
+│  └─────────────┘ └─────────────┘ └─────────────┘           │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │              Email/Password Auth                        │ │
+│  └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  HYBRID AUTH SYSTEM                        │
+│  - NextAuth Session Management                             │
+│  - Account → Family Ownership                              │
+│  - Integration with existing JWT system                    │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  EXISTING FAMILY SYSTEM                    │
+│  - PIN-based Caretakers (unchanged)                        │
+│  - All existing functionality preserved                    │
+└─────────────────────────────────────────────────────────────┘
 ```
+
+### Account Creation Flow (Hybrid Approach)
+
+**New User Journey:**
+```
+1. User signs up via OAuth or email/password → NextAuth creates User record
+2. Quick Family Creation form:
+   - Family name (required)
+   - Slug (auto-generated from name, editable)
+   - System PIN (auto-generated, visible to user)
+3. System creates:
+   - Family record linked to account
+   - Admin caretaker linked to account
+   - Default settings with generated PIN
+4. User immediately enters family dashboard
+5. First login shows SimplifiedSetupWizard for:
+   - Add first baby
+   - Invite caretakers (optional)
+   - Customize settings (optional)
+```
+
+**Benefits of This Approach:**
+- **Immediate gratification**: User gets into the app quickly
+- **Progressive disclosure**: Advanced setup when ready
+- **PIN sharing**: Account holders can share family URL + PIN with others
+- **Familiar flow**: Uses existing SetupWizard for detailed configuration
 
 ## Database Schema Changes
 
@@ -151,17 +190,28 @@ interface AuthContext {
 
 ## Account Setup Flow
 
-### For New Families
-1. User creates account (email/password)
-2. Account creation automatically creates family
-3. System creates linked caretaker for account holder
-4. Account holder has immediate access to app
+### Fresh SaaS Service Flow
+1. User signs up via OAuth or email/password → NextAuth creates User record
+2. Quick Family Creation:
+   - Family name (required)
+   - Slug (auto-generated from name, editable)
+   - System PIN (auto-generated, visible to user for sharing)
+3. System creates in transaction:
+   - Family record linked to account
+   - Admin caretaker linked to account
+   - Default settings with generated PIN
+4. User immediately enters family dashboard
+5. Optional SimplifiedSetupWizard for progressive enhancement:
+   - Add first baby information
+   - Invite additional caretakers
+   - Customize family settings
 
-### For Existing Families
-1. Account holder creates account
-2. Account holder "claims" existing family
-3. System links account to family and specific caretaker
-4. Other caretakers continue using PIN system unchanged
+### Family Recovery Flow (Future Feature)
+1. User creates new account with different OAuth provider
+2. Provides family slug + admin PIN + verification info
+3. System sends verification to existing account email (if accessible)
+4. After verification, transfers ownership to new account
+5. Previous account becomes regular caretaker or is deactivated
 
 ## Special Permissions for Account Holders
 
@@ -178,51 +228,55 @@ Account holders get enhanced permissions beyond regular admins:
 ### New Account Endpoints
 
 ```typescript
-// Account management
-POST /api/accounts/register
-POST /api/accounts/login
-POST /api/accounts/verify-email
-POST /api/accounts/reset-password
-GET  /api/accounts/profile
-PUT  /api/accounts/profile
+// Account management (handled by NextAuth.js)
+POST /api/auth/[...nextauth]  // NextAuth.js unified endpoint
+GET  /api/accounts/profile    // Account profile management
+PUT  /api/accounts/profile    // Update account profile
 
-// Family claiming (for existing families)
-POST /api/accounts/claim-family
-GET  /api/accounts/claimable-families
+// Quick family creation for fresh service
+POST /api/accounts/create-family     // Create family after account signup
+POST /api/accounts/register          // Email/password registration
+
+// Family recovery (future feature)
+POST /api/accounts/recover-family    // Family recovery process
+POST /api/accounts/transfer-ownership // Ownership transfer
 ```
 
 ### Enhanced Auth Endpoints
 
 ```typescript
-// Updated authentication that supports both flows
-POST /api/auth/login          // PIN-based (existing)
-POST /api/auth/account-login  // Email/password (new)
-POST /api/auth/logout         // Works for both
+// Hybrid authentication system
+POST /api/auth/[...nextauth]  // NextAuth.js handles OAuth + email/password
+POST /api/auth/login          // PIN-based (existing, unchanged)
+POST /api/auth/logout         // Works for both systems
 GET  /api/auth/me            // Returns enhanced auth context
 ```
 
-## Migration Strategy
+## Implementation Strategy
 
-### Phase 1: Add Account Infrastructure
-- Add Account table to schema
-- Add accountId to Family and Caretaker tables
-- Create account management APIs
-- Build account registration/login UI
+### Phase 1: NextAuth.js Integration
+- Install and configure NextAuth.js v5
+- Add NextAuth.js tables to schema (User, Account, Session, VerificationToken)
+- Update existing Family and Caretaker tables with User relations
+- Create hybrid authentication middleware
 
-### Phase 2: Enable Account Creation
-- Launch account registration for new users
-- Existing families continue PIN-only operation
-- Test account → family → caretaker linking
+### Phase 2: Account Registration & Quick Family Creation
+- Build OAuth login components (Google, Apple, GitHub)
+- Create email/password registration flow
+- Implement quick family creation API and UI
+- Add auto-generated PIN display and sharing
 
-### Phase 3: Enable Family Claiming
-- Add family claiming functionality
-- Allow existing family admins to create accounts
-- Link accounts to existing families and caretakers
+### Phase 3: Progressive Setup Experience
+- Create SimplifiedSetupWizard component
+- Integrate with existing SetupWizard for advanced configuration
+- Add account dashboard and family management UI
+- Test complete user journey from signup to tracking
 
-### Phase 4: Enhanced Features
-- Add billing integration (Stripe)
-- Enable account-only features
-- Add family ownership management
+### Phase 4: Enhanced Features & Future Preparation
+- Add billing integration preparation (Stripe fields)
+- Implement account-only features and permissions
+- Document family recovery process for future implementation
+- Add comprehensive testing and deployment guides
 
 ## Benefits of This Approach
 
@@ -300,4 +354,4 @@ model Account {
 - Caching for account authentication
 - Minimal impact on existing PIN authentication
 
-This design provides a clean path to SaaS functionality while preserving the simplicity and speed of the existing PIN system, giving users the best of both worlds. 
+This design provides a clean path to SaaS functionality while preserving the simplicity and speed of the existing PIN system, giving users the best of both worlds.
