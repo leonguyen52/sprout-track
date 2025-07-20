@@ -141,28 +141,17 @@
 
 /* Main Demo Video Section */
 .saas-main-demo {
-  padding: 4rem 1rem;
-  background: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 100%);
+  padding: 2rem 1rem;
+  background: transparent;
   position: relative;
   overflow: hidden;
-}
-
-.saas-main-demo::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 50%;
-  bottom: 0;
-  background: linear-gradient(135deg, #0d9488 0%, #059669 100%);
-  z-index: 1;
+  margin-bottom: 2rem;
 }
 
 .saas-main-demo-content {
   max-width: 1200px;
   margin: 0 auto;
   position: relative;
-  z-index: 2;
 }
 
 .saas-main-demo-video {
@@ -204,10 +193,48 @@
 /* Feature Sections */
 .saas-feature-section {
   padding: 6rem 1rem;
+  position: relative;
 }
 
 .saas-feature-section:nth-child(even) {
   background-color: #f9fafb;
+}
+
+/* Mobile First section with wave transition */
+#mobile-first {
+  background-color: #0A957C;
+  color: #ffffff;
+  margin-top: 0;
+  padding-top: 6rem;
+  position: relative;
+}
+
+#mobile-first::before {
+  content: '';
+  position: absolute;
+  top: -12rem;
+  left: 0;
+  right: 0;
+  height: 15rem;
+  background: #0A957C;
+  clip-path: ellipse(100% 100% at 50% 100%);
+  z-index: -1;
+}
+
+#mobile-first .saas-feature-title {
+  color: #ffffff;
+}
+
+#mobile-first .saas-feature-description {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+#mobile-first .saas-stat-number {
+  color: #ffffff;
+}
+
+#mobile-first .saas-stat-label {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .saas-feature-content {
@@ -217,6 +244,8 @@
   grid-template-columns: 1fr 1fr;
   gap: 4rem;
   align-items: center;
+  position: relative;
+  z-index: 2;
 }
 
 .saas-feature-reverse .saas-feature-content {
@@ -811,4 +840,29 @@ html.dark .saas-benefit h4 {
 
 html.dark .saas-benefit p {
   color: #9ca3af;
+}
+
+/* Dark Mode Mobile First Section */
+html.dark #mobile-first {
+  background-color: #065f46;
+}
+
+html.dark #mobile-first::before {
+  background: #065f46;
+}
+
+html.dark #mobile-first .saas-feature-title {
+  color: #ffffff;
+}
+
+html.dark #mobile-first .saas-feature-description {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+html.dark #mobile-first .saas-stat-number {
+  color: #ffffff;
+}
+
+html.dark #mobile-first .saas-stat-label {
+  color: rgba(255, 255, 255, 0.8);
 }

@@ -149,18 +149,22 @@ const SaaSHomePage = () => {
       <section className="saas-main-demo">
         <div className="saas-main-demo-content">
           <div className="saas-main-demo-video">
-            <div className="saas-video-placeholder">
-              <img 
-                src="https://images.unsplash.com/photo-1551650975-87deedd944c3?w=800&h=450&fit=crop&crop=center" 
-                alt="Sprout Track Demo Video" 
-                className="saas-demo-thumbnail"
-              />
-              <div className="saas-play-button">
-                <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-                  <circle cx="40" cy="40" r="40" fill="rgba(255,255,255,0.9)" />
-                  <path d="M32 25L55 40L32 55V25Z" fill="#0d9488" />
-                </svg>
-              </div>
+            <div style={{ border: 'none', borderRadius: '25px', overflow: 'hidden' }}>
+              <video 
+                src="/Demo1.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                style={{ 
+                  width: '100%', 
+                  height: 'auto',
+                  borderRadius: '25px',
+                  border: 'none'
+                }}
+              >
+                Your browser does not support the video tag.
+              </video>
             </div>
           </div>
         </div>
