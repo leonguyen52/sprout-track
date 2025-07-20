@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/src/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { Badge } from '@/src/components/ui/badge';
@@ -10,6 +10,17 @@ import './sphome.css';
 
 const SaaSHomePage = () => {
   const { theme } = useTheme();
+  const [currentActivity, setCurrentActivity] = useState(0);
+  
+  const activities = ['Sleep', 'Bottles', 'Diapers', 'Baths', 'Milestones', 'Medicine'];
+
+  // Animated tagline effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentActivity((prev) => (prev + 1) % activities.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [activities.length]);
 
   const features = [
     {
@@ -79,15 +90,16 @@ const SaaSHomePage = () => {
           <div className="saas-nav-content">
             <div className="saas-logo">
               <img 
-                src="https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=40&h=40&fit=crop&crop=center" 
+                src="/spourt-256.png" 
                 alt="Sprout Track Logo" 
                 className="saas-logo-image"
               />
               <span className="saas-logo-text">Sprout Track</span>
             </div>
             <div className="saas-nav-links">
-              <a href="#features" className="saas-nav-link">Features</a>
-              <a href="#testimonials" className="saas-nav-link">Reviews</a>
+              <a href="#mobile-first" className="saas-nav-link">Mobile First</a>
+              <a href="#easy-tracking" className="saas-nav-link">Easy Tracking</a>
+              <a href="#caretakers" className="saas-nav-link">Caretakers</a>
               <a href="#pricing" className="saas-nav-link">Pricing</a>
               <ThemeToggle variant="light" className="saas-theme-toggle" />
               <Button variant="outline" size="sm" className="saas-login-btn">
@@ -109,8 +121,10 @@ const SaaSHomePage = () => {
               Trusted by 10,000+ families
             </Badge>
             <h1 className="saas-hero-title">
-              Track Your Baby's Journey with
-              <span className="saas-hero-gradient"> Confidence</span>
+              Easily track your child's{' '}
+              <span className="saas-hero-animated-word">
+                {activities[currentActivity]}
+              </span>
             </h1>
             <p className="saas-hero-description">
               The complete baby tracking solution for modern families. Monitor sleep, feeding, 
@@ -128,12 +142,157 @@ const SaaSHomePage = () => {
               No credit card required • 14-day free trial • Cancel anytime
             </p>
           </div>
-          <div className="saas-hero-image">
-            <img 
-              src="https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&h=400&fit=crop&crop=center" 
-              alt="Happy family with baby" 
-              className="saas-hero-img"
-            />
+        </div>
+      </section>
+
+      {/* Main Demo Video Section */}
+      <section className="saas-main-demo">
+        <div className="saas-main-demo-content">
+          <div className="saas-main-demo-video">
+            <div className="saas-video-placeholder">
+              <img 
+                src="https://images.unsplash.com/photo-1551650975-87deedd944c3?w=800&h=450&fit=crop&crop=center" 
+                alt="Sprout Track Demo Video" 
+                className="saas-demo-thumbnail"
+              />
+              <div className="saas-play-button">
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                  <circle cx="40" cy="40" r="40" fill="rgba(255,255,255,0.9)" />
+                  <path d="M32 25L55 40L32 55V25Z" fill="#0d9488" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Mobile First Section */}
+      <section id="mobile-first" className="saas-feature-section">
+        <div className="saas-feature-content">
+          <div className="saas-feature-text">
+            <h2 className="saas-feature-title">Mobile first, but available everywhere</h2>
+            <p className="saas-feature-description">
+              Designed for busy parents on the go. Start tracking on your phone, 
+              continue on your tablet, and share with your partner seamlessly across all devices.
+            </p>
+            <div className="saas-feature-stats">
+              <div className="saas-stat">
+                <span className="saas-stat-number">98%</span>
+                <span className="saas-stat-label">Mobile usage</span>
+              </div>
+              <div className="saas-stat">
+                <span className="saas-stat-number">3 sec</span>
+                <span className="saas-stat-label">Average log time</span>
+              </div>
+            </div>
+          </div>
+          <div className="saas-feature-video">
+            <div className="saas-video-placeholder">
+              <img 
+                src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&h=400&fit=crop&crop=center" 
+                alt="Mobile and Tablet Demo" 
+                className="saas-feature-thumbnail"
+              />
+              <div className="saas-play-button-small">
+                <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                  <circle cx="30" cy="30" r="30" fill="rgba(255,255,255,0.9)" />
+                  <path d="M24 18L42 30L24 42V18Z" fill="#0d9488" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Easy Tracking Section */}
+      <section id="easy-tracking" className="saas-feature-section saas-feature-reverse">
+        <div className="saas-feature-content">
+          <div className="saas-feature-text">
+            <h2 className="saas-feature-title">Easy to add activities - because your time is at premium</h2>
+            <p className="saas-feature-description">
+              Log a feeding in less than 3 clicks. Our streamlined interface gets you back to 
+              what matters most - spending time with your little one.
+            </p>
+            <div className="saas-feature-highlights">
+              <div className="saas-highlight">
+                <span className="saas-highlight-icon">⚡</span>
+                <span>Quick entry forms</span>
+              </div>
+              <div className="saas-highlight">
+                <span className="saas-highlight-icon">🎯</span>
+                <span>Smart defaults</span>
+              </div>
+              <div className="saas-highlight">
+                <span className="saas-highlight-icon">📱</span>
+                <span>One-tap logging</span>
+              </div>
+            </div>
+          </div>
+          <div className="saas-feature-video">
+            <div className="saas-video-placeholder">
+              <img 
+                src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&h=400&fit=crop&crop=center" 
+                alt="Quick Activity Logging Demo" 
+                className="saas-feature-thumbnail"
+              />
+              <div className="saas-play-button-small">
+                <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                  <circle cx="30" cy="30" r="30" fill="rgba(255,255,255,0.9)" />
+                  <path d="M24 18L42 30L24 42V18Z" fill="#0d9488" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Caretakers Section */}
+      <section id="caretakers" className="saas-feature-section">
+        <div className="saas-feature-content">
+          <div className="saas-feature-text">
+            <h2 className="saas-feature-title">Add caretakers without having to sign up</h2>
+            <p className="saas-feature-description">
+              The family has its own space, and you can control who has access with easy-to-use 
+              IDs and PINs. Set up family, babysitters, or nannies with access to get updates when you need them.
+            </p>
+            <div className="saas-feature-benefits">
+              <div className="saas-benefit">
+                <span className="saas-benefit-icon">🔐</span>
+                <div>
+                  <h4>Secure PIN access</h4>
+                  <p>No email required for caretakers</p>
+                </div>
+              </div>
+              <div className="saas-benefit">
+                <span className="saas-benefit-icon">👥</span>
+                <div>
+                  <h4>Family-controlled</h4>
+                  <p>You decide who gets access</p>
+                </div>
+              </div>
+              <div className="saas-benefit">
+                <span className="saas-benefit-icon">📊</span>
+                <div>
+                  <h4>Real-time updates</h4>
+                  <p>Everyone stays informed</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="saas-feature-video">
+            <div className="saas-video-placeholder">
+              <img 
+                src="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=600&h=400&fit=crop&crop=center" 
+                alt="Caretaker Access Demo" 
+                className="saas-feature-thumbnail"
+              />
+              <div className="saas-play-button-small">
+                <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                  <circle cx="30" cy="30" r="30" fill="rgba(255,255,255,0.9)" />
+                  <path d="M24 18L42 30L24 42V18Z" fill="#0d9488" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -220,7 +379,7 @@ const SaaSHomePage = () => {
           <div className="saas-footer-brand">
             <div className="saas-logo">
               <img 
-                src="https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=40&h=40&fit=crop&crop=center" 
+                src="/spourt-256.png" 
                 alt="Sprout Track Logo" 
                 className="saas-logo-image"
               />
