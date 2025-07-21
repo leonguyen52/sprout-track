@@ -184,6 +184,11 @@ const SaaSHomePage = () => {
         </div>
       </section>
 
+      {/* Transition Section with Concave Circle */}
+      <section className="saas-transition-section">
+        <div className="saas-transition-content"></div>
+      </section>
+
       {/* Mobile First Section */}
       <section id="mobile-first" className="saas-feature-section">
         <div className="saas-feature-content">

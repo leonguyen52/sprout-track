@@ -155,12 +155,14 @@
   position: relative;
   overflow: hidden;
   margin-bottom: 2rem;
+  z-index: 2;
 }
 
 .saas-main-demo-content {
   max-width: 1650px;
   margin: 0 auto;
   position: relative;
+  z-index: 2;
 }
 
 .saas-main-demo-video {
@@ -200,6 +202,24 @@
 .saas-play-button:hover {
   transform: translate(-50%, -50%) scale(1.1);
 }
+
+/* Transition Section with Concave Circle */
+.saas-transition-section {
+  height: 300px;
+  background-color: #ffffff; /* White background to contrast with the shape */
+  position: relative;
+  z-index: 1;
+  margin-top: -180px; /* 60% offset behind demo div */
+  overflow: hidden;
+}
+
+.saas-transition-content {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, #ecfdf5, #f9fafb); /* Light green to gray gradient */
+  clip-path: ellipse(120% 80% at 50% 100%);
+}
+
 
 /* Feature Sections */
 .saas-feature-section {
@@ -873,4 +893,13 @@ html.dark #mobile-first .saas-stat-number {
 
 html.dark #mobile-first .saas-stat-label {
   color: #9ca3af;
+}
+
+/* Dark Mode Transition Section */
+html.dark .saas-transition-section {
+  background-color: #111827; /* Dark background to contrast with the shape */
+}
+
+html.dark .saas-transition-content {
+  background: linear-gradient(135deg, #0f2027 0%, #203a43 100%); /* Gradient for the concave shape */
 }
