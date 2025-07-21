@@ -6,18 +6,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src
 import { Badge } from '@/src/components/ui/badge';
 import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 import { useTheme } from '@/src/context/theme';
+import { 
+  Moon, 
+  Baby, 
+  Ruler, 
+  Pill, 
+  Users, 
+  Zap, 
+  Target, 
+  Smartphone, 
+  Lock, 
+  BarChart3,
+  Play
+} from 'lucide-react';
 import './sphome.css';
 
 const SaaSHomePage = () => {
   const { theme } = useTheme();
   const [currentActivity, setCurrentActivity] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
   
   const activities = ['Sleep', 'Bottles', 'Diapers', 'Baths', 'Milestones', 'Medicine'];
 
   // Animated tagline effect
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentActivity((prev) => (prev + 1) % activities.length);
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrentActivity((prev) => (prev + 1) % activities.length);
+        setIsAnimating(false);
+      }, 400); // Half of the transition duration
     }, 2000);
     return () => clearInterval(interval);
   }, [activities.length]);
@@ -26,38 +44,38 @@ const SaaSHomePage = () => {
     {
       title: "Sleep Tracking",
       description: "Monitor sleep patterns, duration, and quality to help establish healthy routines.",
-      icon: "🛏️",
+      icon: <Moon size={20} />,
       image: "https://images.unsplash.com/photo-1520206183501-b80df61043c2?w=400&h=300&fit=crop&crop=center"
     },
     {
       title: "Feed Tracking",
       description: "Track breastfeeding, bottle feeding, and solid food intake with detailed logs.",
-      icon: "🍼",
+      icon: <Baby size={20} />,
       image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop&crop=center"
     },
     {
       title: "Diaper Tracking",
       description: "Keep detailed records of diaper changes to monitor health and patterns.",
-      icon: "👶",
+      icon: <Baby size={20} />,
       image: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400&h=300&fit=crop&crop=center"
     },
     {
       title: "Milestones & Growth",
       description: "Document precious milestones, growth measurements, and developmental progress.",
-      icon: "📏",
+      icon: <Ruler size={20} />,
       image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop&crop=center"
     },
     {
       title: "Medicine Tracking",
       description: "Safely track medications, vitamins, and medical appointments with reminders.",
-      icon: "💊",
+      icon: <Pill size={20} />,
       image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&h=300&fit=crop&crop=center"
     },
     {
       title: "Family Contacts",
       description: "Manage caretaker information, emergency contacts, and healthcare providers.",
-      icon: "👨‍👩‍👧‍👦",
-      image: "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=300&fit=crop&crop=center"
+      icon: <Users size={20} />,
+      image: "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=600&h=400&fit=crop&crop=center"
     }
   ];
 
@@ -100,14 +118,14 @@ const SaaSHomePage = () => {
               <a href="#mobile-first" className="saas-nav-link">Mobile First</a>
               <a href="#easy-tracking" className="saas-nav-link">Easy Tracking</a>
               <a href="#caretakers" className="saas-nav-link">Caretakers</a>
-              <a href="#pricing" className="saas-nav-link">Pricing</a>
-              <ThemeToggle variant="light" className="saas-theme-toggle" />
+              
               <Button variant="outline" size="sm" className="saas-login-btn">
                 Sign In
               </Button>
               <Button size="sm" className="saas-signup-btn">
                 Get Started
               </Button>
+              <ThemeToggle variant="light" className="saas-theme-toggle" />
             </div>
           </div>
         </nav>
@@ -118,11 +136,11 @@ const SaaSHomePage = () => {
         <div className="saas-hero-content">
           <div className="saas-hero-text">
             <Badge className="saas-hero-badge">
-              Trusted by 10,000+ families
+              In < u>Beta</u> now!  Try it for free!
             </Badge>
             <h1 className="saas-hero-title">
               Easily track your child's{' '}
-              <span className="saas-hero-animated-word">
+              <span className={`saas-hero-animated-word ${isAnimating ? 'animating' : ''}`}>
                 {activities[currentActivity]}
               </span>
             </h1>
@@ -130,17 +148,14 @@ const SaaSHomePage = () => {
               The complete baby tracking solution for modern families. Monitor sleep, feeding, 
               diapers, milestones, and more with our intuitive, family-friendly platform.
             </p>
-            <div className="saas-hero-actions">
+            {/* <div className="saas-hero-actions">
               <Button size="lg" className="saas-hero-cta">
                 Start Free Trial
               </Button>
               <Button variant="outline" size="lg" className="saas-hero-demo">
                 Watch Demo
               </Button>
-            </div>
-            <p className="saas-hero-note">
-              No credit card required • 14-day free trial • Cancel anytime
-            </p>
+            </div> */}
           </div>
         </div>
       </section>
@@ -149,7 +164,7 @@ const SaaSHomePage = () => {
       <section className="saas-main-demo">
         <div className="saas-main-demo-content">
           <div className="saas-main-demo-video">
-            <div style={{ border: 'none', borderRadius: '25px', overflow: 'hidden' }}>
+            <div style={{borderRadius: '5px', backgroundColor: '#0d9488', overflow: 'hidden' }}>
               <video 
                 src="/Demo1.mp4"
                 autoPlay
@@ -159,7 +174,6 @@ const SaaSHomePage = () => {
                 style={{ 
                   width: '100%', 
                   height: 'auto',
-                  borderRadius: '25px',
                   border: 'none'
                 }}
               >
@@ -198,10 +212,17 @@ const SaaSHomePage = () => {
                 className="saas-feature-thumbnail"
               />
               <div className="saas-play-button-small">
-                <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-                  <circle cx="30" cy="30" r="30" fill="rgba(255,255,255,0.9)" />
-                  <path d="M24 18L42 30L24 42V18Z" fill="#0d9488" />
-                </svg>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.9)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Play size={24} fill="#0d9488" color="#0d9488" />
+                </div>
               </div>
             </div>
           </div>
@@ -219,15 +240,15 @@ const SaaSHomePage = () => {
             </p>
             <div className="saas-feature-highlights">
               <div className="saas-highlight">
-                <span className="saas-highlight-icon">⚡</span>
+                <span className="saas-highlight-icon"><Zap size={20} /></span>
                 <span>Quick entry forms</span>
               </div>
               <div className="saas-highlight">
-                <span className="saas-highlight-icon">🎯</span>
+                <span className="saas-highlight-icon"><Target size={20} /></span>
                 <span>Smart defaults</span>
               </div>
               <div className="saas-highlight">
-                <span className="saas-highlight-icon">📱</span>
+                <span className="saas-highlight-icon"><Smartphone size={20} /></span>
                 <span>One-tap logging</span>
               </div>
             </div>
@@ -240,10 +261,17 @@ const SaaSHomePage = () => {
                 className="saas-feature-thumbnail"
               />
               <div className="saas-play-button-small">
-                <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-                  <circle cx="30" cy="30" r="30" fill="rgba(255,255,255,0.9)" />
-                  <path d="M24 18L42 30L24 42V18Z" fill="#0d9488" />
-                </svg>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.9)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Play size={24} fill="#0d9488" color="#0d9488" />
+                </div>
               </div>
             </div>
           </div>
@@ -261,21 +289,21 @@ const SaaSHomePage = () => {
             </p>
             <div className="saas-feature-benefits">
               <div className="saas-benefit">
-                <span className="saas-benefit-icon">🔐</span>
+                <span className="saas-benefit-icon"><Lock size={24} /></span>
                 <div>
                   <h4>Secure PIN access</h4>
                   <p>No email required for caretakers</p>
                 </div>
               </div>
               <div className="saas-benefit">
-                <span className="saas-benefit-icon">👥</span>
+                <span className="saas-benefit-icon"><Users size={24} /></span>
                 <div>
                   <h4>Family-controlled</h4>
                   <p>You decide who gets access</p>
                 </div>
               </div>
               <div className="saas-benefit">
-                <span className="saas-benefit-icon">📊</span>
+                <span className="saas-benefit-icon"><BarChart3 size={24} /></span>
                 <div>
                   <h4>Real-time updates</h4>
                   <p>Everyone stays informed</p>
@@ -291,10 +319,17 @@ const SaaSHomePage = () => {
                 className="saas-feature-thumbnail"
               />
               <div className="saas-play-button-small">
-                <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-                  <circle cx="30" cy="30" r="30" fill="rgba(255,255,255,0.9)" />
-                  <path d="M24 18L42 30L24 42V18Z" fill="#0d9488" />
-                </svg>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.9)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Play size={24} fill="#0d9488" color="#0d9488" />
+                </div>
               </div>
             </div>
           </div>
@@ -370,7 +405,7 @@ const SaaSHomePage = () => {
             Join thousands of families who trust Sprout Track to document their baby's precious moments.
           </p>
           <div className="saas-cta-actions">
-            <Button size="lg" className="saas-cta-button">
+            <Button size="lg" variant="success">
               Start Your Free Trial
             </Button>
           </div>
