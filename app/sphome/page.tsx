@@ -195,7 +195,7 @@ const SaaSHomePage = () => {
           <div className="saas-feature-text">
             <h2 className="saas-feature-title">Mobile first, but available everywhere</h2>
             <p className="saas-feature-description">
-              Designed for busy parents on the go. Start tracking on your phone, 
+              Designed by busy parents for busy parents. Start tracking on your phone, 
               continue on your tablet, and share with your partner seamlessly across all devices.
             </p>
             <div className="saas-feature-stats">
