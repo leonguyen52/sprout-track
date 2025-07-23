@@ -609,16 +609,16 @@
 .saas-footer {
   background-color: #ffffff;
   color: #111827;
-  padding: 3rem 1rem 1rem;
 }
 
 .saas-footer-content {
-  max-width: 1200px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr 2fr;
-  gap: 3rem;
-  margin-bottom: 2rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 2rem;
+  padding: 2rem;
+  background-color: #f9fafb;
 }
 
 .saas-footer-brand .saas-logo-text {
@@ -637,6 +637,13 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2rem;
+}
+
+.saas-footer-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
 }
 
 .saas-footer-heading {
@@ -658,9 +665,10 @@
 }
 
 .saas-footer-bottom {
-  border-top: 1px solid #374151;
-  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  padding: 1rem;
   text-align: center;
+  background-color: #f9fafb;
 }
 
 .saas-footer-copyright {
@@ -722,6 +730,16 @@
   
   .saas-footer-content {
     grid-template-columns: 1fr;
+    text-align: center;
+    gap: 2rem;
+  }
+  
+  .saas-footer-brand {
+    text-align: center;
+  }
+  
+  .saas-footer-demo {
+    align-items: center;
     text-align: center;
   }
   
@@ -832,6 +850,10 @@ html.dark .saas-cta {
 
 html.dark .saas-footer {
   background-color: #030712;
+}
+
+html.dark .saas-footer-content {
+  border-top-color: #374151;
 }
 
 html.dark .saas-footer-bottom {

@@ -247,7 +247,7 @@ const ComingSoon = () => {
 
       {/* Footer */}
       <footer className="saas-footer">
-       {/* <div className="saas-footer-content">
+        <div className="saas-footer-content">
           <div className="saas-footer-brand">
             <div className="saas-logo">
               <img 
@@ -258,30 +258,39 @@ const ComingSoon = () => {
               <span className="saas-logo-text">Sprout Track</span>
             </div>
             <p className="saas-footer-description">
-              The trusted baby tracking platform for modern families.
+              Sprouting into something amazing.
             </p>
           </div>
-          <div className="saas-footer-links">
-            <div className="saas-footer-column">
-              <h4 className="saas-footer-heading">Product</h4>
-              <a href="#" className="saas-footer-link">Features</a>
-              <a href="#" className="saas-footer-link">Pricing</a>
-              <a href="#" className="saas-footer-link">Security</a>
+          <div className="saas-footer-demo">
+            <Button 
+              size="lg" 
+              className="mb-4" 
+              asChild
+            >
+              <a 
+                href="https://demo.sprout-track.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                Try the Demo
+              </a>
+            </Button>
+            <p className="saas-footer-description text-sm mb-4">
+              Demo refreshes every 2 hours
+            </p>
+            <div className="space-y-1">
+              <p className="saas-footer-description text-sm">
+                <strong>Demo Access:</strong>
+              </p>
+              <p className="saas-footer-description text-sm">
+                Login IDs: 01, 02, 03
+              </p>
+              <p className="saas-footer-description text-sm">
+                PIN: 111222
+              </p>
             </div>
-            <div className="saas-footer-column">
-              <h4 className="saas-footer-heading">Support</h4>
-              <a href="#" className="saas-footer-link">Help Center</a>
-              <a href="#" className="saas-footer-link">Contact Us</a>
-              <a href="#" className="saas-footer-link">Status</a>
-            </div>
-            <div className="saas-footer-column">
-              <h4 className="saas-footer-heading">Company</h4>
-              <a href="#" className="saas-footer-link">About</a>
-              <a href="#" className="saas-footer-link">Privacy</a>
-              <a href="#" className="saas-footer-link">Terms</a>
-            </div>
-          </div>  
-        </div> */}
+          </div>
+        </div>
       <div className="saas-footer-bottom relative flex flex-col sm:flex-row items-center justify-center gap-4">
         <p className="saas-footer-copyright">
           © 2025 Oak and Sprout. All rights reserved.
