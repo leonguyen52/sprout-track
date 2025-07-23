@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/src/components/ui/button';
-import { InputButton } from '@/src/components/ui/input-button';
+import { Input } from '@/src/components/ui/input';
 import { Badge } from '@/src/components/ui/badge';
 import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 import { useTheme } from '@/src/context/theme';
-import { useEmailValidation } from '@/src/hooks/useEmailValidation';
 import './coming-soon.css';
 
 const ComingSoon = () => {
@@ -16,10 +15,13 @@ const ComingSoon = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   
-  const activities = ['Sleep', 'Bottles', 'Diapers', 'Baths', 'Milestones', 'Medicine'];
+  // Form state
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   
-  // Email validation hook
-  const { email, error, isValid, setEmail, validateEmail } = useEmailValidation();
+  const activities = ['Sleep', 'Bottles', 'Diapers', 'Baths', 'Milestones', 'Medicine'];
 
   // Animated tagline effect
   useEffect(() => {
@@ -33,29 +35,58 @@ const ComingSoon = () => {
     return () => clearInterval(interval);
   }, [activities.length]);
 
-  // Handle email submission
-  const handleEmailSubmit = async () => {
-    if (!validateEmail()) {
+  // Email validation
+  const validateEmail = (emailValue: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailValue) {
+      setEmailError('Email is required');
+      return false;
+    }
+    if (!emailRegex.test(emailValue)) {
+      setEmailError('Please enter a valid email address');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  };
+
+  // Handle form submission
+  const handleFormSubmit = async () => {
+    if (!validateEmail(email)) {
       return;
     }
 
     setIsSubmitting(true);
     
     try {
-      // Simulate API call - replace with actual API integration later
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('/api/beta-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email,
+          firstName: firstName || undefined,
+          lastName: lastName || undefined
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sign up');
+      }
       
       // Success - show success message
-      console.log('Email submitted:', email);
       setShowSuccess(true);
-      setEmail(''); // Clear the form
+      setEmail('');
+      setFirstName('');
+      setLastName('');
       
-      // Hide success message after 5 seconds
+      // Hide success message after 10 seconds
       setTimeout(() => {
         setShowSuccess(false);
       }, 10000);
     } catch (error) {
-      console.error('Error submitting email:', error);
+      console.error('Error submitting signup:', error);
       alert('There was an error signing up. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -153,24 +184,51 @@ const ComingSoon = () => {
         <div className="saas-cta-content">
           <h2 className="saas-cta-title">Interested in learning more?</h2>
           <p className="saas-cta-description">
-            Our beta program is coming soon! Enter your email to get early access to the app.
+            Our beta program is coming soon! Enter your information to get early access to the app.
           </p>
           <div className="saas-cta-actions">
-            <InputButton
-              layout="below"
-              type="email"
-              placeholder="Enter your email"
-              buttonText="Get Notified!"
-              buttonVariant="success"
-              buttonSize="lg"
-              value={email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-              onButtonClick={handleEmailSubmit}
-              buttonLoading={isSubmitting}
-              buttonDisabled={isSubmitting}
-              error={error}
-              containerClassName="max-w-md mx-auto"
-            />
+            <div className="max-w-md mx-auto space-y-4">
+              <div className="flex gap-3">
+                <Input
+                  type="text"
+                  placeholder="First name (optional)"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  disabled={isSubmitting}
+                  className="flex-1"
+                />
+                <Input
+                  type="text"
+                  placeholder="Last name (optional)"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  disabled={isSubmitting}
+                  className="flex-1"
+                />
+              </div>
+              <div>
+                <Input
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full"
+                />
+                {emailError && (
+                  <p className="text-red-500 text-sm mt-1">{emailError}</p>
+                )}
+              </div>
+              <Button
+                variant="success"
+                size="lg"
+                onClick={handleFormSubmit}
+                disabled={isSubmitting}
+                className="w-full"
+              >
+                {isSubmitting ? 'Signing up...' : 'Get Notified!'}
+              </Button>
+            </div>
             {showSuccess && (
               <div className="mt-4 flex justify-center">
                 <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-700">
