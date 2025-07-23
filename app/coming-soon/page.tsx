@@ -286,8 +286,15 @@ const ComingSoon = () => {
           <p className="saas-footer-copyright">
             © 2025 Oak and Sprout. All rights reserved.
           </p>
-          <div className="absolute right-0 flex items-center gap-2">
-            <span className="saas-github-text">Follow on</span>
+          <div className="absolute right-0 flex gap-2">
+          <a href="https://www.buymeacoffee.com/joverton">
+            <img 
+              src="https://img.buymeacoffee.com/button-api/?text=Support This Project&emoji=☕&slug=joverton&button_colour=008375&font_colour=ffffff&font_family=Inter&outline_colour=ffffff&coffee_colour=FFDD00" 
+              alt="Support This Project" 
+              style={{ width: '75%', height: 'auto' }}
+            />
+          </a>
+          <span className="saas-github-text">Follow on</span>
             <Button variant="outline" size="sm" asChild className="p-2">
               <a 
                 href="https://github.com/Oak-and-Sprout/sprout-track" 
