@@ -14,6 +14,7 @@ const ComingSoon = () => {
   const [currentActivity, setCurrentActivity] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   
   const activities = ['Sleep', 'Bottles', 'Diapers', 'Baths', 'Milestones', 'Medicine'];
   
@@ -42,12 +43,17 @@ const ComingSoon = () => {
     
     try {
       // Simulate API call - replace with actual API integration later
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Success - you could show a success message here
+      // Success - show success message
       console.log('Email submitted:', email);
-      alert('Thank you for signing up! We\'ll notify you when the beta is ready.');
+      setShowSuccess(true);
       setEmail(''); // Clear the form
+      
+      // Hide success message after 5 seconds
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 10000);
     } catch (error) {
       console.error('Error submitting email:', error);
       alert('There was an error signing up. Please try again.');
@@ -145,16 +151,16 @@ const ComingSoon = () => {
       {/* CTA Section */}
       <section id="signup" className="saas-cta">
         <div className="saas-cta-content">
-          <h2 className="saas-cta-title">Interested in learning more? Sign up for our beta program!</h2>
+          <h2 className="saas-cta-title">Interested in learning more?</h2>
           <p className="saas-cta-description">
             Our beta program is coming soon! Enter your email to get early access to the app.
           </p>
           <div className="saas-cta-actions">
             <InputButton
-              layout="right"
+              layout="below"
               type="email"
-              placeholder="Enter your email address"
-              buttonText="Join Beta Program"
+              placeholder="Enter your email"
+              buttonText="Get Notified!"
               buttonVariant="success"
               buttonSize="lg"
               value={email}
@@ -165,6 +171,13 @@ const ComingSoon = () => {
               error={error}
               containerClassName="max-w-md mx-auto"
             />
+            {showSuccess && (
+              <div className="mt-4 flex justify-center">
+                <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-700">
+                  ✓ Thank you for signing up! We'll notify you when the beta is ready.
+                </Badge>
+              </div>
+            )}
           </div>
         </div>
       </section>
