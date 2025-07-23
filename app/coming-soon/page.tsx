@@ -127,7 +127,7 @@ const ComingSoon = () => {
               <u>Beta</u> coming soon!
             </Badge>
             <h1 className="saas-hero-title">
-              Easily track your child's{' '}
+              Easily track your baby's{' '}
               <span className={`saas-hero-animated-word ${isAnimating ? 'animating' : ''}`}>
                 {activities[currentActivity]}
               </span>
@@ -309,11 +309,12 @@ const ComingSoon = () => {
           </Button>
         </div>
           <div style={{ width: '200px' }}>
-            <a href="https://www.buymeacoffee.com/joverton">
+            <a href="https://www.buymeacoffee.com/joverton" className="group block">
               <img 
                 src="https://img.buymeacoffee.com/button-api/?text=Support This Project&emoji=☕&slug=joverton&button_colour=008375&font_colour=ffffff&font_family=Inter&outline_colour=ffffff&coffee_colour=FFDD00" 
                 alt="Support This Project" 
-                style={{ width: '100%', height: 'auto' }}
+                style={{ width: '100%', height: 'auto', transition: 'transform 0.8s ease' }}
+                className="group-hover:scale-105"
               />
             </a>
           </div>
