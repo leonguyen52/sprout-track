@@ -738,6 +738,10 @@
     text-align: center;
   }
   
+  .saas-footer-brand .saas-logo {
+    justify-content: center;
+  }
+  
   .saas-footer-demo {
     align-items: center;
     text-align: center;
