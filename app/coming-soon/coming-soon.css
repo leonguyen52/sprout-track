@@ -852,16 +852,46 @@ html.dark .saas-cta {
   background: linear-gradient(135deg, #0f766e 0%, #047857 100%);
 }
 
+html.dark .saas-cta-title {
+  color: #f9fafb;
+}
+
+html.dark .saas-cta-description {
+  color: #d1d5db;
+}
+
 html.dark .saas-footer {
   background-color: #030712;
 }
 
 html.dark .saas-footer-content {
+  background-color: #1f2937;
   border-top-color: #374151;
 }
 
 html.dark .saas-footer-bottom {
-  border-top-color: #1f2937;
+  background-color: #1f2937;
+  border-top-color: #374151;
+}
+
+html.dark .saas-footer-heading {
+  color: #f9fafb;
+}
+
+html.dark .saas-footer-description {
+  color: #9ca3af;
+}
+
+html.dark .saas-footer-link {
+  color: #9ca3af;
+}
+
+html.dark .saas-footer-link:hover {
+  color: #5eead4;
+}
+
+html.dark .saas-footer-copyright {
+  color: #9ca3af;
 }
 
 html.dark .saas-feature-section:nth-child(even) {
@@ -939,7 +969,7 @@ html.dark .saas-transition-content {
 }
 
 html.dark .saas-privacy-notice {
-  color: #9ca3af;
+  color: #f9fafb;
 }
 
 /* Success badge styles */
