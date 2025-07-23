@@ -148,6 +148,9 @@ const SaaSHomePage = () => {
               The complete baby tracking solution for modern families. Monitor sleep, feeding, 
               diapers, milestones, and more with our intuitive, family-friendly platform.
             </p>
+            <p className="saas-hero-description">
+              <b>Open source, privacy-focused, and built by parents for parents.</b>
+            </p>
             {/* <div className="saas-hero-actions">
               <Button size="lg" className="saas-hero-cta">
                 Start Free Trial
@@ -289,7 +292,7 @@ const SaaSHomePage = () => {
           <div className="saas-feature-text">
             <h2 className="saas-feature-title">Add caretakers without having to sign up</h2>
             <p className="saas-feature-description">
-              The family has its own space, and you can control who has access with easy-to-use 
+              Your family has its own space, and you can control who has access with easy-to-use 
               IDs and PINs. Set up family, babysitters, or nannies with access to get updates when you need them.
             </p>
             <div className="saas-feature-benefits">
