@@ -282,7 +282,7 @@ const ComingSoon = () => {
             </div>
           </div>  
         </div> */}
-      <div className="saas-footer-bottom relative flex items-center justify-center gap-4">
+      <div className="saas-footer-bottom relative flex flex-col sm:flex-row items-center justify-center gap-4">
         <p className="saas-footer-copyright">
           © 2025 Oak and Sprout. All rights reserved.
         </p>
@@ -299,13 +299,15 @@ const ComingSoon = () => {
             </a>
           </Button>
         </div>
-          <a href="https://www.buymeacoffee.com/joverton">
-            <img 
-              src="https://img.buymeacoffee.com/button-api/?text=Support This Project&emoji=☕&slug=joverton&button_colour=008375&font_colour=ffffff&font_family=Inter&outline_colour=ffffff&coffee_colour=FFDD00" 
-              alt="Support This Project" 
-              style={{ width: '75%', height: 'auto' }}
-            />
-          </a>
+          <div style={{ width: '200px' }}>
+            <a href="https://www.buymeacoffee.com/joverton">
+              <img 
+                src="https://img.buymeacoffee.com/button-api/?text=Support This Project&emoji=☕&slug=joverton&button_colour=008375&font_colour=ffffff&font_family=Inter&outline_colour=ffffff&coffee_colour=FFDD00" 
+                alt="Support This Project" 
+                style={{ width: '100%', height: 'auto' }}
+              />
+            </a>
+          </div>
       </div>
       </footer>
     </div>
