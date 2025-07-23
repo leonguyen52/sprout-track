@@ -133,11 +133,11 @@ const ComingSoon = () => {
               </span>
             </h1>
             <p className="saas-hero-description">
-              The complete baby tracking solution for modern families. Monitor sleep, feeding, 
+              The complete baby tracking solution built by parents for parents. Monitor sleep, feeding, 
               diapers, milestones, and more with our intuitive, family-friendly platform.
             </p>
             <p className="saas-hero-description">
-              <b>Built by parents for parents.  Open source.  Privacy-focused.</b>
+              <b>Open source.  Privacy-focused.  Accessible anywhere.</b>
             </p>
             {/* <div className="saas-hero-actions">
               <Button size="lg" className="saas-hero-cta">
