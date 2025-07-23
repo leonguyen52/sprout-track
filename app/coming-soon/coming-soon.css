@@ -903,3 +903,52 @@ html.dark .saas-transition-section {
 html.dark .saas-transition-content {
   background: linear-gradient(135deg, #0f2027 0%, #203a43 100%); /* Gradient for the concave shape */
 }
+
+/* Privacy notice styles */
+.saas-privacy-notice {
+  color: #6b7280;
+  font-size: 0.875rem;
+  text-align: center;
+  margin-top: 0.75rem;
+}
+
+html.dark .saas-privacy-notice {
+  color: #9ca3af;
+}
+
+/* Success badge styles */
+.saas-success-badge {
+  background-color: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+html.dark .saas-success-badge {
+  background-color: #14532d;
+  color: #bbf7d0;
+  border-color: #166534;
+}
+
+/* GitHub follow button styles */
+.saas-github-text {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+html.dark .saas-github-text {
+  color: #9ca3af;
+}
+
+.saas-github-link {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.saas-github-link:hover {
+  color: #0d9488;
+}
+
+html.dark .saas-github-link:hover {
+  color: #5eead4;
+}

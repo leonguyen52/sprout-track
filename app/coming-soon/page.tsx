@@ -6,6 +6,7 @@ import { Input } from '@/src/components/ui/input';
 import { Badge } from '@/src/components/ui/badge';
 import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 import { useTheme } from '@/src/context/theme';
+import { Github } from 'lucide-react';
 import './coming-soon.css';
 
 const ComingSoon = () => {
@@ -136,7 +137,7 @@ const ComingSoon = () => {
               diapers, milestones, and more with our intuitive, family-friendly platform.
             </p>
             <p className="saas-hero-description">
-              <b>Open source, privacy-focused, and built by parents for parents.</b>
+              <b>Built by parents for parents.  Open source.  Privacy-focused.</b>
             </p>
             {/* <div className="saas-hero-actions">
               <Button size="lg" className="saas-hero-cta">
@@ -182,7 +183,7 @@ const ComingSoon = () => {
       {/* CTA Section */}
       <section id="signup" className="saas-cta">
         <div className="saas-cta-content">
-          <h2 className="saas-cta-title">Interested in learning more?</h2>
+          <h2 className="saas-cta-title">Get early access, for free!</h2>
           <p className="saas-cta-description">
             Our beta program is coming soon! Enter your information to get early access to the app.
           </p>
@@ -228,10 +229,13 @@ const ComingSoon = () => {
               >
                 {isSubmitting ? 'Signing up...' : 'Get Notified!'}
               </Button>
+              <p className="saas-privacy-notice">
+                This signup is only for beta notifications. We respect your privacy and will never use your information for anything else or share it with third parties.
+              </p>
             </div>
             {showSuccess && (
               <div className="mt-4 flex justify-center">
-                <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-700">
+                <Badge className="saas-success-badge">
                   ✓ Thank you for signing up! We'll notify you when the beta is ready.
                 </Badge>
               </div>
@@ -278,10 +282,23 @@ const ComingSoon = () => {
             </div>
           </div>  
         </div> */}
-        <div className="saas-footer-bottom">
+        <div className="saas-footer-bottom relative flex items-center justify-center">
           <p className="saas-footer-copyright">
             © 2025 Oak and Sprout. All rights reserved.
           </p>
+          <div className="absolute right-0 flex items-center gap-2">
+            <span className="saas-github-text">Follow on</span>
+            <Button variant="outline" size="sm" asChild className="p-2">
+              <a 
+                href="https://github.com/Oak-and-Sprout/sprout-track" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="saas-github-link"
+              >
+                <Github size={16} />
+              </a>
+            </Button>
+          </div>
         </div>
       </footer>
     </div>
