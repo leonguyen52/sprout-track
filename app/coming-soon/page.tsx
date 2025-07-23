@@ -282,11 +282,23 @@ const ComingSoon = () => {
             </div>
           </div>  
         </div> */}
-        <div className="saas-footer-bottom relative flex items-center justify-center">
-          <p className="saas-footer-copyright">
-            © 2025 Oak and Sprout. All rights reserved.
-          </p>
-          <div className="absolute right-0 flex gap-2">
+      <div className="saas-footer-bottom relative flex items-center justify-center gap-4">
+        <p className="saas-footer-copyright">
+          © 2025 Oak and Sprout. All rights reserved.
+        </p>
+        <div className="flex items-center gap-2 saas-footer-copyright">
+        <p>Follow on</p>
+        <Button variant="outline" size="sm" asChild className="p-2">
+            <a 
+              href="https://github.com/Oak-and-Sprout/sprout-track" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="saas-github-link"
+            >
+              <Github size={16} />
+            </a>
+          </Button>
+        </div>
           <a href="https://www.buymeacoffee.com/joverton">
             <img 
               src="https://img.buymeacoffee.com/button-api/?text=Support This Project&emoji=☕&slug=joverton&button_colour=008375&font_colour=ffffff&font_family=Inter&outline_colour=ffffff&coffee_colour=FFDD00" 
@@ -294,19 +306,7 @@ const ComingSoon = () => {
               style={{ width: '75%', height: 'auto' }}
             />
           </a>
-          <span className="saas-github-text">Follow on</span>
-            <Button variant="outline" size="sm" asChild className="p-2">
-              <a 
-                href="https://github.com/Oak-and-Sprout/sprout-track" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="saas-github-link"
-              >
-                <Github size={16} />
-              </a>
-            </Button>
-          </div>
-        </div>
+      </div>
       </footer>
     </div>
   );
