@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FamilyResponse } from './api/types';
 import { ThemeProvider } from '@/src/context/theme';
-import SaaSHomePage from './sphome/page';
+import ComingSoon from './coming-soon/page';
 
 export default function HomePage() {
   const router = useRouter();
@@ -90,7 +90,7 @@ export default function HomePage() {
   if (deploymentMode === 'saas') {
     return (
       <ThemeProvider>
-        <SaaSHomePage />
+        <ComingSoon />
       </ThemeProvider>
     );
   }
