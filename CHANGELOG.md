@@ -1,5 +1,13 @@
 # Sprout Track Changelog
 
+## v0.92.16 - Bugfixes - July 2025
+
+### Changes
+
+- Updated Calendar view page to use this months date instead of hardcoding April 2025 on page load
+- Fixed issue in Log-Entry timeilne view so that it pulls records in users timezone and not server timezone
+- Refactored status bubbles to work better with mobile and tablet browsers
+
 ## v0.92.13 - Critical fix for token setup - July 2025
 
 ### Changes
