@@ -103,45 +103,14 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const limit = Number(searchParams.get('limit')) || 200;
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
-    const date = searchParams.get('date');
-    // Get client timezone from query parameter - no longer needed with ISO strings
-    const clientTimezone = searchParams.get('timezone');
+    
+    console.log(`API Request - babyId: ${babyId}, startDate: ${startDate}, endDate: ${endDate}`);
 
-    console.log(`API Request - babyId: ${babyId}, date: ${date}, startDate: ${startDate}, endDate: ${endDate}, timezone: ${clientTimezone}`);
-
-    // If a single date is provided, create start and end dates for that day
     let effectiveStartDate = startDate;
     let effectiveEndDate = endDate;
     let useLimit = true;
     
-    if (date) {
-      console.log(`Processing date parameter: ${date}`);
-      try {
-        // Parse the date string to ensure it's valid
-        const selectedDate = new Date(date);
-        
-        if (!isNaN(selectedDate.getTime())) {
-          // Set start date to beginning of the day in local time
-          const dayStart = new Date(selectedDate);
-          dayStart.setHours(0, 0, 0, 0);
-          effectiveStartDate = dayStart.toISOString();
-          
-          // Set end date to end of the day in local time
-          const dayEnd = new Date(selectedDate);
-          dayEnd.setHours(23, 59, 59, 999);
-          effectiveEndDate = dayEnd.toISOString();
-          
-          // Don't use limit when filtering by date
-          useLimit = false;
-          
-          console.log(`Date range created: ${effectiveStartDate} to ${effectiveEndDate}`);
-        } else {
-          console.log(`Invalid date format: ${date}`);
-        }
-      } catch (error) {
-        console.error(`Error processing date parameter: ${error}`);
-      }
-    } else if (startDate && endDate) {
+    if (startDate && endDate) {
       // Don't use limit when filtering by date range
       useLimit = false;
       console.log(`Using date range: ${startDate} to ${endDate}`);

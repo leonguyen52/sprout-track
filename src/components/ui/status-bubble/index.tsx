@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Moon, Sun, Icon } from 'lucide-react';
 import { diaper, bottleBaby } from '@lucide/lab';
 import { cn } from "@/src/lib/utils";
@@ -28,41 +28,55 @@ export function StatusBubble({
   const { userTimezone, calculateDurationMinutes, formatDuration } = useTimezone();
   const [calculatedDuration, setCalculatedDuration] = useState(durationInMinutes);
   
+  const updateDuration = useCallback(() => {
+    if (startTime) {
+      try {
+        // Use the calculateDurationMinutes function from the timezone context
+        // This properly handles DST changes
+        const now = new Date();
+        
+        // Only calculate duration if this is the correct activity type
+        // This ensures that "awake" status only considers sleep activities
+        // and isn't affected by other activities like pumping
+        if (!activityType || 
+            (status === 'sleeping' && activityType === 'sleep') || 
+            (status === 'awake' && activityType === 'sleep') ||
+            (status === 'feed' && activityType === 'feed') ||
+            (status === 'diaper' && activityType === 'diaper')) {
+          const diffMinutes = calculateDurationMinutes(startTime, now.toISOString());
+          setCalculatedDuration(diffMinutes);
+        }
+      } catch (error) {
+        console.error('Error calculating duration:', error);
+        // Fallback to the provided duration if calculation fails
+        setCalculatedDuration(durationInMinutes);
+      }
+    }
+  }, [startTime, calculateDurationMinutes, status, activityType, durationInMinutes]);
+  
   // If startTime is provided, calculate duration based on current time in user's timezone
   useEffect(() => {
     if (startTime) {
-      const updateDuration = () => {
-        try {
-          // Use the calculateDurationMinutes function from the timezone context
-          // This properly handles DST changes
-          const now = new Date();
-          
-          // Only calculate duration if this is the correct activity type
-          // This ensures that "awake" status only considers sleep activities
-          // and isn't affected by other activities like pumping
-          if (!activityType || 
-              (status === 'sleeping' && activityType === 'sleep') || 
-              (status === 'awake' && activityType === 'sleep') ||
-              (status === 'feed' && activityType === 'feed') ||
-              (status === 'diaper' && activityType === 'diaper')) {
-            const diffMinutes = calculateDurationMinutes(startTime, now.toISOString());
-            setCalculatedDuration(diffMinutes);
-          }
-        } catch (error) {
-          console.error('Error calculating duration:', error);
-          // Fallback to the provided duration if calculation fails
-          setCalculatedDuration(durationInMinutes);
-        }
-      };
-      
       // Update immediately
       updateDuration();
       
       // Then update every minute
       const interval = setInterval(updateDuration, 60000);
-      return () => clearInterval(interval);
+
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          updateDuration();
+        }
+      };
+      
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     }
-  }, [startTime, userTimezone, durationInMinutes, calculateDurationMinutes, status, activityType]);
+  }, [startTime, updateDuration]);
   
   // Use calculated duration if available, otherwise use prop
   const displayDuration = startTime ? calculatedDuration : durationInMinutes;

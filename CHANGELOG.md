@@ -1,11 +1,23 @@
 # Sprout Track Changelog
 
+## v0.92.16 - Bugfixes - July 2025
+
+### Changes
+
+- Updated Calendar view page to use this months date instead of hardcoding April 2025 on page load
+- Fixed issue in Log-Entry timeline view so that it pulls records in users timezone and not server timezone
+- Refactored status bubbles to work better with mobile and tablet browsers
+
+---
+
 ## v0.92.13 - Critical fix for token setup - July 2025
 
 ### Changes
 
 - Bugfix for caretakers not being associated to families properly
 - Bugfix for system account context for family not working correctly during setup (user would get error during setup)
+
+---
 
 ## v0.92.11 - Multi-family Edition Enhancements and Bugfixs - July 2025
 
