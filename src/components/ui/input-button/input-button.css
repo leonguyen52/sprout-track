@@ -1,0 +1,110 @@
+/* Dark mode overrides for InputButton component */
+
+/* Input dark mode styles */
+html.dark .input-button-input-dark {
+  background-color: #1f2937 !important; /* gray-800 */
+  border-color: #4b5563 !important; /* gray-600 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .input-button-input-dark::placeholder {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .input-button-input-dark:hover {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #6b7280 !important; /* gray-500 */
+}
+
+html.dark .input-button-input-dark:focus {
+  border-color: #6366f1 !important; /* indigo-500 */
+  background-color: #1f2937 !important; /* gray-800 */
+  ring-color: rgba(99, 102, 241, 0.2) !important; /* indigo-500 with opacity */
+}
+
+html.dark .input-button-input-dark:disabled {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #4b5563 !important; /* gray-600 */
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* Button dark mode styles */
+html.dark .input-button-button-dark-outline {
+  border-color: #4b5563; /* gray-600 */
+  background-color: #1f2937; /* gray-800 */
+  color: #e5e7eb; /* gray-200 */
+}
+
+html.dark .input-button-button-dark-outline:hover {
+  border-color: #5eead4; /* teal-300 */
+  background-color: rgba(94, 234, 212, 0.1); /* teal-300 with opacity */
+}
+
+html.dark .input-button-button-dark-ghost {
+  color: #e5e7eb; /* gray-200 */
+}
+
+html.dark .input-button-button-dark-ghost:hover {
+  background-color: rgba(94, 234, 212, 0.1); /* teal-300 with opacity */
+  color: #5eead4; /* teal-300 */
+}
+
+html.dark .input-button-button-dark-link {
+  color: #5eead4; /* teal-300 */
+}
+
+html.dark .input-button-button-dark-secondary {
+  background-image: linear-gradient(to right, #1f2937, #111827); /* dark:from-slate-800 dark:to-slate-900 */
+}
+
+/* Error message dark mode */
+html.dark .input-button-error-dark {
+  color: #fca5a5; /* red-300 */
+}
+
+/* Layout specific dark mode adjustments */
+html.dark .input-button-left .input-button-input-dark {
+  border-right-color: transparent !important;
+}
+
+html.dark .input-button-right .input-button-input-dark {
+  border-left-color: transparent !important;
+}
+
+/* Button dark mode border adjustments for connected layouts */
+html.dark .input-button-left .input-button-button-dark-outline {
+  border-color: #4b5563 !important; /* gray-600 */
+  border-right-color: transparent !important;
+}
+
+html.dark .input-button-right .input-button-button-dark-outline {
+  border-color: #4b5563 !important; /* gray-600 */
+  border-left-color: transparent !important;
+}
+
+html.dark .input-button-left .input-button-button-dark-ghost,
+html.dark .input-button-right .input-button-button-dark-ghost {
+  border-color: #4b5563 !important; /* gray-600 */
+}
+
+html.dark .input-button-left .input-button-button-dark-ghost {
+  border-right-color: transparent !important;
+}
+
+html.dark .input-button-right .input-button-button-dark-ghost {
+  border-left-color: transparent !important;
+}
+
+/* Ensure all button variants have proper border colors in dark mode for connected layouts */
+html.dark .input-button-left button,
+html.dark .input-button-right button {
+  border-color: #4b5563 !important; /* gray-600 */
+}
+
+html.dark .input-button-left button {
+  border-right-color: transparent !important;
+}
+
+html.dark .input-button-right button {
+  border-left-color: transparent !important;
+}
