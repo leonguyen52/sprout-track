@@ -41,13 +41,23 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
     }
 
     try {
-      const formattedDate = date.toISOString();
       const timestamp = new Date().getTime();
+
+      // Calculate start of day in user's timezone
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const startDateISO = startOfDay.toISOString();
+
+      // Calculate end of day in user's timezone
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      const endDateISO = endOfDay.toISOString();
+      
       const urlPath = window.location.pathname;
       const familySlugMatch = urlPath.match(/^\/([^\/]+)\//);
       const familySlug = familySlugMatch ? familySlugMatch[1] : null;
       
-      let url = `/api/timeline?babyId=${babyId}&date=${encodeURIComponent(formattedDate)}&_t=${timestamp}`;
+      let url = `/api/timeline?babyId=${babyId}&startDate=${encodeURIComponent(startDateISO)}&endDate=${encodeURIComponent(endDateISO)}&_t=${timestamp}`;
       
       const authToken = localStorage.getItem('authToken');
       const response = await fetch(url, {
