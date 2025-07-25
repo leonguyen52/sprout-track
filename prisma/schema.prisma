@@ -746,6 +746,89 @@ model FamilySetup {
   @@index([createdBy])
 }
 
+// Beta subscriber for coming soon page signups
+model BetaSubscriber {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  firstName   String?
+  lastName    String?
+  isOptedIn   Boolean  @default(true)
+  optedOutAt  DateTime?
+  source      String   @default("coming-soon")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  
+  // Future-proofing: relationship to campaigns
+  campaignEmails BetaCampaignEmail[]
+  
+  @@index([email])
+  @@index([isOptedIn])
+  @@index([source])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+// Future-proof campaign system
+model BetaCampaign {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String
+  content     String?
+  type        BetaCampaignType @default(NOTIFICATION)
+  isActive    Boolean  @default(true)
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  
+  campaignEmails BetaCampaignEmail[]
+  
+  @@index([type])
+  @@index([isActive])
+  @@index([scheduledAt])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+model BetaCampaignEmail {
+  id            String   @id @default(cuid())
+  sentAt        DateTime @default(now())
+  deliveredAt   DateTime?
+  openedAt      DateTime?
+  clickedAt     DateTime?
+  status        BetaEmailStatus @default(SENT)
+  errorMessage  String?
+  
+  campaign      BetaCampaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId    String
+  subscriber    BetaSubscriber   @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  subscriberId  String
+  
+  @@unique([campaignId, subscriberId])
+  @@index([sentAt])
+  @@index([status])
+  @@index([campaignId])
+  @@index([subscriberId])
+}
+
+enum BetaCampaignType {
+  NOTIFICATION
+  UPDATE
+  WELCOME
+  REMINDER
+}
+
+enum BetaEmailStatus {
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  FAILED
+}
+
 // Application configuration settings
 model AppConfig {
   id          String   @id @default(cuid())

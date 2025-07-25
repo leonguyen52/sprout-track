@@ -60,7 +60,7 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  color: #ffffff; /* white */
+  color: #6b7280; /* gray-500 - visible in light mode */
 }
 
 /* Circle indicator for active theme */
@@ -117,7 +117,7 @@
 .current-theme-light {
   font-size: 0.75rem; /* text-xs */
   font-weight: 500; /* font-medium */
-  color: #ffffff; /* white */
+  color: #6b7280; /* gray-500 - visible in light mode */
 }
 
 .next-theme {

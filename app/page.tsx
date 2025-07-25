@@ -3,17 +3,34 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FamilyResponse } from './api/types';
+import { ThemeProvider } from '@/src/context/theme';
+import ComingSoon from './coming-soon/page';
 
 export default function HomePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [families, setFamilies] = useState<FamilyResponse[]>([]);
+  const [deploymentMode, setDeploymentMode] = useState<string>('selfhosted');
 
   useEffect(() => {
-    const checkFamilies = async () => {
+    const checkDeploymentMode = async () => {
       try {
         setLoading(true);
-        // Fetch families and check if setup is needed
+        
+        // Check deployment mode first
+        const configResponse = await fetch('/api/deployment-config');
+        const configData = await configResponse.json();
+        
+        if (configData.success && configData.data?.deploymentMode === 'saas') {
+          // SaaS mode - render SaaS homepage directly
+          setDeploymentMode('saas');
+          setLoading(false);
+          return;
+        }
+        
+        // Self-hosted mode - continue with existing logic
+        setDeploymentMode('selfhosted');
+        
         const [familiesResponse, caretakerExistsResponse] = await Promise.all([
           fetch('/api/family/public-list'),
           fetch('/api/auth/caretaker-exists')
@@ -55,20 +72,29 @@ export default function HomePage() {
           }
         }
       } catch (error) {
-        console.error('Error fetching families:', error);
+        console.error('Error checking deployment mode or families:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    checkFamilies();
+    checkDeploymentMode();
   }, [router]);
 
-  // Return loading state - the useEffect will handle redirects
+  // Return loading state while checking deployment mode
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
   
-  // This should not render as useEffect will redirect
+  // If SaaS mode, render the SaaS homepage directly
+  if (deploymentMode === 'saas') {
+    return (
+      <ThemeProvider>
+        <ComingSoon />
+      </ThemeProvider>
+    );
+  }
+  
+  // This should not render for self-hosted as useEffect will redirect
   return null;
 }
