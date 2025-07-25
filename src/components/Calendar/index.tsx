@@ -24,8 +24,8 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
   
   // Component state
   const [state, setState] = useState<CalendarState>({
-    // Set initial date to April 2025 to match the event in the database
-    currentDate: new Date(2025, 3, 1), // April 1, 2025 (months are 0-indexed)
+    // Set the intiial date to this month
+    currentDate: new Date(),
     selectedDate: null,
     calendarDays: [],
     events: []
