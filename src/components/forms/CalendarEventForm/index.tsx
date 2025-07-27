@@ -94,44 +94,34 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
     return formData.endTime || new Date(new Date().getTime() + 60 * 60 * 1000); // Default to 1 hour later
   });
   
-  // Update form data when event or initialDate changes
+  // Update form data when the form is opened or the event/date props change
   useEffect(() => {
-    // If event is provided, use it (editing an existing event)
-    if (event) {
-      setFormData({ ...event });
-      if (event.startTime) {
-        setSelectedStartDateTime(event.startTime);
-      }
-      if (event.endTime) {
-        setSelectedEndDateTime(event.endTime);
-      }
-    } 
-    // If no event but initialDate is provided, create a completely new event with that date
-    else if (initialDate) {
-      // Create a completely new form data object for a new event
-      const newFormData = getInitialFormData(undefined, initialDate, babies);
-      setFormData(newFormData);
-      
-      if (newFormData.startTime) {
-        setSelectedStartDateTime(newFormData.startTime);
-      }
-      if (newFormData.endTime) {
-        setSelectedEndDateTime(newFormData.endTime);
-      }
-    }
-    // If no event and no initialDate, reset to default form with current date
-    else if (!event && !initialDate) {
-      const newFormData = getInitialFormData(undefined, new Date(), babies);
-      setFormData(newFormData);
-      
-      if (newFormData.startTime) {
-        setSelectedStartDateTime(newFormData.startTime);
-      }
-      if (newFormData.endTime) {
-        setSelectedEndDateTime(newFormData.endTime);
+    // Only run this logic when the form is open
+    if (isOpen) {
+      // If event is provided, use it for editing
+      if (event) {
+        setFormData({ ...event });
+        if (event.startTime) {
+          setSelectedStartDateTime(event.startTime);
+        }
+        if (event.endTime) {
+          setSelectedEndDateTime(event.endTime);
+        }
+      } 
+      // Otherwise, reset for a new event
+      else {
+        const newFormData = getInitialFormData(undefined, initialDate, babies);
+        setFormData(newFormData);
+        
+        if (newFormData.startTime) {
+          setSelectedStartDateTime(newFormData.startTime);
+        }
+        if (newFormData.endTime) {
+          setSelectedEndDateTime(newFormData.endTime);
+        }
       }
     }
-  }, [event, initialDate, babies]);
+  }, [isOpen, event, initialDate, babies]);
   
   // Ensure baby is selected when editing an existing event
   useEffect(() => {
