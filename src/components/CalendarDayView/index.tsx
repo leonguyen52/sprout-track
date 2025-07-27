@@ -104,13 +104,14 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
           return;
         }
         
-        const eventDate = new Date(event.startTime);
-        if (isNaN(eventDate.getTime())) {
+        // Use the user's local timezone to determine the hour
+        const localDate = new Date(event.startTime);
+        if (isNaN(localDate.getTime())) {
           console.warn('Invalid event date:', event.startTime);
           return;
         }
         
-        const hour = eventDate.getHours();
+        const hour = localDate.getHours();
         
         if (hour < 12) {
           groups.morning.push(event);

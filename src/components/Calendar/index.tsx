@@ -218,35 +218,17 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
         return false;
       }
       
-      // Get the YYYY-MM-DD string for the local calendar date
-      const localYear = localDate.getFullYear();
-      const localMonth = (localDate.getMonth() + 1).toString().padStart(2, '0'); // Month is 0-indexed
-      const localDay = localDate.getDate().toString().padStart(2, '0');
-      const localDateString = `${localYear}-${localMonth}-${localDay}`;
-      
-      // Get the YYYY-MM-DD string from the event's UTC date string
-      let eventDateUTCString: string;
-      if (eventDateStr instanceof Date) {
-        eventDateUTCString = eventDateStr.toISOString().split('T')[0];
-      } else if (typeof eventDateStr === 'string') {
-        // Attempt to parse the string and extract the date part
-        const parsedDate = new Date(eventDateStr);
-        if (isNaN(parsedDate.getTime())) {
-          console.warn(`Invalid date string in isSameUTCDay: ${eventDateStr}`);
-          return false;
-        }
-        eventDateUTCString = parsedDate.toISOString().split('T')[0];
-      } else {
-        console.warn(`Invalid eventDateStr type in isSameUTCDay: ${typeof eventDateStr}`);
+      const eventDate = new Date(eventDateStr);
+      if (isNaN(eventDate.getTime())) {
+        console.warn(`Invalid date string in isSameUTCDay: ${eventDateStr}`);
         return false;
       }
       
-      // Compare the date strings
-      const result = eventDateUTCString === localDateString;
-      
-      // Optional: Log for debugging
-      // console.log(`Comparing UTC event date ${eventDateUTCString} with local calendar date ${localDateString}. Result: ${result}`);
-      
+      // Compare year, month, and day in the user's local timezone
+      const result = eventDate.getFullYear() === localDate.getFullYear() &&
+                     eventDate.getMonth() === localDate.getMonth() &&
+                     eventDate.getDate() === localDate.getDate();
+
       return result;
     } catch (error) {
       console.error('Error in isSameUTCDay:', error, { eventDateStr, localDate });
