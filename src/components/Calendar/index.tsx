@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '@/src/context/theme';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { Card } from '@/src/components/ui/card';
 import { cn } from '@/src/lib/utils';
@@ -30,6 +30,7 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
     calendarDays: [],
     events: []
   });
+  const [eventScrollState, setEventScrollState] = useState<{ [key: string]: number }>({});
   
   // Destructure state for easier access
   const {
@@ -218,35 +219,17 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
         return false;
       }
       
-      // Get the YYYY-MM-DD string for the local calendar date
-      const localYear = localDate.getFullYear();
-      const localMonth = (localDate.getMonth() + 1).toString().padStart(2, '0'); // Month is 0-indexed
-      const localDay = localDate.getDate().toString().padStart(2, '0');
-      const localDateString = `${localYear}-${localMonth}-${localDay}`;
-      
-      // Get the YYYY-MM-DD string from the event's UTC date string
-      let eventDateUTCString: string;
-      if (eventDateStr instanceof Date) {
-        eventDateUTCString = eventDateStr.toISOString().split('T')[0];
-      } else if (typeof eventDateStr === 'string') {
-        // Attempt to parse the string and extract the date part
-        const parsedDate = new Date(eventDateStr);
-        if (isNaN(parsedDate.getTime())) {
-          console.warn(`Invalid date string in isSameUTCDay: ${eventDateStr}`);
-          return false;
-        }
-        eventDateUTCString = parsedDate.toISOString().split('T')[0];
-      } else {
-        console.warn(`Invalid eventDateStr type in isSameUTCDay: ${typeof eventDateStr}`);
+      const eventDate = new Date(eventDateStr);
+      if (isNaN(eventDate.getTime())) {
+        console.warn(`Invalid date string in isSameUTCDay: ${eventDateStr}`);
         return false;
       }
       
-      // Compare the date strings
-      const result = eventDateUTCString === localDateString;
-      
-      // Optional: Log for debugging
-      // console.log(`Comparing UTC event date ${eventDateUTCString} with local calendar date ${localDateString}. Result: ${result}`);
-      
+      // Compare year, month, and day in the user's local timezone
+      const result = eventDate.getFullYear() === localDate.getFullYear() &&
+                     eventDate.getMonth() === localDate.getMonth() &&
+                     eventDate.getDate() === localDate.getDate();
+
       return result;
     } catch (error) {
       console.error('Error in isSameUTCDay:', error, { eventDateStr, localDate });
@@ -293,6 +276,26 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
     // Just pass the event through
   };
 
+  const handleEventScroll = (e: React.MouseEvent, date: Date, direction: 'up' | 'down') => {
+    e.stopPropagation();
+    const dateKey = date.toISOString().split('T')[0];
+    const dayEvents = getEventsForDay(date);
+    const maxVisible = 3; // Max visible events in a day cell
+    const currentOffset = eventScrollState[dateKey] || 0;
+
+    let newOffset = currentOffset;
+    if (direction === 'up' && currentOffset > 0) {
+      newOffset = currentOffset - 1;
+    } else if (direction === 'down' && currentOffset < dayEvents.length - maxVisible) {
+      newOffset = currentOffset + 1;
+    }
+
+    setEventScrollState(prevState => ({
+      ...prevState,
+      [dateKey]: newOffset
+    }));
+  };
+
   const handleAddEvent = (date: Date) => {
     // Update the selected date
     updateState({
@@ -309,7 +312,7 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
    * Get day cell class based on date
    */
   const getDayClass = (date: Date): string => {
-    const baseClass = "flex flex-col h-full min-h-[60px] p-1 border border-gray-200 cursor-pointer calendar-day";
+    const baseClass = "flex flex-col h-full min-h-[120px] p-1 border border-gray-200 cursor-pointer calendar-day";
     let className = baseClass;
     
     if (isToday(date)) {
@@ -332,59 +335,63 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
   };
 
   /**
-   * Render calendar event indicators
+   * Render calendar event list for a given day
    */
-  const renderActivityIndicators = (date: Date) => {
-    // Get events for this day
+  const renderDayEvents = (date: Date) => {
     const dayEvents = getEventsForDay(date);
+    if (dayEvents.length === 0) return null;
+
+    const dateKey = date.toISOString().split('T')[0];
+    const scrollOffset = eventScrollState[dateKey] || 0;
+    const maxVisibleEvents = 3;
+
+    const visibleEvents = dayEvents.slice(scrollOffset, scrollOffset + maxVisibleEvents);
     
-    // Only show indicators if there are calendar events for this day
-    if (dayEvents.length === 0) {
-      return null;
-    }
-    
+    const showUpArrow = scrollOffset > 0;
+    const showDownArrow = scrollOffset + maxVisibleEvents < dayEvents.length;
+
     return (
-      <div className="flex flex-wrap gap-1 mt-auto">
-        {dayEvents.map((event, index) => {
-          // If the event has a custom color, use it
-          if (event.color) {
+      <div className="flex flex-col flex-grow overflow-hidden relative mt-1">
+        {showUpArrow && (
+          <div className="text-center h-4">
+            <ChevronUp className="h-4 w-4 mx-auto text-gray-400 cursor-pointer" onClick={(e) => handleEventScroll(e, date, 'up')} />
+          </div>
+        )}
+        <div className="flex-grow space-y-1 my-1">
+          {visibleEvents.map((event) => {
+            const eventStyle: React.CSSProperties = {};
+            let textColorClass = 'text-white';
+            let bgColorClass = '';
+
+            if (event.color) {
+              eventStyle.backgroundColor = event.color;
+            } else {
+              switch (event.type) {
+                case 'APPOINTMENT': bgColorClass = 'bg-blue-500'; break;
+                case 'CARETAKER_SCHEDULE': bgColorClass = 'bg-green-500'; break;
+                case 'REMINDER': bgColorClass = 'bg-yellow-500'; textColorClass = 'text-black'; break;
+                case 'CUSTOM': bgColorClass = 'bg-purple-500'; break;
+                default: bgColorClass = 'bg-gray-500';
+              }
+            }
+            
             return (
-              <div 
-                key={index} 
-                className="w-2 h-2 rounded-full" 
-                style={{ backgroundColor: event.color }}
+              <div
+                key={event.id}
+                className={`w-full text-xs rounded-sm px-1 truncate ${bgColorClass} ${textColorClass}`}
+                style={eventStyle}
                 title={event.title}
-              />
+              >
+                {event.title}
+              </div>
             );
-          }
-          
-          // Otherwise use default colors based on event type
-          let bgColor = '';
-          switch (event.type) {
-            case 'APPOINTMENT':
-              bgColor = 'bg-blue-500 calendar-indicator-appointment';
-              break;
-            case 'CARETAKER_SCHEDULE':
-              bgColor = 'bg-green-500 calendar-indicator-caretaker';
-              break;
-            case 'REMINDER':
-              bgColor = 'bg-yellow-500 calendar-indicator-reminder';
-              break;
-            case 'CUSTOM':
-              bgColor = 'bg-purple-500 calendar-indicator-custom';
-              break;
-            default:
-              bgColor = 'bg-gray-500 calendar-indicator-default';
-          }
-          
-          return (
-            <div 
-              key={index} 
-              className={`w-2 h-2 rounded-full ${bgColor}`} 
-              title={event.title}
-            />
-          );
-        })}
+          })}
+        </div>
+        {showDownArrow && (
+          <div className="text-center h-4">
+            <ChevronDown className="h-4 w-4 mx-auto text-gray-400 cursor-pointer" onClick={(e) => handleEventScroll(e, date, 'down')} />
+          </div>
+        )}
       </div>
     );
   };
@@ -425,7 +432,7 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
       </div>
       
       {/* Main content area */}
-      <div className="flex flex-col md:flex-row flex-1 overflow-hidden bg-white calendar-content" style={{ minHeight: `${calendarRowCount * 60}px` }}>
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden bg-white calendar-content" style={{ minHeight: `${calendarRowCount * 120}px` }}>
         {/* Calendar Grid */}
         <Card className="flex-1 overflow-hidden border-0 rounded-t-none calendar-grid flex md:flex-col">
           <div className="h-full flex flex-col">
@@ -452,7 +459,7 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
                   <span className={`text-xs ${isToday(date) ? 'font-bold text-teal-700 calendar-today-text' : ''}`}>
                     {date.getDate()}
                   </span>
-                  {renderActivityIndicators(date)}
+                  {renderDayEvents(date)}
                 </div>
               ))}
             </div>
@@ -463,7 +470,6 @@ export function Calendar({ selectedBabyId, userTimezone, onDateSelect }: Calenda
         <CalendarDayView
           date={selectedDate || new Date()}
           events={selectedDate ? getEventsForDay(selectedDate) : []}
-          onEventClick={handleEventClick}
           onAddEvent={handleAddEvent}
           className="calendar-day-view-slide-in"
           onClose={() => updateState({ selectedDate: null })}

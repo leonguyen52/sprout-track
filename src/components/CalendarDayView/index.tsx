@@ -24,7 +24,6 @@ import './calendar-day-view.css';
  * 
  * @param date - The selected date to display events for
  * @param events - Array of events for the selected date
- * @param onEventClick - Optional handler for when an event is clicked
  * @param onAddEvent - Optional handler for when the add event button is clicked
  * @param isLoading - Whether the component is in a loading state
  * @param className - Additional CSS classes
@@ -33,7 +32,6 @@ import './calendar-day-view.css';
 export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
   date,
   events,
-  onEventClick,
   onAddEvent,
   isLoading = false,
   className,
@@ -104,13 +102,14 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
           return;
         }
         
-        const eventDate = new Date(event.startTime);
-        if (isNaN(eventDate.getTime())) {
+        // Use the user's local timezone to determine the hour
+        const localDate = new Date(event.startTime);
+        if (isNaN(localDate.getTime())) {
           console.warn('Invalid event date:', event.startTime);
           return;
         }
         
-        const hour = eventDate.getHours();
+        const hour = localDate.getHours();
         
         if (hour < 12) {
           groups.morning.push(event);
@@ -226,12 +225,6 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
         
         // Refresh the events for the current day view
         // This will update the CalendarDayView with the latest events
-        if (onEventClick) {
-          // We're using onEventClick as a way to signal that we need to refresh
-          // In a real implementation, you might want a dedicated onRefresh callback
-          const refreshEvent = data.data || eventData;
-          onEventClick(refreshEvent);
-        }
       } else {
         console.error('Error saving event:', data.error);
       }

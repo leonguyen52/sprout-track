@@ -1,5 +1,15 @@
 # Sprout Track Changelog
 
+## v0.92.19 - Calendar Bugfixes and Small Enhancements - July 2025
+
+### Changes
+
+- Updated the main calendar view and calendar day view to ensure events are displayed based on the user's timezone rather than the server timezone
+- Replaced event dots with event titles in the main calendar view to make the calendar more readable
+- Fixed an issue where the calendar event form would not reset properly when adding multiple events for the same day in succession
+
+---
+
 ## v0.92.16 - Bugfixes - July 2025
 
 ### Changes
