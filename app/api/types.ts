@@ -312,3 +312,21 @@ export interface MedicineLogCreate {
   unitAbbr?: string | null;
   notes?: string;
 }
+
+// Beta Subscriber types
+export interface BetaSubscriberResponse {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  isOptedIn: boolean;
+  optedOutAt: string | null;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface BetaSubscriberUpdate {
+  isOptedIn?: boolean;
+}
