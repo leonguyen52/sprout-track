@@ -1,5 +1,15 @@
 # Sprout Track Changelog
 
+## v0.92.30 - Added Email Integration
+
+### Changes
+
+- Added email integrations for manual SMTP setup, SMTP2GO, and SendGrid
+- Added email test scripts
+- Added server configuration to application config settings pages
+
+---
+
 ## v0.92.19 - Calendar Bugfixes and Small Enhancements - July 2025
 
 ### Changes
