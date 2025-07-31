@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
 import { ApiResponse } from '../types';
-import { AppConfig } from '@prisma/client';
+import { AppConfig, EmailConfig } from '@prisma/client';
 import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
 import { withSysAdminAuth } from '../utils/auth';
 
@@ -13,6 +13,7 @@ import { withSysAdminAuth } from '../utils/auth';
 async function getHandler(req: NextRequest): Promise<NextResponse<ApiResponse<any>>> {
   try {
     let appConfig = await prisma.appConfig.findFirst();
+    let emailConfig = await prisma.emailConfig.findFirst();
     
     if (!appConfig) {
       // Create default app config if none exists
@@ -25,15 +26,34 @@ async function getHandler(req: NextRequest): Promise<NextResponse<ApiResponse<an
       });
     }
 
-    // Decrypt the adminPass for the response
-    const decryptedConfig = {
+    if (!emailConfig) {
+      // Create default email config if none exists
+      emailConfig = await prisma.emailConfig.create({
+        data: {
+          providerType: 'SENDGRID',
+        },
+      });
+    }
+
+    // Decrypt sensitive fields for the response
+    const decryptedAppConfig = {
       ...appConfig,
       adminPass: isEncrypted(appConfig.adminPass) ? decrypt(appConfig.adminPass) : appConfig.adminPass,
     };
 
-    return NextResponse.json<ApiResponse<typeof decryptedConfig>>({
+    const decryptedEmailConfig = {
+      ...emailConfig,
+      sendGridApiKey: emailConfig.sendGridApiKey && isEncrypted(emailConfig.sendGridApiKey) ? decrypt(emailConfig.sendGridApiKey) : emailConfig.sendGridApiKey,
+      smtp2goApiKey: emailConfig.smtp2goApiKey && isEncrypted(emailConfig.smtp2goApiKey) ? decrypt(emailConfig.smtp2goApiKey) : emailConfig.smtp2goApiKey,
+      password: emailConfig.password && isEncrypted(emailConfig.password) ? decrypt(emailConfig.password) : emailConfig.password,
+    };
+
+    return NextResponse.json<ApiResponse<{ appConfig: any; emailConfig: any }>>({
       success: true,
-      data: decryptedConfig,
+      data: {
+        appConfig: decryptedAppConfig,
+        emailConfig: decryptedEmailConfig,
+      },
     });
   } catch (error) {
     console.error('Error fetching app config:', error);
@@ -55,49 +75,71 @@ async function getHandler(req: NextRequest): Promise<NextResponse<ApiResponse<an
 async function putHandler(req: NextRequest): Promise<NextResponse<ApiResponse<any>>> {
   try {
     const body = await req.json();
+    const { appConfigData, emailConfigData } = body;
     
-    let existingConfig = await prisma.appConfig.findFirst();
-    
-    if (!existingConfig) {
-      return NextResponse.json<ApiResponse<null>>(
-        {
-          success: false,
-          error: 'App configuration not found. Please create one first.',
-        },
-        { status: 404 }
-      );
-    }
+    let updatedAppConfig;
+    let updatedEmailConfig;
 
-    const data: Partial<AppConfig> = {};
-    const allowedFields: (keyof AppConfig)[] = [
-      'adminPass', 'rootDomain', 'enableHttps'
-    ];
+    // Update AppConfig
+    if (appConfigData) {
+      const existingAppConfig = await prisma.appConfig.findFirst();
+      if (!existingAppConfig) {
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: 'App configuration not found.' }, { status: 404 });
+      }
 
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        if (field === 'adminPass') {
-          // Encrypt the adminPass before storing
-          (data as any)[field] = encrypt(body[field]);
-        } else {
-          (data as any)[field] = body[field];
+      const data: Partial<AppConfig> = {};
+      const allowedAppFields: (keyof AppConfig)[] = ['adminPass', 'rootDomain', 'enableHttps'];
+      for (const field of allowedAppFields) {
+        if (appConfigData[field] !== undefined) {
+          (data as any)[field] = field === 'adminPass' ? encrypt(appConfigData[field]) : appConfigData[field];
         }
       }
+      updatedAppConfig = await prisma.appConfig.update({ where: { id: existingAppConfig.id }, data });
     }
-    
-    const updatedConfig = await prisma.appConfig.update({
-      where: { id: existingConfig.id },
-      data,
-    });
 
-    // Decrypt the adminPass for the response
-    const responseConfig = {
-      ...updatedConfig,
-      adminPass: isEncrypted(updatedConfig.adminPass) ? decrypt(updatedConfig.adminPass) : updatedConfig.adminPass,
-    };
+    // Update EmailConfig
+    if (emailConfigData) {
+      const existingEmailConfig = await prisma.emailConfig.findFirst();
+      if (!existingEmailConfig) {
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Email configuration not found.' }, { status: 404 });
+      }
 
-    return NextResponse.json<ApiResponse<typeof responseConfig>>({
+      const data: Partial<EmailConfig> = {};
+      const allowedEmailFields: (keyof EmailConfig)[] = [
+        'providerType', 'sendGridApiKey', 'smtp2goApiKey', 'serverAddress', 'port', 'username', 'password', 'enableTls', 'allowSelfSignedCert'
+      ];
+      const encryptedFields = ['sendGridApiKey', 'smtp2goApiKey', 'password'];
+
+      for (const field of allowedEmailFields) {
+        if (emailConfigData[field] !== undefined) {
+          (data as any)[field] = encryptedFields.includes(field) && emailConfigData[field] ? encrypt(emailConfigData[field]) : emailConfigData[field];
+        }
+      }
+      updatedEmailConfig = await prisma.emailConfig.update({ where: { id: existingEmailConfig.id }, data });
+    }
+
+    // Fetch updated configs to return decrypted data
+    const finalAppConfig = await prisma.appConfig.findFirst();
+    const finalEmailConfig = await prisma.emailConfig.findFirst();
+
+    const decryptedAppConfig = finalAppConfig ? {
+      ...finalAppConfig,
+      adminPass: isEncrypted(finalAppConfig.adminPass) ? decrypt(finalAppConfig.adminPass) : finalAppConfig.adminPass,
+    } : null;
+
+    const decryptedEmailConfig = finalEmailConfig ? {
+      ...finalEmailConfig,
+      sendGridApiKey: finalEmailConfig.sendGridApiKey && isEncrypted(finalEmailConfig.sendGridApiKey) ? decrypt(finalEmailConfig.sendGridApiKey) : finalEmailConfig.sendGridApiKey,
+      smtp2goApiKey: finalEmailConfig.smtp2goApiKey && isEncrypted(finalEmailConfig.smtp2goApiKey) ? decrypt(finalEmailConfig.smtp2goApiKey) : finalEmailConfig.smtp2goApiKey,
+      password: finalEmailConfig.password && isEncrypted(finalEmailConfig.password) ? decrypt(finalEmailConfig.password) : finalEmailConfig.password,
+    } : null;
+
+    return NextResponse.json<ApiResponse<any>>({
       success: true,
-      data: responseConfig,
+      data: {
+        appConfig: decryptedAppConfig,
+        emailConfig: decryptedEmailConfig
+      },
     });
   } catch (error) {
     console.error('Error updating app config:', error);

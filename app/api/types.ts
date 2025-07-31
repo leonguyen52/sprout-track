@@ -1,4 +1,4 @@
-import { Baby, SleepLog, FeedLog, DiaperLog, MoodLog, Note, Caretaker, Settings as PrismaSettings, Gender, SleepType, SleepQuality, FeedType, BreastSide, DiaperType, Mood, PumpLog, Milestone, MilestoneCategory, Measurement, MeasurementType, Medicine, MedicineLog } from '@prisma/client';
+import { Baby, SleepLog, FeedLog, DiaperLog, MoodLog, Note, Caretaker, Settings as PrismaSettings, Gender, SleepType, SleepQuality, FeedType, BreastSide, DiaperType, Mood, PumpLog, Milestone, MilestoneCategory, Measurement, MeasurementType, Medicine, MedicineLog, EmailConfig as PrismaEmailConfig, EmailProviderType } from '@prisma/client';
 
 // Family types
 export interface Family {
@@ -177,6 +177,16 @@ export interface CaretakerCreate {
 
 export interface CaretakerUpdate extends Partial<CaretakerCreate> {
   id: string;
+}
+
+// EmailConfig types
+export type EmailConfigResponse = Omit<PrismaEmailConfig, 'updatedAt' | 'password'> & {
+  updatedAt: string;
+  password?: string;
+};
+
+export interface EmailConfigUpdate extends Partial<Omit<PrismaEmailConfig, 'id' | 'updatedAt'>> {
+  // All fields are optional for update
 }
 
 // Bath log types
