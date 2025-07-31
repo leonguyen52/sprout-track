@@ -1,12 +1,16 @@
 # Sprout Track Changelog
 
-## v0.92.30 - Added Email Integration
+## v0.92.32 - Beta Subscriber Management & Email Integration
 
 ### Changes
 
-- Added email integrations for manual SMTP setup, SMTP2GO, and SendGrid
-- Added email test scripts
-- Added server configuration to application config settings pages
+- Added a new "Beta Subscribers" tab to the Family Manager page for viewing and managing beta subscribers, visible only in SaaS deployment mode.
+- Created a new API route for fetching, updating, and deleting beta subscribers.
+- Added the ability to opt-out and delete beta subscribers from the Family Manager page.
+- Improved the empty table message for beta subscribers to be more descriptive.
+- Added email integrations for manual SMTP setup, SMTP2GO, and SendGrid.
+- Added email test scripts.
+- Added server configuration to application config settings pages.
 
 ---
 
