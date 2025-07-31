@@ -31,12 +31,15 @@ import {
   Trash2,
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  Mail,
+  UserX,
 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import FamilyForm from '@/src/components/forms/FamilyForm';
 import AppConfigForm from '@/src/components/forms/AppConfigForm';
 import { ShareButton } from '@/src/components/ui/share-button';
+import { BetaSubscriberResponse } from '@/app/api/types';
 
 // Types for our family data
 interface FamilyData {
@@ -85,6 +88,7 @@ export default function FamilyManagerPage() {
   const router = useRouter();
   const [families, setFamilies] = useState<FamilyData[]>([]);
   const [invites, setInvites] = useState<FamilySetupInvite[]>([]);
+  const [betaSubscribers, setBetaSubscribers] = useState<BetaSubscriberResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<Partial<FamilyData>>({});
@@ -100,6 +104,9 @@ export default function FamilyManagerPage() {
   const [showAppConfigForm, setShowAppConfigForm] = useState(false);
   const [appConfig, setAppConfig] = useState<{ rootDomain: string; enableHttps: boolean } | null>(null);
   const [deletingInviteId, setDeletingInviteId] = useState<string | null>(null);
+  const [deletingSubscriberId, setDeletingSubscriberId] = useState<string | null>(null);
+  const [updatingSubscriberId, setUpdatingSubscriberId] = useState<string | null>(null);
+  const [deploymentMode, setDeploymentMode] = useState<string | null>(null);
 
   // Tab and table state
   const [activeTab, setActiveTab] = useState('families');
@@ -108,23 +115,41 @@ export default function FamilyManagerPage() {
   const [pageSize, setPageSize] = useState(10);
 
   // Define tabs with counts
-  const tabs = useMemo(() => [
-    { 
-      id: 'families', 
-      label: 'Families',
-      count: families.length 
-    },
-    { 
-      id: 'invites', 
-      label: 'Active Invites',
-      count: invites.filter(invite => !invite.isExpired && !invite.isUsed).length 
-    },
-  ], [families.length, invites]);
+  const tabs = useMemo(() => {
+    const baseTabs = [
+        { 
+            id: 'families', 
+            label: 'Families',
+            count: families.length 
+        },
+        { 
+            id: 'invites', 
+            label: 'Active Invites',
+            count: invites.filter(invite => !invite.isExpired && !invite.isUsed).length 
+        },
+    ];
+
+    if (deploymentMode === 'saas') {
+        return [
+            ...baseTabs,
+            {
+              id: 'beta',
+              label: 'Beta Subscribers',
+              count: betaSubscribers.length,
+            }
+        ];
+    }
+
+    return baseTabs;
+  }, [families.length, invites, betaSubscribers.length, deploymentMode]);
 
   // Get current data based on active tab
   const currentData = useMemo(() => {
-    return activeTab === 'families' ? families : invites;
-  }, [activeTab, families, invites]);
+    if (activeTab === 'families') return families;
+    if (activeTab === 'invites') return invites;
+    if (activeTab === 'beta') return betaSubscribers;
+    return [];
+  }, [activeTab, families, invites, betaSubscribers]);
 
   // Filter data based on search term
   const filteredData = useMemo(() => {
@@ -137,13 +162,21 @@ export default function FamilyManagerPage() {
         family.name.toLowerCase().includes(search) ||
         family.slug.toLowerCase().includes(search)
       );
-    } else {
+    } else if (activeTab === 'invites') {
       return (currentData as FamilySetupInvite[]).filter(invite =>
         invite.token.toLowerCase().includes(search) ||
         invite.creator?.name.toLowerCase().includes(search) ||
         invite.family?.name.toLowerCase().includes(search)
       );
+    } else if (activeTab === 'beta') {
+        return (currentData as BetaSubscriberResponse[]).filter(
+          (subscriber) =>
+            subscriber.email.toLowerCase().includes(search) ||
+            subscriber.firstName?.toLowerCase().includes(search) ||
+            subscriber.lastName?.toLowerCase().includes(search)
+        );
     }
+    return [];
   }, [currentData, searchTerm, activeTab]);
 
   // Calculate pagination
@@ -214,6 +247,26 @@ export default function FamilyManagerPage() {
       console.error('Error fetching invites:', error);
     }
   };
+
+    // Fetch beta subscribers data
+    const fetchBetaSubscribers = async () => {
+        try {
+          const authToken = localStorage.getItem('authToken');
+          const response = await fetch('/api/beta-subscribers', {
+            headers: {
+              'Authorization': `Bearer ${authToken}`,
+            },
+          });
+          const data = await response.json();
+          if (data.success) {
+            setBetaSubscribers(data.data);
+          } else {
+            console.error('Failed to fetch beta subscribers:', data.error);
+          }
+        } catch (error) {
+          console.error('Error fetching beta subscribers:', error);
+        }
+      };
 
   // Check slug uniqueness
   const checkSlugUniqueness = useCallback(async (slug: string, currentFamilyId: string) => {
@@ -354,6 +407,67 @@ export default function FamilyManagerPage() {
     }
   };
 
+    // Update subscriber opt-in status
+    const updateSubscriber = async (id: string, isOptedIn: boolean) => {
+        try {
+          setUpdatingSubscriberId(id);
+          const authToken = localStorage.getItem('authToken');
+          const response = await fetch(`/api/beta-subscribers?id=${id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`,
+            },
+            body: JSON.stringify({ isOptedIn }),
+          });
+    
+          const data = await response.json();
+    
+          if (data.success) {
+            fetchBetaSubscribers();
+          } else {
+            console.error('Failed to update subscriber:', data.error);
+            alert('Failed to update subscriber: ' + data.error);
+          }
+        } catch (error) {
+          console.error('Error updating subscriber:', error);
+          alert('Error updating subscriber');
+        } finally {
+          setUpdatingSubscriberId(null);
+        }
+      };
+
+        // Delete subscriber
+  const deleteSubscriber = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this subscriber? This action is permanent.')) {
+        return;
+      }
+    try {
+      setDeletingSubscriberId(id);
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/beta-subscribers?id=${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        fetchBetaSubscribers();
+      } else {
+        console.error('Failed to delete subscriber:', data.error);
+        alert('Failed to delete subscriber: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error deleting subscriber:', error);
+      alert('Error deleting subscriber');
+    } finally {
+      setDeletingSubscriberId(null);
+    }
+  };
+
   // Handle edit button click
   const handleEdit = (family: FamilyData) => {
     setEditingId(family.id);
@@ -404,7 +518,8 @@ export default function FamilyManagerPage() {
   };
 
   // Format date/time for display
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -418,17 +533,40 @@ export default function FamilyManagerPage() {
   // Initial data fetch
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
-      await Promise.all([
-        fetchFamilies(),
-        fetchInvites(),
-        fetchAppConfig()
-      ]);
-      setLoading(false);
-    };
+        setLoading(true);
+  
+        // Fetch deployment config first
+        const configResponse = await fetch('/api/deployment-config');
+        const configData = await configResponse.json();
+        const mode = (configData.success && configData.data?.deploymentMode) || 'selfhosted';
+        setDeploymentMode(mode);
+  
+        const dataPromises = [
+          fetchFamilies(),
+          fetchInvites(),
+          fetchAppConfig(),
+        ];
+  
+        if (mode === 'saas') {
+          dataPromises.push(fetchBetaSubscribers());
+        }
+        
+        await Promise.all(dataPromises);
+  
+        setLoading(false);
+      };
     
     fetchData();
   }, []);
+
+  const emptyMessageNoun = useMemo(() => {
+    switch(activeTab) {
+        case 'families': return 'families';
+        case 'invites': return 'invites';
+        case 'beta': return 'data';
+        default: return 'data';
+    }
+  }, [activeTab]);
 
   if (loading) {
     return (
@@ -463,7 +601,11 @@ export default function FamilyManagerPage() {
         <TableSearch
           value={searchTerm}
           onSearchChange={setSearchTerm}
-          placeholder={activeTab === 'families' ? "Search families by name or slug..." : "Search invites by token, creator, or family..."}
+          placeholder={
+            activeTab === 'families' ? "Search families by name or slug..." :
+            activeTab === 'invites' ? "Search invites by token, creator, or family..." :
+            "Search subscribers by email or name..."
+          }
         />
 
         {/* Table */}
@@ -481,7 +623,7 @@ export default function FamilyManagerPage() {
                   <TableHead>Babies</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </>
-              ) : (
+              ) : activeTab === 'invites' ? (
                 <>
                   <TableHead>Token</TableHead>
                   <TableHead>Created By</TableHead>
@@ -491,14 +633,23 @@ export default function FamilyManagerPage() {
                   <TableHead>Family</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </>
+              ) : (
+                <>
+                <TableHead>Email</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Signed Up</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </>
               )}
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={activeTab === 'families' ? 8 : 7} className="text-center py-8 text-gray-500">
-                  {searchTerm ? `No ${activeTab} found matching your search.` : `No ${activeTab} found.`}
+                <TableCell colSpan={activeTab === 'families' ? 8 : activeTab === 'invites' ? 7 : 6} className="text-center py-8 text-gray-500">
+                  {searchTerm ? `No ${emptyMessageNoun} found matching your search.` : `No ${emptyMessageNoun} found.`}
                 </TableCell>
               </TableRow>
             ) : activeTab === 'families' ? (
@@ -633,7 +784,7 @@ export default function FamilyManagerPage() {
                   </TableRow>
                 );
               })
-            ) : (
+            ) : activeTab === 'invites' ? (
               (paginatedData as FamilySetupInvite[]).map((invite) => (
                 <TableRow key={invite.id}>
                   <TableCell className="font-mono text-sm">
@@ -713,6 +864,62 @@ export default function FamilyManagerPage() {
                   </TableCell>
                 </TableRow>
               ))
+            ) : (
+                (paginatedData as BetaSubscriberResponse[]).map((subscriber) => (
+                    <TableRow key={subscriber.id}>
+                      <TableCell className="font-medium">{subscriber.email}</TableCell>
+                      <TableCell>{subscriber.firstName} {subscriber.lastName}</TableCell>
+                      <TableCell className="text-sm">{formatDateTime(subscriber.createdAt)}</TableCell>
+                      <TableCell>{subscriber.source}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            subscriber.isOptedIn
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}
+                        >
+                          {subscriber.isOptedIn ? 'Subscribed' : 'Opted Out'}
+                        </span>
+                        {subscriber.optedOutAt && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {formatDateTime(subscriber.optedOutAt)}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateSubscriber(subscriber.id, !subscriber.isOptedIn)}
+                            disabled={updatingSubscriberId === subscriber.id}
+                            title={subscriber.isOptedIn ? 'Opt-out subscriber' : 'Opt-in subscriber'}
+                          >
+                            {updatingSubscriberId === subscriber.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : subscriber.isOptedIn ? (
+                              <UserX className="h-4 w-4" />
+                            ) : (
+                              <Mail className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => deleteSubscriber(subscriber.id)}
+                            disabled={deletingSubscriberId === subscriber.id}
+                            title="Delete subscriber"
+                          >
+                            {deletingSubscriberId === subscriber.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
             )}
           </TableBody>
         </Table>
@@ -804,4 +1011,4 @@ export default function FamilyManagerPage() {
       />
     </div>
   );
-} 
+}
