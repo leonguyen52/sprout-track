@@ -829,6 +829,12 @@ enum BetaEmailStatus {
   FAILED
 }
 
+enum EmailProviderType {
+  MANUAL_SFTP
+  SENDGRID
+  SMTP2GO
+}
+
 // Application configuration settings
 model AppConfig {
   id          String   @id @default(cuid())
@@ -836,4 +842,18 @@ model AppConfig {
   rootDomain  String   // Root domain for the application
   enableHttps Boolean  @default(false) // Whether HTTPS is enabled (0/1)
   updatedAt   DateTime @updatedAt
+}
+
+model EmailConfig {
+  id                  String            @id @default(cuid())
+  providerType        EmailProviderType @default(SENDGRID)
+  sendGridApiKey      String?
+  smtp2goApiKey       String?
+  serverAddress       String?
+  port                Int?
+  username            String?
+  password            String?
+  enableTls           Boolean           @default(true)
+  allowSelfSignedCert Boolean           @default(false)
+  updatedAt           DateTime          @updatedAt
 }
