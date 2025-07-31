@@ -10,8 +10,15 @@ import {
   FormPageContent, 
   FormPageFooter 
 } from '@/src/components/ui/form-page';
-import { Settings, Loader2, Save, X } from 'lucide-react';
+import { Settings, Loader2, Save, X, Mail, ChevronDown } from 'lucide-react';
 import { BackupRestore } from '@/src/components/BackupRestore';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/src/components/ui/dropdown-menu';
+import { EmailProviderType } from '@prisma/client';
 
 interface AppConfigFormProps {
   isOpen: boolean;
@@ -26,6 +33,20 @@ interface AppConfigData {
   updatedAt: string;
 }
 
+interface EmailConfigData {
+  id: string;
+  providerType: EmailProviderType;
+  sendGridApiKey?: string;
+  smtp2goApiKey?: string;
+  serverAddress?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  enableTls: boolean;
+  allowSelfSignedCert: boolean;
+  updatedAt: string;
+}
+
 export default function AppConfigForm({ 
   isOpen, 
   onClose 
@@ -33,10 +54,22 @@ export default function AppConfigForm({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [appConfig, setAppConfig] = useState<AppConfigData | null>(null);
+  const [emailConfig, setEmailConfig] = useState<EmailConfigData | null>(null);
   const [formData, setFormData] = useState({
     adminPass: '',
     rootDomain: '',
     enableHttps: false,
+  });
+  const [emailFormData, setEmailFormData] = useState({
+    providerType: 'SENDGRID' as EmailProviderType,
+    sendGridApiKey: '',
+    smtp2goApiKey: '',
+    serverAddress: '',
+    port: 587,
+    username: '',
+    password: '',
+    enableTls: true,
+    allowSelfSignedCert: false,
   });
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [passwordStep, setPasswordStep] = useState<'verify' | 'new' | 'confirm'>('verify');
@@ -68,12 +101,24 @@ export default function AppConfigForm({
       }
       
       if (data.success) {
-        setAppConfig(data.data);
-        setOriginalPassword(data.data.adminPass || '');
+        setAppConfig(data.data.appConfig);
+        setEmailConfig(data.data.emailConfig);
+        setOriginalPassword(data.data.appConfig?.adminPass || '');
         setFormData({
-          adminPass: data.data.adminPass || '',
-          rootDomain: data.data.rootDomain || '',
-          enableHttps: data.data.enableHttps || false,
+          adminPass: data.data.appConfig?.adminPass || '',
+          rootDomain: data.data.appConfig?.rootDomain || '',
+          enableHttps: data.data.appConfig?.enableHttps || false,
+        });
+        setEmailFormData({
+          providerType: data.data.emailConfig?.providerType || 'SENDGRID',
+          sendGridApiKey: data.data.emailConfig?.sendGridApiKey || '',
+          smtp2goApiKey: data.data.emailConfig?.smtp2goApiKey || '',
+          serverAddress: data.data.emailConfig?.serverAddress || '',
+          port: data.data.emailConfig?.port || 587,
+          username: data.data.emailConfig?.username || '',
+          password: data.data.emailConfig?.password || '',
+          enableTls: data.data.emailConfig?.enableTls !== false,
+          allowSelfSignedCert: data.data.emailConfig?.allowSelfSignedCert || false,
         });
         setShowPasswordChange(false);
         setPasswordStep('verify');
@@ -122,6 +167,29 @@ export default function AppConfigForm({
     setSuccess(null);
   };
 
+  // Handle email input changes
+  const handleEmailInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+    setEmailFormData(prev => ({
+      ...prev,
+      [name]: type === 'number' ? parseInt(value, 10) : value,
+    }));
+    setError(null);
+    setSuccess(null);
+  };
+
+  // Handle email checkbox changes
+  const handleEmailCheckboxChange = (name: string, checked: boolean) => {
+    setEmailFormData(prev => ({ ...prev, [name]: checked }));
+    setError(null);
+    setSuccess(null);
+  };
+  
+  // Handle email provider change
+  const handleProviderChange = (provider: EmailProviderType) => {
+    setEmailFormData(prev => ({ ...prev, providerType: provider }));
+  };
+
   // Handle password step changes
   const handleVerifyPassword = () => {
     if (verifyPassword === originalPassword) {
@@ -157,7 +225,7 @@ export default function AppConfigForm({
             'Authorization': `Bearer ${authToken}`
           },
           body: JSON.stringify({
-            adminPass: newPassword
+            appConfigData: { adminPass: newPassword }
           }),
         });
 
@@ -170,9 +238,9 @@ export default function AppConfigForm({
 
         if (data.success) {
           // Update local state with new password data
-          setAppConfig(data.data);
-          setFormData(prev => ({ ...prev, adminPass: data.data.adminPass }));
-          setOriginalPassword(data.data.adminPass);
+          setAppConfig(data.data.appConfig);
+          setFormData(prev => ({ ...prev, adminPass: data.data.appConfig.adminPass }));
+          setOriginalPassword(data.data.appConfig.adminPass);
           
           // Reset password form for potential next change
           setShowPasswordChange(false);
@@ -238,6 +306,11 @@ export default function AppConfigForm({
       return;
     }
 
+    const payload = {
+      appConfigData: formData,
+      emailConfigData: emailFormData,
+    };
+
     try {
       setSaving(true);
       setError(null);
@@ -250,7 +323,7 @@ export default function AppConfigForm({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -261,7 +334,8 @@ export default function AppConfigForm({
       }
 
       if (data.success) {
-        setAppConfig(data.data);
+        setAppConfig(data.data.appConfig);
+        setEmailConfig(data.data.emailConfig);
         setSuccess('App configuration updated successfully');
         scheduleAutoClose();
       } else {
@@ -354,7 +428,7 @@ export default function AppConfigForm({
                         </Button>
                       </div>
                     ) : (
-                      <div className="space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <div className="space-y-4 border border-gray-200 rounded-lg p-4">
                         <div className="flex justify-between items-center">
                           <Label className="text-sm font-medium">
                             Change Admin Password
@@ -511,6 +585,155 @@ export default function AppConfigForm({
                       Enable secure HTTPS connections for the application
                     </p>
                   </div>
+                </div>
+              </div>
+
+              {/* Email Configuration Section */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Mail className="h-5 w-5 text-teal-600" />
+                  <Label className="text-lg font-semibold">
+                    Email Configuration
+                  </Label>
+                </div>
+                <div className="space-y-4">
+                  {/* Email Provider Dropdown */}
+                  <div className="space-y-2">
+                    <Label htmlFor="providerType" className="text-sm font-medium">
+                      Email Provider
+                    </Label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between">
+                          <span>{emailFormData.providerType.replace('_', ' ')}</span>
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                        <DropdownMenuItem onSelect={() => handleProviderChange('SENDGRID')}>
+                          SendGrid
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handleProviderChange('SMTP2GO')}>
+                          SMTP2GO
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handleProviderChange('MANUAL_SFTP')}>
+                          Manual SMTP
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* SendGrid API Key */}
+                  {emailFormData.providerType === 'SENDGRID' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="sendGridApiKey" className="text-sm font-medium">
+                        SendGrid API Key
+                      </Label>
+                      <Input
+                        type="password"
+                        id="sendGridApiKey"
+                        name="sendGridApiKey"
+                        value={emailFormData.sendGridApiKey}
+                        onChange={handleEmailInputChange}
+                        placeholder="Enter SendGrid API Key"
+                      />
+                    </div>
+                  )}
+
+                  {/* SMTP2GO API Key */}
+                  {emailFormData.providerType === 'SMTP2GO' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp2goApiKey" className="text-sm font-medium">
+                        SMTP2GO API Key
+                      </Label>
+                      <Input
+                        type="password"
+                        id="smtp2goApiKey"
+                        name="smtp2goApiKey"
+                        value={emailFormData.smtp2goApiKey}
+                        onChange={handleEmailInputChange}
+                        placeholder="Enter SMTP2GO API Key"
+                      />
+                    </div>
+                  )}
+
+                  {/* Manual SMTP Settings */}
+                  {emailFormData.providerType === 'MANUAL_SFTP' && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="serverAddress" className="text-sm font-medium">
+                          Server Address
+                        </Label>
+                        <Input
+                          type="text"
+                          id="serverAddress"
+                          name="serverAddress"
+                          value={emailFormData.serverAddress}
+                          onChange={handleEmailInputChange}
+                          placeholder="smtp.example.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="port" className="text-sm font-medium">
+                          Port
+                        </Label>
+                        <Input
+                          type="number"
+                          id="port"
+                          name="port"
+                          value={emailFormData.port}
+                          onChange={handleEmailInputChange}
+                          placeholder="587"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="username" className="text-sm font-medium">
+                          Username
+                        </Label>
+                        <Input
+                          type="text"
+                          id="username"
+                          name="username"
+                          value={emailFormData.username}
+                          onChange={handleEmailInputChange}
+                          autoComplete="username"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password" className="text-sm font-medium">
+                          Password
+                        </Label>
+                        <Input
+                          type="password"
+                          id="password"
+                          name="password"
+                          value={emailFormData.password}
+                          onChange={handleEmailInputChange}
+                          autoComplete="new-password"
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="enableTls"
+                          checked={emailFormData.enableTls}
+                          onCheckedChange={(checked) => handleEmailCheckboxChange('enableTls', checked as boolean)}
+                        />
+                        <Label htmlFor="enableTls" className="text-sm font-medium cursor-pointer">
+                          Enable TLS
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="allowSelfSignedCert"
+                          checked={emailFormData.allowSelfSignedCert}
+                          onCheckedChange={(checked) => handleEmailCheckboxChange('allowSelfSignedCert', checked as boolean)}
+                        />
+                        <Label htmlFor="allowSelfSignedCert" className="text-sm font-medium cursor-pointer">
+                          Allow Self-Signed Cert
+                        </Label>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
