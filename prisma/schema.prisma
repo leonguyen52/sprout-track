@@ -95,6 +95,46 @@ enum RecurrencePattern {
   CUSTOM
 }
 
+// Account model for email/password authentication
+model Account {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String   // bcrypt hashed
+  firstName     String?
+  lastName      String?
+  verified      Boolean  @default(false)
+  verificationToken String? @unique
+  passwordResetToken String? @unique
+  passwordResetExpires DateTime?
+  
+  // Future OAuth fields (ready for Phase 2)
+  provider      String?  // 'email', 'google', 'apple', 'github'
+  providerId    String?  // OAuth provider's user ID
+  
+  // Future billing fields
+  stripeCustomerId String?
+  subscriptionId   String?
+  planType         String? // 'free', 'premium', 'enterprise'
+  planExpires      DateTime?
+  trialEnds        DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations (one-to-one with family)
+  family        Family?  @relation(fields: [familyId], references: [id])
+  familyId      String?  @unique
+  
+  // Link to admin caretaker for seamless access
+  caretaker     Caretaker? @relation(fields: [caretakerId], references: [id])
+  caretakerId   String?    @unique
+  
+  @@index([email])
+  @@index([verified])
+  @@index([verificationToken])
+  @@index([passwordResetToken])
+}
+
 // New model for multi-family support
 model Family {
   id        String   @id @default(cuid())
@@ -103,6 +143,10 @@ model Family {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   isActive  Boolean  @default(true)
+  
+  // Account ownership
+  account       Account?
+  accountId     String?  @unique
   
   // Relations
   babies           Baby[]
@@ -192,6 +236,10 @@ model Caretaker {
   family       Family?   @relation(fields: [familyId], references: [id])
   familyId     String?   // Nullable initially for migration
   
+  // Optional account link (for account holders who are also caretakers)
+  account       Account?
+  accountId     String?  @unique
+  
   // Relationships
   sleepLogs    SleepLog[]
   feedLogs     FeedLog[]
@@ -210,6 +258,7 @@ model Caretaker {
   
   @@index([deletedAt])
   @@index([familyId])
+  @@index([accountId])
 }
 
 model SleepLog {
