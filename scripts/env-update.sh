@@ -41,10 +41,6 @@ if [ -z "$ENC_HASH_EXISTS" ]; then
     echo "IDLE_TIME=28800" >> "$ENV_FILE"
     echo "APP_VERSION=0.92.19" >> "$ENV_FILE"
     echo "COOKIE_SECURE=false" >> "$ENV_FILE"
-    echo "" >> "$ENV_FILE"
-    echo "# Set Send Grid API key for email" >> "$ENV_FILE"
-    echo "# SENDGRID_API_KEY=SG.xxxxxxxx.yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy" >> "$ENV_FILE"
-    echo "" >> "$ENV_FILE"
     echo "# Encryption hash for local deployment data encryption" >> "$ENV_FILE"
     echo "ENC_HASH=\"$RANDOM_HASH\"" >> "$ENV_FILE"
     
