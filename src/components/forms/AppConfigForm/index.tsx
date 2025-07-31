@@ -428,7 +428,7 @@ export default function AppConfigForm({
                         </Button>
                       </div>
                     ) : (
-                      <div className="space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <div className="space-y-4 border border-gray-200 rounded-lg p-4">
                         <div className="flex justify-between items-center">
                           <Label className="text-sm font-medium">
                             Change Admin Password
@@ -659,7 +659,7 @@ export default function AppConfigForm({
 
                   {/* Manual SMTP Settings */}
                   {emailFormData.providerType === 'MANUAL_SFTP' && (
-                    <div className="space-y-4 p-4 border rounded-md">
+                    <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="serverAddress" className="text-sm font-medium">
                           Server Address
