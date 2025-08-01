@@ -6,8 +6,6 @@
   position: fixed;
   inset: 0;
   z-index: 9999;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
 }
 
 [data-dialog-content] {
@@ -17,16 +15,26 @@
 
 /* Light mode (default) styles */
 .account-modal-content {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   isolation: isolate;
 }
 
 .account-modal-header {
-  background: linear-gradient(135deg, #0d9488 0%, #059669 100%);
-  padding: 1.5rem;
+  background: transparent;
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
   border-radius: 0.75rem 0.75rem 0 0;
+  position: relative;
+}
+
+.account-modal-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 1px;
+  background-color: #e2e8f0;
 }
 
 .account-modal-logo {
@@ -39,7 +47,7 @@
 .account-modal-brand {
   font-size: 1.25rem;
   font-weight: 600;
-  color: white;
+  color: #0d9488;
 }
 
 .account-modal-body {
@@ -167,7 +175,14 @@
 /* Dark mode styles */
 html.dark .account-modal-content {
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border: 1px solid #334155;
+}
+
+html.dark .account-modal-header::after {
+  background-color: #334155;
+}
+
+html.dark .account-modal-brand {
+  color: #5eead4;
 }
 
 html.dark .account-modal-title {

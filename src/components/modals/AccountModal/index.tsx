@@ -172,7 +172,7 @@ export default function AccountModal({
         <div className="account-modal-header">
           <div className="account-modal-logo">
             <img 
-              src="/spourt-128.png" 
+              src="/spourt-256.png" 
               alt="Sprout Track Logo" 
               className="w-8 h-8"
             />
