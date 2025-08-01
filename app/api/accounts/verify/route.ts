@@ -21,6 +21,12 @@ function generateFamilyPin(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// Helper function to generate a random 2-digit numeric caretaker login ID (01-99)
+function generateCaretakerLoginId(): string {
+  const randomNum = Math.floor(Math.random() * 99) + 1; // 1-99
+  return randomNum.toString().padStart(2, '0'); // Pad with leading zero if needed
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<EmailVerificationResponse>>> {
   try {
     const body: EmailVerificationRequest = await req.json();
@@ -101,7 +107,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<E
     
     // Generate family PIN
     const familyPin = generateFamilyPin();
-    const hashedPin = hashPasswordSync(familyPin);
+    const hashedPin = hashPasswordSync(familyPin); // Only hash for family settings (sysadmin access)
     
     // Begin transaction to create family and update account
     const result = await prisma.$transaction(async (tx) => {
@@ -120,7 +126,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<E
         data: {
           familyId: family.id,
           familyName: family.name,
-          securityPin: hashedPin,
+          securityPin: hashedPin, // Family settings PIN is hashed (sysadmin access)
           defaultBottleUnit: 'OZ',
           defaultSolidsUnit: 'TBSP',
           defaultHeightUnit: 'IN',
@@ -135,15 +141,32 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<E
         }
       });
       
+      // Generate unique caretaker login ID
+      let caretakerLoginId: string;
+      let loginIdAttempts = 0;
+      const maxLoginIdAttempts = 10;
+      
+      do {
+        caretakerLoginId = generateCaretakerLoginId();
+        const existingCaretaker = await tx.caretaker.findFirst({
+          where: { 
+            familyId: family.id,
+            loginId: caretakerLoginId 
+          }
+        });
+        if (!existingCaretaker) break;
+        loginIdAttempts++;
+      } while (loginIdAttempts < maxLoginIdAttempts);
+      
       // Create admin caretaker linked to the account
       const caretaker = await tx.caretaker.create({
         data: {
-          loginId: '01', // Default admin login ID
+          loginId: caretakerLoginId, // Random 2-digit numeric ID (01-99)
           name: account.firstName || 'Account Owner',
           type: 'parent',
           role: 'ADMIN',
           inactive: false,
-          securityPin: hashedPin, // Same PIN as family
+          securityPin: familyPin, // Caretaker PINs are stored as cleartext (not hashed)
           familyId: family.id,
           accountId: account.id
         }
@@ -163,7 +186,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<E
       return { family, caretaker, account: updatedAccount };
     });
     
-    console.log(`Account verified and family created: accountId=${account.id}, familySlug=${familySlug}`);
+    console.log(`Account verified and family created: accountId=${account.id}, familySlug=${familySlug}, caretakerLoginId=${result.caretaker.loginId}`);
     
     // Send welcome email with family details
     try {
@@ -171,7 +194,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<E
         account.email,
         account.firstName || 'User',
         familySlug,
-        familyPin
+        familyPin,
+        result.caretaker.loginId
       );
       console.log(`Welcome email sent to: ${account.email}`);
     } catch (emailError) {
@@ -208,19 +232,19 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const token = searchParams.get('token');
     
     if (!token) {
-      // Redirect to an error page or coming-soon page
-      return NextResponse.redirect(new URL('/coming-soon?error=missing-token', req.url));
+      // Redirect to verification page with error
+      return NextResponse.redirect(new URL('/accounts/verify?error=missing-token', req.url));
     }
     
-    // Verify the token
+    // Check if account exists and verification status
     const account = await prisma.account.findUnique({
       where: { verificationToken: token },
       include: { family: true }
     });
     
     if (!account) {
-      // Redirect to an error page
-      return NextResponse.redirect(new URL('/coming-soon?error=invalid-token', req.url));
+      // Redirect to verification page with error
+      return NextResponse.redirect(new URL('/accounts/verify?error=invalid-token', req.url));
     }
     
     if (account.verified && account.family) {
@@ -228,11 +252,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       return NextResponse.redirect(new URL(`/${account.family.slug}`, req.url));
     }
     
-    // If not verified, redirect to a verification page that will call the POST endpoint
+    // If not verified, redirect to verification page to handle the process
     return NextResponse.redirect(new URL(`/accounts/verify?token=${token}`, req.url));
     
   } catch (error) {
     console.error('Email verification GET error:', error);
-    return NextResponse.redirect(new URL('/coming-soon?error=verification-failed', req.url));
+    return NextResponse.redirect(new URL('/accounts/verify?error=verification-failed', req.url));
   }
 }

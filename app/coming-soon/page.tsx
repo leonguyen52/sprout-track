@@ -6,7 +6,8 @@ import { Input } from '@/src/components/ui/input';
 import { Badge } from '@/src/components/ui/badge';
 import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 import { useTheme } from '@/src/context/theme';
-import { Github } from 'lucide-react';
+import { Github, User } from 'lucide-react';
+import AccountModal from '@/src/components/modals/AccountModal';
 import './coming-soon.css';
 
 const ComingSoon = () => {
@@ -15,6 +16,7 @@ const ComingSoon = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showAccountModal, setShowAccountModal] = useState(false);
   
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -109,7 +111,16 @@ const ComingSoon = () => {
               <span className="saas-logo-text">Sprout Track</span>
             </div>
             <div className="saas-nav-links">
-            <Button size="sm" className="saas-signup-btn" asChild>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="saas-account-btn"
+                onClick={() => setShowAccountModal(true)}
+              >
+                <User className="h-4 w-4 mr-2" />
+                Account
+              </Button>
+              <Button size="sm" className="saas-signup-btn" asChild>
                 <a href="#signup">Sign-up for the beta program!</a>
               </Button>
               <ThemeToggle variant="light" className="saas-theme-toggle" />
@@ -320,6 +331,13 @@ const ComingSoon = () => {
           </div>
       </div>
       </footer>
+
+      {/* Account Modal */}
+      <AccountModal
+        open={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
+        initialMode="login"
+      />
     </div>
   );
 };

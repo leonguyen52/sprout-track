@@ -1,0 +1,239 @@
+/* Account Modal Styles */
+
+/* Dialog overlay styles */
+[data-dialog-overlay] {
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+[data-dialog-content] {
+  z-index: 10000;
+  position: relative;
+}
+
+/* Light mode (default) styles */
+.account-modal-content {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  isolation: isolate;
+}
+
+.account-modal-header {
+  background: linear-gradient(135deg, #0d9488 0%, #059669 100%);
+  padding: 1.5rem;
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.account-modal-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.account-modal-brand {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+}
+
+.account-modal-body {
+  padding: 2rem;
+}
+
+.account-modal-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.account-modal-description {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.account-modal-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.account-modal-help-text {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.account-modal-error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.account-modal-submit {
+  width: 100%;
+  background: linear-gradient(135deg, #0d9488 0%, #059669 100%);
+  color: white;
+  font-weight: 500;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.account-modal-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0f766e 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.4);
+}
+
+.account-modal-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.account-modal-toggle {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.account-modal-toggle-text {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.account-modal-toggle-button {
+  color: #0d9488;
+  font-weight: 500;
+  font-size: 0.875rem;
+  margin-left: 0.5rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.account-modal-toggle-button:hover:not(:disabled) {
+  color: #0f766e;
+  text-decoration: underline;
+}
+
+.account-modal-toggle-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.account-modal-success {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.account-modal-success-icon {
+  width: 4rem;
+  height: 4rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0 auto 1rem auto;
+}
+
+.account-modal-success-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.account-modal-success-message {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+/* Dark mode styles */
+html.dark .account-modal-content {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+}
+
+html.dark .account-modal-title {
+  color: #f1f5f9;
+}
+
+html.dark .account-modal-description {
+  color: #94a3b8;
+}
+
+html.dark .account-modal-label {
+  color: #e2e8f0;
+}
+
+html.dark .account-modal-help-text {
+  color: #94a3b8;
+}
+
+html.dark .account-modal-error {
+  background-color: #1f2937;
+  border: 1px solid #374151;
+  color: #f87171;
+}
+
+html.dark .account-modal-toggle-text {
+  color: #94a3b8;
+}
+
+html.dark .account-modal-toggle-button {
+  color: #5eead4;
+}
+
+html.dark .account-modal-toggle-button:hover:not(:disabled) {
+  color: #2dd4bf;
+}
+
+html.dark .account-modal-success-title {
+  color: #f1f5f9;
+}
+
+html.dark .account-modal-success-message {
+  color: #94a3b8;
+}
+
+/* Focus states for accessibility */
+.account-modal-toggle-button:focus {
+  outline: 2px solid #0d9488;
+  outline-offset: 2px;
+}
+
+html.dark .account-modal-toggle-button:focus {
+  outline: 2px solid #5eead4;
+  outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .account-modal-header {
+    padding: 1rem;
+  }
+  
+  .account-modal-body {
+    padding: 1.5rem;
+  }
+  
+  .account-modal-title {
+    font-size: 1.25rem;
+  }
+}

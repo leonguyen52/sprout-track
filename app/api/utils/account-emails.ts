@@ -84,7 +84,7 @@ The Sprout Track Team`,
   return result;
 }
 
-export async function sendWelcomeEmail(email: string, firstName: string, familySlug: string, familyPin: string) {
+export async function sendWelcomeEmail(email: string, firstName: string, familySlug: string, familyPin: string, caretakerLoginId: string) {
   const familyUrl = `${process.env.ROOT_DOMAIN || 'http://localhost:3000'}/${familySlug}`;
   
   const result = await sendEmail({
@@ -97,11 +97,14 @@ Welcome to Sprout Track! Your account has been verified and your family is ready
 
 Your Family Details:
 - Family URL: ${familyUrl}
+- Your Caretaker Login ID: ${caretakerLoginId}
 - Family PIN: ${familyPin}
 
-You can share the family URL and PIN with other caretakers so they can access your family's data.
+Use your Caretaker Login ID (${caretakerLoginId}) and PIN (${familyPin}) to access your family's dashboard directly.
 
-As the account owner, you can log in directly without needing the PIN.
+You can share the family URL, your login ID, and PIN with other caretakers so they can access your family's data.
+
+As the account owner, you can also log in directly using your email and password without needing the PIN.
 
 Get started by adding your first baby and logging your first activities!
 
@@ -116,11 +119,13 @@ The Sprout Track Team`,
         <div style="background-color: #f0fdfa; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="color: #0d9488; margin-top: 0;">Your Family Details:</h3>
           <p><strong>Family URL:</strong> <a href="${familyUrl}">${familyUrl}</a></p>
+          <p><strong>Your Caretaker Login ID:</strong> <code style="background-color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: bold;">${caretakerLoginId}</code></p>
           <p><strong>Family PIN:</strong> <code style="background-color: #fff; padding: 4px 8px; border-radius: 4px;">${familyPin}</code></p>
         </div>
         
-        <p>You can share the family URL and PIN with other caretakers so they can access your family's data.</p>
-        <p>As the account owner, you can log in directly without needing the PIN.</p>
+        <p>Use your Caretaker Login ID (<strong>${caretakerLoginId}</strong>) and PIN (<strong>${familyPin}</strong>) to access your family's dashboard directly.</p>
+        <p>You can share the family URL, your login ID, and PIN with other caretakers so they can access your family's data.</p>
+        <p>As the account owner, you can also log in directly using your email and password without needing the PIN.</p>
         
         <div style="text-align: center; margin: 30px 0;">
           <a href="${familyUrl}" 
