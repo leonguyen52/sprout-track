@@ -5,7 +5,7 @@ export async function sendVerificationEmail(email: string, token: string, firstN
   
   const result = await sendEmail({
     to: email,
-    from: process.env.VERIFICATION_EMAIL || 'noreply@sprout-track.com',
+    from: process.env.VERIFICATION_EMAIL || 'accounts@sprout-track.com',
     subject: 'Welcome to Sprout Track - Verify Your Account',
     text: `Hi ${firstName},
 
@@ -46,7 +46,7 @@ export async function sendPasswordResetEmail(email: string, token: string, first
   
   const result = await sendEmail({
     to: email,
-    from: process.env.SECURITY_EMAIL || 'security@sprout-track.com',
+    from: process.env.SECURITY_EMAIL || 'passwordreset@sprout-track.com',
     subject: 'Sprout Track - Password Reset Request',
     text: `Hi ${firstName},
 
@@ -54,7 +54,7 @@ You requested a password reset for your Sprout Track account. Please visit this 
 
 ${resetUrl}
 
-This link will expire in 1 hour.
+This link will expire in 15 minutes.
 
 If you didn't request a password reset, please ignore this email.
 
@@ -73,7 +73,7 @@ The Sprout Track Team`,
           </a>
         </div>
         <p style="color: #666; font-size: 14px;">
-          This link will expire in 1 hour. If you didn't request a password reset, 
+          This link will expire in 15 minutes. If you didn't request a password reset, 
           please ignore this email.
         </p>
         <p>Best regards,<br>The Sprout Track Team</p>
