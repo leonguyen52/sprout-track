@@ -39,6 +39,12 @@ export interface AuthResult {
   isSysAdmin?: boolean;
   isSetupAuth?: boolean;
   setupToken?: string;
+  
+  // New account fields
+  isAccountAuth?: boolean;  // True if authenticated via account
+  accountId?: string;       // Account ID
+  accountEmail?: string;    // Account email
+  isAccountOwner?: boolean; // True if account owns the family
   error?: string;
 }
 
@@ -93,6 +99,22 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
             isSysAdmin: false,
             isSetupAuth: true,
             setupToken: decoded.setupToken,
+          };
+        }
+        
+        // Handle account authentication tokens
+        if (decoded.isAccountAuth) {
+          return {
+            authenticated: true,
+            caretakerId: decoded.id, // Use account ID as caretaker ID for family access
+            caretakerType: 'ACCOUNT',
+            caretakerRole: 'OWNER',
+            familyId: decoded.familyId,
+            familySlug: decoded.familySlug,
+            isAccountAuth: true,
+            accountId: decoded.accountId,
+            accountEmail: decoded.accountEmail,
+            isAccountOwner: true,
           };
         }
         
@@ -268,6 +290,29 @@ export function withSysAdminAuth<T>(
     }
     
     return handler(req);
+  };
+}
+
+/**
+ * Middleware function to require account owner authentication for API routes
+ * @param handler The API route handler function
+ * @returns A wrapped handler that checks account owner authentication before proceeding
+ */
+export function withAccountOwner<T>(
+  handler: (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<T>>>
+) {
+  return async (req: NextRequest): Promise<NextResponse<ApiResponse<T | null>>> => {
+    const authResult = await getAuthenticatedUser(req);
+    
+    if (!authResult.authenticated) {
+      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+    }
+    
+    if (!authResult.isAccountOwner && !authResult.isSysAdmin) {
+      return NextResponse.json({ success: false, error: 'Account owner access required' }, { status: 403 });
+    }
+    
+    return handler(req, authResult);
   };
 }
 

@@ -106,14 +106,36 @@ function AppContent({ children }: { children: React.ReactNode }) {
         }
       }
       
-      // Fetch caretaker information if authenticated
-      const caretakerId = localStorage.getItem('caretakerId');
-      if (caretakerId) {
-        const caretakerResponse = await fetch(`/api/caretaker?id=${caretakerId}`);
-        if (caretakerResponse.ok) {
-          const caretakerData = await caretakerResponse.json();
-          if (caretakerData.success && caretakerData.data) {
-            setCaretakerName(caretakerData.data.name);
+      // Fetch caretaker information if authenticated via PIN, or extract from JWT if account
+      let accountUserInfo = null;
+      if (authToken) {
+        try {
+          const payload = authToken.split('.')[1];
+          const decodedPayload = JSON.parse(atob(payload));
+          if (decodedPayload.isAccountAuth) {
+            accountUserInfo = {
+              name: decodedPayload.name,
+              isAccountAuth: true
+            };
+            setCaretakerName(decodedPayload.name);
+            // Account holders are always admins of their family
+            setIsAdmin(true);
+          }
+        } catch (error) {
+          console.error('Error parsing JWT token for user info:', error);
+        }
+      }
+      
+      // Only fetch caretaker info if not an account holder
+      if (!accountUserInfo) {
+        const caretakerId = localStorage.getItem('caretakerId');
+        if (caretakerId) {
+          const caretakerResponse = await fetch(`/api/caretaker?id=${caretakerId}`);
+          if (caretakerResponse.ok) {
+            const caretakerData = await caretakerResponse.json();
+            if (caretakerData.success && caretakerData.data) {
+              setCaretakerName(caretakerData.data.name);
+            }
           }
         }
       }
@@ -184,6 +206,18 @@ function AppContent({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem('authToken');
     const currentCaretakerId = localStorage.getItem('caretakerId');
     
+    // Check if this is an account holder
+    let isAccountAuth = false;
+    if (token) {
+      try {
+        const payload = token.split('.')[1];
+        const decodedPayload = JSON.parse(atob(payload));
+        isAccountAuth = decodedPayload.isAccountAuth || false;
+      } catch (error) {
+        console.error('Error parsing JWT token during logout:', error);
+      }
+    }
+    
     // Call the logout API to clear server-side cookies and invalidate the token
     try {
       await fetch('/api/auth/logout', {
@@ -201,6 +235,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('unlockTime');
     localStorage.removeItem('caretakerId');
     localStorage.removeItem('authToken');
+    localStorage.removeItem('accountUser'); // Clear account user info
     localStorage.removeItem('attempts');
     localStorage.removeItem('lockoutTime');
     
@@ -222,8 +257,10 @@ function AppContent({ children }: { children: React.ReactNode }) {
     setSelectedBaby(null);
     setBabies([]);
     
-    // Redirect to login page with family slug
-    if (familySlug) {
+    // Account holders go to home page, PIN users go to family login
+    if (isAccountAuth) {
+      router.push('/');
+    } else if (familySlug) {
       router.push(`/${familySlug}/login`);
     } else {
       router.push('/login');
@@ -314,8 +351,20 @@ function AppContent({ children }: { children: React.ReactNode }) {
       const authToken = localStorage.getItem('authToken');
       const unlockTime = localStorage.getItem('unlockTime');
       
-      // If not authenticated, redirect to login
-      if (!authToken || !unlockTime) {
+      // Check if user is authenticated via account
+      let isAccountAuth = false;
+      if (authToken) {
+        try {
+          const payload = authToken.split('.')[1];
+          const decodedPayload = JSON.parse(atob(payload));
+          isAccountAuth = decodedPayload.isAccountAuth || false;
+        } catch (error) {
+          console.error('Error parsing JWT token for account auth check:', error);
+        }
+      }
+      
+      // Account holders don't need unlockTime, PIN-based users do
+      if (!authToken || (!isAccountAuth && !unlockTime)) {
         if (familySlug) {
           router.push(`/${familySlug}/login`);
         } else {
@@ -362,12 +411,14 @@ function AppContent({ children }: { children: React.ReactNode }) {
       }
       
       // Check for idle timeout (separate from token expiration)
-      const lastActivity = parseInt(unlockTime);
-      const idleTimeSeconds = parseInt(localStorage.getItem('idleTimeSeconds') || '1800', 10);
-      if (Date.now() - lastActivity > idleTimeSeconds * 1000) {
-        // Session expired due to inactivity, redirect to login
-        console.log('Session expired due to inactivity, logging out...');
-        handleLogout();
+      if (unlockTime) {
+        const lastActivity = parseInt(unlockTime);
+        const idleTimeSeconds = parseInt(localStorage.getItem('idleTimeSeconds') || '1800', 10);
+        if (Date.now() - lastActivity > idleTimeSeconds * 1000) {
+          // Session expired due to inactivity, redirect to login
+          console.log('Session expired due to inactivity, logging out...');
+          handleLogout();
+        }
       }
     };
     
@@ -388,8 +439,20 @@ function AppContent({ children }: { children: React.ReactNode }) {
       const authToken = localStorage.getItem('authToken');
       const unlockTime = localStorage.getItem('unlockTime');
       
-      // Consider unlocked if we have both a token and an unlock time
-      const newUnlockState = !!(authToken && unlockTime);
+      // Check if user is authenticated via account
+      let isAccountAuth = false;
+      if (authToken) {
+        try {
+          const payload = authToken.split('.')[1];
+          const decodedPayload = JSON.parse(atob(payload));
+          isAccountAuth = decodedPayload.isAccountAuth || false;
+        } catch (error) {
+          console.error('Error parsing JWT token for unlock status:', error);
+        }
+      }
+      
+      // Account holders are automatically unlocked, PIN-based users need unlockTime
+      const newUnlockState = !!(authToken && (isAccountAuth || unlockTime));
       setIsUnlocked(newUnlockState);
       
       // Extract user information from JWT token
@@ -404,7 +467,11 @@ function AppContent({ children }: { children: React.ReactNode }) {
           // Set caretaker name and admin status from token
           if (decodedPayload.name) {
             setCaretakerName(decodedPayload.name);
-            setIsAdmin(decodedPayload.role === 'ADMIN' || decodedPayload.isSysAdmin === true);
+            // Account holders are always admins of their family, plus system admins
+            const isAccountAdmin = decodedPayload.isAccountAuth && decodedPayload.role === 'OWNER';
+            const isRegularAdmin = decodedPayload.role === 'ADMIN';
+            const isSysAdmin = decodedPayload.isSysAdmin === true;
+            setIsAdmin(isAccountAdmin || isRegularAdmin || isSysAdmin);
           }
         } catch (error) {
           console.error('Error parsing JWT token:', error);

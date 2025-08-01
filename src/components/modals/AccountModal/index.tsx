@@ -148,12 +148,58 @@ export default function AccountModal({
       setIsSubmitting(true);
       setError('');
 
-      // TODO: Implement login endpoint when available
-      setError('Login functionality coming soon!');
+      const response = await fetch('/api/accounts/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          password: formData.password,
+        }),
+      });
 
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Store the token in localStorage
+        localStorage.setItem('authToken', result.data.token);
+        
+        // Set unlock time for session management (account holders are considered "unlocked")
+        localStorage.setItem('unlockTime', Date.now().toString());
+        
+        // Store user info for the AccountButton
+        localStorage.setItem('accountUser', JSON.stringify({
+          firstName: result.data.user.firstName,
+          email: result.data.user.email,
+          familySlug: result.data.user.familySlug,
+        }));
+        
+        // Clear form
+        setFormData({
+          email: '',
+          password: '',
+          firstName: '',
+          lastName: '',
+          familyName: '',
+        });
+        
+        // Show success and close modal
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          onClose();
+          
+          // Redirect to family dashboard
+          window.location.href = `/${result.data.user.familySlug}`;
+        }, 2000);
+        
+      } else {
+        setError(result.error || 'Login failed. Please try again.');
+      }
     } catch (error) {
       console.error('Login error:', error);
-      setError('Login failed. Please try again.');
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
