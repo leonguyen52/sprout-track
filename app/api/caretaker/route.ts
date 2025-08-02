@@ -265,10 +265,32 @@ async function deleteHandler(req: NextRequest, authContext: AuthResult) {
 
 async function getHandler(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId: userFamilyId } = authContext;
+    const { familyId: userFamilyId, isAccountAuth, caretakerId, accountId } = authContext;
+
+    // Debug logging for account users
+    if (isAccountAuth) {
+      console.log('Caretaker API GET - Account user auth context:', {
+        userFamilyId,
+        isAccountAuth,
+        caretakerId,
+        accountId,
+        hasAllRequiredFields: !!userFamilyId
+      });
+    }
 
     if (!userFamilyId) {
-      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+      if (isAccountAuth) {
+        console.log('Caretaker API: Account user missing familyId - possible setup incomplete');
+        return NextResponse.json<ApiResponse<null>>({ 
+          success: false, 
+          error: 'Account setup incomplete. Please complete family setup.' 
+        }, { status: 403 });
+      } else {
+        return NextResponse.json<ApiResponse<null>>({ 
+          success: false, 
+          error: 'User is not associated with a family.' 
+        }, { status: 403 });
+      }
     }
 
     const { searchParams } = new URL(req.url);

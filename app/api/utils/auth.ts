@@ -88,6 +88,18 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
         // Verify and decode the token
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         
+        // Debug logging for intermittent 401s
+        if (decoded.isAccountAuth) {
+          console.log('Processing account auth token:', {
+            accountId: decoded.accountId,
+            accountEmail: decoded.accountEmail,
+            familyId: decoded.familyId,
+            familySlug: decoded.familySlug,
+            exp: decoded.exp,
+            isExpired: decoded.exp && decoded.exp * 1000 < Date.now()
+          });
+        }
+        
         // Handle setup authentication tokens
         if (decoded.isSetupAuth && decoded.setupToken) {
           return {
@@ -117,8 +129,21 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
             });
 
             if (!account) {
+              console.log('Account authentication failed: Account not found for ID:', decoded.accountId);
               return { authenticated: false, error: 'Account not found' };
             }
+
+            // Debug logging for account authentication
+            console.log('Account authentication result:', {
+              accountId: account.id,
+              email: account.email,
+              hasFamily: !!account.family,
+              familyId: account.family?.id,
+              familySlug: account.family?.slug,
+              hasLinkedCaretaker: !!account.caretaker,
+              caretakerId: account.caretaker?.id,
+              caretakerRole: account.caretaker?.role
+            });
 
             // If account has a linked caretaker, use that caretaker's permissions
             if (account.caretaker) {
@@ -135,19 +160,40 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
                 isAccountOwner: true,
               };
             } else {
-              // Account without linked caretaker - limited permissions
-              return {
-                authenticated: true,
-                caretakerId: decoded.accountId, // Use account ID as fallback
-                caretakerType: 'ACCOUNT',
-                caretakerRole: 'OWNER',
-                familyId: account.family?.id || null,
-                familySlug: account.family?.slug || null,
-                isAccountAuth: true,
-                accountId: decoded.accountId,
-                accountEmail: decoded.accountEmail,
-                isAccountOwner: true,
-              };
+              // Account without linked caretaker - limited permissions (during setup)
+              console.log('Account has no linked caretaker - setup may be incomplete');
+              
+              // If account has no family AND no caretaker, they're in initial setup phase
+              if (!account.family) {
+                console.log('Account has no family - redirect to setup needed');
+                return {
+                  authenticated: true,
+                  caretakerId: decoded.accountId, // Use account ID as fallback
+                  caretakerType: 'ACCOUNT',
+                  caretakerRole: 'OWNER',
+                  familyId: null,
+                  familySlug: null,
+                  isAccountAuth: true,
+                  accountId: decoded.accountId,
+                  accountEmail: decoded.accountEmail,
+                  isAccountOwner: true,
+                };
+              } else {
+                // Account has family but no caretaker - this shouldn't happen after proper setup
+                console.log('WARNING: Account has family but no linked caretaker - data inconsistency!');
+                return {
+                  authenticated: true,
+                  caretakerId: decoded.accountId, // Use account ID as fallback
+                  caretakerType: 'ACCOUNT',
+                  caretakerRole: 'OWNER',
+                  familyId: account.family.id,
+                  familySlug: account.family.slug,
+                  isAccountAuth: true,
+                  accountId: decoded.accountId,
+                  accountEmail: decoded.accountEmail,
+                  isAccountOwner: true,
+                };
+              }
             }
           } catch (error) {
             console.error('Error fetching account family info:', error);

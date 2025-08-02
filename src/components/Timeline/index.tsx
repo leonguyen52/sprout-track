@@ -123,7 +123,12 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
   
   useEffect(() => {
     const fetchSettings = async () => {
-      const response = await fetch('/api/settings');
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/settings', {
+        headers: {
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -223,8 +228,12 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
 
     const endpoint = getActivityEndpoint(activity);
     try {
+      const authToken = localStorage.getItem('authToken');
       const response = await fetch(`/api/${endpoint}?id=${activity.id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
+        },
       });
 
       if (response.ok) {

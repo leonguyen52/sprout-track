@@ -78,7 +78,12 @@ export default function FeedForm({
     if (!babyId) return;
     
     try {
-      const response = await fetch(`/api/feed-log/last?babyId=${babyId}&type=${type}`);
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/feed-log/last?babyId=${babyId}&type=${type}`, {
+        headers: {
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
+        },
+      });
       if (!response.ok) return;
       
       const data = await response.json();
@@ -99,7 +104,12 @@ export default function FeedForm({
     if (!babyId) return;
     
     try {
-      const response = await fetch(`/api/feed-log/last?babyId=${babyId}`);
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/feed-log/last?babyId=${babyId}`, {
+        headers: {
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
+        },
+      });
       if (!response.ok) return;
       
       const data = await response.json();
@@ -126,7 +136,12 @@ export default function FeedForm({
 
   const fetchDefaultSettings = async () => {
     try {
-      const response = await fetch('/api/settings');
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/settings', {
+        headers: {
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
+        },
+      });
       if (!response.ok) return;
       
       const data = await response.json();
