@@ -111,9 +111,6 @@ const ComingSoon = () => {
             </div>
             <div className="saas-nav-links">
               <AccountButton className="saas-account-btn" />
-              <Button size="sm" className="saas-signup-btn" asChild>
-                <a href="#signup">Sign-up for the beta program!</a>
-              </Button>
               <ThemeToggle variant="light" className="saas-theme-toggle" />
             </div>
           </div>
@@ -139,7 +136,7 @@ const ComingSoon = () => {
               diapers, milestones, and more with our intuitive, family-friendly platform.
             </p>
             <p className="saas-hero-description">
-              <b>Open source.  Privacy-focused.  Accessible anywhere.</b>
+              <b>Simple to use.  Privacy-focused.  Accessible anywhere.</b>
             </p>
             {/* <div className="saas-hero-actions">
               <Button size="lg" className="saas-hero-cta">

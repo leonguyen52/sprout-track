@@ -153,7 +153,7 @@ export function AccountButton({ className }: AccountButtonProps) {
         onClick={() => setShowAccountModal(true)}
       >
         <User className="w-4 h-4 mr-2" />
-        Account
+        Login
       </Button>
       
       <AccountModal 
