@@ -308,8 +308,45 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
             if (!settingsResponse.ok) {
               throw new Error('Failed to save security PIN to settings');
             }
+            
+            // For account authentication, link to the system caretaker
+            if (isAccountAuth()) {
+              try {
+                // Get the system caretaker (loginId '00') for this family
+                const systemCaretakerResponse = await fetch(`/api/caretaker/system?familyId=${createdFamily?.id}`, {
+                  headers: getAuthHeaders(),
+                });
+                
+                if (systemCaretakerResponse.ok) {
+                  const systemCaretakerData = await systemCaretakerResponse.json();
+                  if (systemCaretakerData.success && systemCaretakerData.data?.id) {
+                    // Link the account to the system caretaker
+                    const linkResponse = await fetch('/api/accounts/link-caretaker', {
+                      method: 'POST',
+                      headers: getAuthHeaders(),
+                      body: JSON.stringify({
+                        caretakerId: systemCaretakerData.data.id,
+                      }),
+                    });
+                    
+                    if (!linkResponse.ok) {
+                      console.error('Failed to link account to system caretaker');
+                    } else {
+                      console.log('Successfully linked account to system caretaker');
+                    }
+                  }
+                } else {
+                  console.error('Failed to fetch system caretaker for linking');
+                }
+              } catch (error) {
+                console.error('Error linking account to system caretaker:', error);
+                // Don't throw error here as the main setup is complete
+              }
+            }
           } else {
             // Save caretakers
+            let accountCaretakerId: string | null = null;
+            
             for (const caretaker of caretakers) {
               const caretakerResponse = await fetch('/api/caretaker', {
                 method: 'POST',
@@ -322,6 +359,35 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
               
               if (!caretakerResponse.ok) {
                 throw new Error(`Failed to save caretaker: ${caretaker.name}`);
+              }
+              
+              // For account authentication, link the first (and only) caretaker to the account
+              if (isAccountAuth() && !accountCaretakerId) {
+                const caretakerData = await caretakerResponse.json();
+                if (caretakerData.success && caretakerData.data?.id) {
+                  accountCaretakerId = caretakerData.data.id;
+                }
+              }
+            }
+            
+            // Link the caretaker to the account
+            if (isAccountAuth() && accountCaretakerId) {
+              try {
+                const linkResponse = await fetch('/api/accounts/link-caretaker', {
+                  method: 'POST',
+                  headers: getAuthHeaders(),
+                  body: JSON.stringify({
+                    caretakerId: accountCaretakerId,
+                  }),
+                });
+                
+                if (!linkResponse.ok) {
+                  console.error('Failed to link caretaker to account, but continuing setup');
+                  // Don't throw error here as the main setup is complete
+                }
+              } catch (error) {
+                console.error('Error linking caretaker to account:', error);
+                // Don't throw error here as the main setup is complete
               }
             }
           }

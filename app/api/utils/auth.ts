@@ -109,25 +109,45 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           try {
             const account = await prisma.account.findUnique({
               where: { id: decoded.accountId },
-              include: { family: { select: { id: true, slug: true } } }
+              include: { 
+                family: { select: { id: true, slug: true } },
+                caretaker: { select: { id: true, role: true, type: true, loginId: true } }
+              }
             });
 
             if (!account) {
               return { authenticated: false, error: 'Account not found' };
             }
 
-            return {
-              authenticated: true,
-              caretakerId: decoded.accountId, // Use account ID as caretaker ID for family access
-              caretakerType: 'ACCOUNT',
-              caretakerRole: 'OWNER',
-              familyId: account.family?.id || null, // Use fresh family info from database
-              familySlug: account.family?.slug || null, // Use fresh family info from database
-              isAccountAuth: true,
-              accountId: decoded.accountId,
-              accountEmail: decoded.accountEmail,
-              isAccountOwner: true,
-            };
+            // If account has a linked caretaker, use that caretaker's permissions
+            if (account.caretaker) {
+              return {
+                authenticated: true,
+                caretakerId: account.caretaker.id,
+                caretakerType: account.caretaker.type || 'Account Owner',
+                caretakerRole: account.caretaker.role,
+                familyId: account.family?.id || null,
+                familySlug: account.family?.slug || null,
+                isAccountAuth: true,
+                accountId: decoded.accountId,
+                accountEmail: decoded.accountEmail,
+                isAccountOwner: true,
+              };
+            } else {
+              // Account without linked caretaker - limited permissions
+              return {
+                authenticated: true,
+                caretakerId: decoded.accountId, // Use account ID as fallback
+                caretakerType: 'ACCOUNT',
+                caretakerRole: 'OWNER',
+                familyId: account.family?.id || null,
+                familySlug: account.family?.slug || null,
+                isAccountAuth: true,
+                accountId: decoded.accountId,
+                accountEmail: decoded.accountEmail,
+                isAccountOwner: true,
+              };
+            }
           } catch (error) {
             console.error('Error fetching account family info:', error);
             return { authenticated: false, error: 'Failed to verify account status' };
