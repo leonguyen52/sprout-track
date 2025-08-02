@@ -6,13 +6,13 @@ import { formatForResponse } from '../utils/timezone';
 
 async function postHandler(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId: userFamilyId, caretakerRole, isSysAdmin, isSetupAuth } = authContext;
+    const { familyId: userFamilyId, caretakerRole, isSysAdmin, isSetupAuth, isAccountAuth } = authContext;
 
-    // System administrators and setup auth need a family context for caretakers
-    if (!userFamilyId && !isSysAdmin && !isSetupAuth) {
+    // System administrators, setup auth, and account auth need a family context for caretakers
+    if (!userFamilyId && !isSysAdmin && !isSetupAuth && !isAccountAuth) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
-    if (!isSysAdmin && !isSetupAuth && caretakerRole !== 'ADMIN') {
+    if (!isSysAdmin && !isSetupAuth && !isAccountAuth && caretakerRole !== 'ADMIN') {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Only admins can create caretakers.' }, { status: 403 });
     }
 
@@ -20,9 +20,9 @@ async function postHandler(req: NextRequest, authContext: AuthResult) {
     const { familyId: bodyFamilyId, ...caretakerData } = requestBody;
     const body: CaretakerCreate = caretakerData;
 
-    // For system administrators and setup auth, require familyId to be passed as query parameter or in body
+    // For system administrators, setup auth, and account auth, require familyId to be passed as query parameter or in body
     let targetFamilyId = userFamilyId;
-    if (isSysAdmin || isSetupAuth) {
+    if (isSysAdmin || isSetupAuth || isAccountAuth) {
       const { searchParams } = new URL(req.url);
       const queryFamilyId = searchParams.get('familyId');
       
@@ -31,7 +31,7 @@ async function postHandler(req: NextRequest, authContext: AuthResult) {
       } else if (queryFamilyId) {
         targetFamilyId = queryFamilyId;
       } else if (!userFamilyId) {
-        const userType = isSysAdmin ? 'System administrators' : 'Setup authentication';
+        const userType = isSysAdmin ? 'System administrators' : isSetupAuth ? 'Setup authentication' : 'Account authentication';
         return NextResponse.json<ApiResponse<null>>({ 
           success: false, 
           error: `${userType} must specify familyId parameter or in request body.` 

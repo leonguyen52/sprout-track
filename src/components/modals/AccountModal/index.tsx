@@ -178,7 +178,7 @@ export default function AccountModal({
         localStorage.setItem('accountUser', JSON.stringify({
           firstName: result.data.user.firstName,
           email: result.data.user.email,
-          familySlug: result.data.user.familySlug,
+          familySlug: result.data.user.familySlug || null,
         }));
         
         // Clear form

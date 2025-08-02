@@ -24,8 +24,8 @@ interface AccountLoginResponse {
     email: string;
     firstName: string;
     lastName?: string;
-    familyId: string;
-    familySlug: string;
+    familyId?: string;
+    familySlug?: string;
   };
 }
 
@@ -138,18 +138,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
       );
     }
 
-    // Check if account has a family
-    if (!account.family) {
-      recordFailedAttempt(ip);
-      return NextResponse.json<ApiResponse<AccountLoginResponse>>(
-        {
-          success: false,
-          error: 'No family associated with this account',
-        },
-        { status: 400 }
-      );
-    }
-
     // Reset failed attempts on successful authentication
     resetFailedAttempts(ip);
 
@@ -160,7 +148,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
       type: 'ACCOUNT',
       role: 'OWNER',
       familyId: account.familyId,
-      familySlug: account.family.slug,
+      familySlug: account.family?.slug,
       isAccountAuth: true,
       accountId: account.id,
       accountEmail: account.email,
@@ -175,8 +163,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
         email: account.email,
         firstName: account.firstName || '',
         lastName: account.lastName || undefined,
-        familyId: account.familyId!,
-        familySlug: account.family.slug,
+        ...(account.familyId && { familyId: account.familyId }),
+        ...(account.family?.slug && { familySlug: account.family.slug }),
       }
     };
 

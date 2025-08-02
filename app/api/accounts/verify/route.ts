@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../../db';
 import { ApiResponse } from '../../types';
-import { sendWelcomeEmail } from '../../utils/account-emails';
-import { generateSlug } from '../../utils/slug-generator';
-import { hashPasswordSync } from '../../utils/password-utils';
+// No longer need these imports since we're not creating families
 
 interface EmailVerificationRequest {
   token: string;
@@ -16,16 +14,7 @@ interface EmailVerificationResponse {
   redirectUrl?: string;
 }
 
-// Helper function to generate a random 6-digit PIN
-function generateFamilyPin(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-// Helper function to generate a random 2-digit numeric caretaker login ID (01-99)
-function generateCaretakerLoginId(): string {
-  const randomNum = Math.floor(Math.random() * 99) + 1; // 1-99
-  return randomNum.toString().padStart(2, '0'); // Pad with leading zero if needed
-}
+// Helper functions removed since we're not creating families during verification
 
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<EmailVerificationResponse>>> {
   try {
@@ -71,145 +60,35 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<E
           }
         });
       } else {
-        return NextResponse.json<ApiResponse<EmailVerificationResponse>>(
-          {
-            success: false,
-            error: 'Account verified but family setup incomplete. Please contact support.'
-          },
-          { status: 500 }
-        );
+        // Account verified but no family - redirect to coming soon page
+        return NextResponse.json<ApiResponse<EmailVerificationResponse>>({
+          success: true,
+          data: {
+            success: true,
+            message: 'Account already verified. You can now set up your family.',
+            redirectUrl: '/coming-soon'
+          }
+        });
       }
     }
     
-    // Generate unique family slug
-    let familySlug: string;
-    let slugAttempts = 0;
-    const maxSlugAttempts = 10;
-    
-    do {
-      familySlug = generateSlug();
-      const existingFamily = await prisma.family.findUnique({
-        where: { slug: familySlug }
-      });
-      if (!existingFamily) break;
-      slugAttempts++;
-    } while (slugAttempts < maxSlugAttempts);
-    
-    if (slugAttempts >= maxSlugAttempts) {
-      return NextResponse.json<ApiResponse<EmailVerificationResponse>>(
-        {
-          success: false,
-          error: 'Unable to generate unique family identifier. Please try again.'
-        },
-        { status: 500 }
-      );
-    }
-    
-    // Generate family PIN
-    const familyPin = generateFamilyPin();
-    const hashedPin = hashPasswordSync(familyPin); // Only hash for family settings (sysadmin access)
-    
-    // Begin transaction to create family and update account
-    const result = await prisma.$transaction(async (tx) => {
-      // Create family
-      const family = await tx.family.create({
-        data: {
-          slug: familySlug,
-          name: 'My Family', // Default name, user can change later
-          isActive: true,
-          accountId: account.id
-        }
-      });
-      
-      // Create default settings for the family
-      await tx.settings.create({
-        data: {
-          familyId: family.id,
-          familyName: family.name,
-          securityPin: hashedPin, // Family settings PIN is hashed (sysadmin access)
-          defaultBottleUnit: 'OZ',
-          defaultSolidsUnit: 'TBSP',
-          defaultHeightUnit: 'IN',
-          defaultWeightUnit: 'LB',
-          defaultTempUnit: 'F',
-          activitySettings: JSON.stringify({
-            global: {
-              order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'],
-              visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine']
-            }
-          })
-        }
-      });
-      
-      // Generate unique caretaker login ID
-      let caretakerLoginId: string;
-      let loginIdAttempts = 0;
-      const maxLoginIdAttempts = 10;
-      
-      do {
-        caretakerLoginId = generateCaretakerLoginId();
-        const existingCaretaker = await tx.caretaker.findFirst({
-          where: { 
-            familyId: family.id,
-            loginId: caretakerLoginId 
-          }
-        });
-        if (!existingCaretaker) break;
-        loginIdAttempts++;
-      } while (loginIdAttempts < maxLoginIdAttempts);
-      
-      // Create admin caretaker linked to the account
-      const caretaker = await tx.caretaker.create({
-        data: {
-          loginId: caretakerLoginId, // Random 2-digit numeric ID (01-99)
-          name: account.firstName || 'Account Owner',
-          type: 'parent',
-          role: 'ADMIN',
-          inactive: false,
-          securityPin: familyPin, // Caretaker PINs are stored as cleartext (not hashed)
-          familyId: family.id,
-          accountId: account.id
-        }
-      });
-      
-      // Update account to mark as verified and link to family/caretaker
-      const updatedAccount = await tx.account.update({
-        where: { id: account.id },
-        data: {
-          verified: true,
-          verificationToken: null, // Clear the token
-          familyId: family.id,
-          caretakerId: caretaker.id
-        }
-      });
-      
-      return { family, caretaker, account: updatedAccount };
+    // Simply verify the account without creating family
+    const updatedAccount = await prisma.account.update({
+      where: { id: account.id },
+      data: {
+        verified: true,
+        verificationToken: null, // Clear the token
+      }
     });
     
-    console.log(`Account verified and family created: accountId=${account.id}, familySlug=${familySlug}, caretakerLoginId=${result.caretaker.loginId}`);
-    
-    // Send welcome email with family details
-    try {
-      await sendWelcomeEmail(
-        account.email,
-        account.firstName || 'User',
-        familySlug,
-        familyPin,
-        result.caretaker.loginId
-      );
-      console.log(`Welcome email sent to: ${account.email}`);
-    } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError);
-      // Continue - user is still successfully verified
-    }
+    console.log(`Account verified: accountId=${account.id}, email=${account.email}`);
     
     return NextResponse.json<ApiResponse<EmailVerificationResponse>>({
       success: true,
       data: {
         success: true,
-        message: 'Account verified successfully! Welcome to Sprout Track.',
-        familySlug: familySlug,
-        redirectUrl: `/${familySlug}`
+        message: 'Account verified successfully! You can now set up your family.',
+        redirectUrl: '/coming-soon'
       }
     });
     
@@ -247,9 +126,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       return NextResponse.redirect(new URL('/accounts/verify?error=invalid-token', req.url));
     }
     
-    if (account.verified && account.family) {
-      // Already verified, redirect to family dashboard
-      return NextResponse.redirect(new URL(`/${account.family.slug}`, req.url));
+    if (account.verified) {
+      if (account.family) {
+        // Already verified and has family, redirect to family dashboard
+        return NextResponse.redirect(new URL(`/${account.family.slug}`, req.url));
+      } else {
+        // Already verified but no family, redirect to coming soon page
+        return NextResponse.redirect(new URL('/coming-soon', req.url));
+      }
     }
     
     // If not verified, redirect to verification page to handle the process

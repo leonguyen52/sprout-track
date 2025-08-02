@@ -104,18 +104,34 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
         
         // Handle account authentication tokens
         if (decoded.isAccountAuth) {
-          return {
-            authenticated: true,
-            caretakerId: decoded.id, // Use account ID as caretaker ID for family access
-            caretakerType: 'ACCOUNT',
-            caretakerRole: 'OWNER',
-            familyId: decoded.familyId,
-            familySlug: decoded.familySlug,
-            isAccountAuth: true,
-            accountId: decoded.accountId,
-            accountEmail: decoded.accountEmail,
-            isAccountOwner: true,
-          };
+          // For account authentication, always fetch fresh family info from database
+          // since family association can change after JWT was issued (e.g., after family setup)
+          try {
+            const account = await prisma.account.findUnique({
+              where: { id: decoded.accountId },
+              include: { family: { select: { id: true, slug: true } } }
+            });
+
+            if (!account) {
+              return { authenticated: false, error: 'Account not found' };
+            }
+
+            return {
+              authenticated: true,
+              caretakerId: decoded.accountId, // Use account ID as caretaker ID for family access
+              caretakerType: 'ACCOUNT',
+              caretakerRole: 'OWNER',
+              familyId: account.family?.id || null, // Use fresh family info from database
+              familySlug: account.family?.slug || null, // Use fresh family info from database
+              isAccountAuth: true,
+              accountId: decoded.accountId,
+              accountEmail: decoded.accountEmail,
+              isAccountOwner: true,
+            };
+          } catch (error) {
+            console.error('Error fetching account family info:', error);
+            return { authenticated: false, error: 'Failed to verify account status' };
+          }
         }
         
         // Handle regular user/admin tokens

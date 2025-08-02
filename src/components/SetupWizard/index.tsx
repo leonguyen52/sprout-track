@@ -71,6 +71,27 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
     };
   };
 
+  // Check if this is account-based authentication
+  const isAccountAuth = () => {
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) return false;
+    
+    try {
+      // Decode token to check if it's account auth (without verifying signature)
+      const base64Url = authToken.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      
+      const decoded = JSON.parse(jsonPayload);
+      return decoded.isAccountAuth === true;
+    } catch (error) {
+      console.error('Error checking account auth:', error);
+      return false;
+    }
+  };
+
   const handleNext = async () => {
     setError('');
     
@@ -139,9 +160,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
           return;
         }
         
-        // For token-based setup, defer system PIN saving until final stage
+        // For token-based setup or account-based setup, defer system PIN saving until final stage
         // to avoid authentication conflicts
-        if (token) {
+        if (token || isAccountAuth()) {
           setStage(3);
           return;
         }
@@ -193,9 +214,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
           return;
         }
         
-        // For token-based setup, defer caretaker creation until final stage
+        // For token-based setup or account-based setup, defer caretaker creation until final stage
         // to avoid authentication conflicts
-        if (token) {
+        if (token || isAccountAuth()) {
           setStage(3);
           return;
         }
@@ -251,9 +272,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
       try {
         setLoading(true);
         
-        // For token-based setup, save baby first, then security settings/caretakers
+        // For token-based setup or account-based setup, save baby first, then security settings/caretakers
         // This avoids authentication conflicts where creating caretakers disables token access
-        if (token) {
+        if (token || isAccountAuth()) {
           // Step 1: Save baby information first
           const babyResponse = await fetch('/api/baby', {
             method: 'POST',
@@ -325,12 +346,15 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
           }
         }
         
-        // Setup complete - logout and pass the family data to the callback
+        // Setup complete - pass the family data to the callback
         if (createdFamily) {
-          // Clear authentication tokens to force re-login with new family context
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('unlockTime');
-          localStorage.removeItem('caretakerId');
+          // For non-account authentication, clear tokens to force re-login with new family context
+          // For account authentication, keep the user logged in
+          if (!isAccountAuth()) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('unlockTime');
+            localStorage.removeItem('caretakerId');
+          }
           
           onComplete(createdFamily);
         }

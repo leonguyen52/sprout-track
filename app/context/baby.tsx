@@ -3,11 +3,25 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Baby } from '@prisma/client';
 
+interface AccountStatus {
+  accountId: string;
+  email: string;
+  firstName: string;
+  lastName?: string;
+  verified: boolean;
+  hasFamily: boolean;
+  familySlug?: string;
+  familyName?: string;
+}
+
 interface BabyContextType {
   selectedBaby: Baby | null;
   setSelectedBaby: (baby: Baby | null) => void;
   sleepingBabies: Set<string>;
   setSleepingBabies: (babies: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
+  accountStatus: AccountStatus | null;
+  isAccountAuth: boolean;
+  isCheckingAccountStatus: boolean;
 }
 
 const BabyContext = createContext<BabyContextType>({
@@ -15,6 +29,9 @@ const BabyContext = createContext<BabyContextType>({
   setSelectedBaby: () => {},
   sleepingBabies: new Set(),
   setSleepingBabies: () => {},
+  accountStatus: null,
+  isAccountAuth: false,
+  isCheckingAccountStatus: false,
 });
 
 interface BabyProviderProps {
@@ -31,8 +48,62 @@ export function BabyProvider({ children }: BabyProviderProps) {
     return new Set();
   });
   const [currentFamily, setCurrentFamily] = useState<{id: string, slug: string} | null>(null);
+  const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
+  const [isAccountAuth, setIsAccountAuth] = useState(false);
+  const [isCheckingAccountStatus, setIsCheckingAccountStatus] = useState(false);
 
-  // Helper function to get current family from URL or localStorage
+  // Helper function to check if user is authenticated with an account token
+  const checkAccountAuth = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) return false;
+    
+    try {
+      const base64Url = authToken.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      const decoded = JSON.parse(jsonPayload);
+      return decoded.isAccountAuth === true;
+    } catch (error) {
+      console.error('Error checking account auth:', error);
+      return false;
+    }
+  };
+
+  // Helper function to fetch account status
+  const fetchAccountStatus = async (): Promise<AccountStatus | null> => {
+    if (typeof window === 'undefined') return null;
+    
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) return null;
+    
+    try {
+      setIsCheckingAccountStatus(true);
+      const response = await fetch('/api/accounts/status', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          return data.data;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching account status:', error);
+      return null;
+    } finally {
+      setIsCheckingAccountStatus(false);
+    }
+  };
+
+  // Helper function to get current family from URL, localStorage, or account status
   const getCurrentFamily = (): {id: string, slug: string} | null => {
     if (typeof window === 'undefined') return null;
     
@@ -56,6 +127,19 @@ export function BabyProvider({ children }: BabyProviderProps) {
       }
     }
     
+    // If no family from URL/localStorage, check account status
+    if (accountStatus?.hasFamily && accountStatus.familySlug) {
+      // If we're on the coming-soon page or account pages and user has a family, 
+      // we should redirect them to their family
+      if (pathname === '/coming-soon' || pathname.startsWith('/account/')) {
+        window.location.href = `/${accountStatus.familySlug}`;
+        return null;
+      }
+      
+      // For other cases, don't return account family unless URL matches
+      return null;
+    }
+    
     return null;
   };
 
@@ -66,6 +150,42 @@ export function BabyProvider({ children }: BabyProviderProps) {
     }
     return baseKey;
   };
+
+  // Check account authentication status on mount and when auth token changes
+  useEffect(() => {
+    const checkAuth = async () => {
+      const isAuth = checkAccountAuth();
+      setIsAccountAuth(isAuth);
+      
+      if (isAuth) {
+        const status = await fetchAccountStatus();
+        setAccountStatus(status);
+        
+        // If user is verified but has no family, and they're not on the account setup page,
+        // redirect them to family setup
+        if (status?.verified && !status.hasFamily && typeof window !== 'undefined') {
+          const pathname = window.location.pathname;
+          if (pathname !== '/account/family-setup' && pathname !== '/coming-soon') {
+            window.location.href = '/coming-soon';
+          }
+        }
+      } else {
+        setAccountStatus(null);
+      }
+    };
+    
+    checkAuth();
+    
+    // Also check when localStorage changes (for auth token updates)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'authToken') {
+        checkAuth();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Load family-specific baby selection from localStorage
   useEffect(() => {
@@ -181,7 +301,10 @@ export function BabyProvider({ children }: BabyProviderProps) {
       selectedBaby, 
       setSelectedBaby: setSelectedBabyWithValidation, 
       sleepingBabies, 
-      setSleepingBabies 
+      setSleepingBabies,
+      accountStatus,
+      isAccountAuth,
+      isCheckingAccountStatus
     }}>
       {children}
     </BabyContext.Provider>

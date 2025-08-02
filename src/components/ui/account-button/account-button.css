@@ -73,16 +73,147 @@ html.dark .account-button-logged-in:focus {
   flex-shrink: 0;
 }
 
+/* Verification needed state (yellow glow/bounce) */
+.account-button-verification-needed {
+  border: 1px solid #eab308; /* yellow-600 */
+  color: #eab308;
+  background-color: transparent;
+  transition: all 0.2s ease;
+  animation: glow-yellow 2s ease-in-out infinite alternate, bounce-gentle 3s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.4);
+}
+
+.account-button-verification-needed:hover {
+  background-color: #eab308; /* yellow-600 */
+  color: white;
+  animation: none;
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.6);
+}
+
+/* Family setup needed state (green glow/bounce) */
+.account-button-family-setup-needed {
+  border: 1px solid #16a34a; /* green-600 */
+  color: #16a34a;
+  background-color: transparent;
+  transition: all 0.2s ease;
+  animation: glow-green 2s ease-in-out infinite alternate, bounce-gentle 3s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(22, 163, 74, 0.4);
+}
+
+.account-button-family-setup-needed:hover {
+  background-color: #16a34a; /* green-600 */
+  color: white;
+  animation: none;
+  box-shadow: 0 0 12px rgba(22, 163, 74, 0.6);
+}
+
+/* Dark mode for special states */
+html.dark .account-button-verification-needed {
+  border-color: #fbbf24; /* yellow-400 */
+  color: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+html.dark .account-button-verification-needed:hover {
+  background-color: #fbbf24; /* yellow-400 */
+  color: #1f2937; /* gray-800 */
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+}
+
+html.dark .account-button-family-setup-needed {
+  border-color: #4ade80; /* green-400 */
+  color: #4ade80;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+}
+
+html.dark .account-button-family-setup-needed:hover {
+  background-color: #4ade80; /* green-400 */
+  color: #1f2937; /* gray-800 */
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.6);
+}
+
+/* Glow animations */
+@keyframes glow-yellow {
+  from {
+    box-shadow: 0 0 8px rgba(234, 179, 8, 0.4);
+  }
+  to {
+    box-shadow: 0 0 16px rgba(234, 179, 8, 0.8);
+  }
+}
+
+@keyframes glow-green {
+  from {
+    box-shadow: 0 0 8px rgba(22, 163, 74, 0.4);
+  }
+  to {
+    box-shadow: 0 0 16px rgba(22, 163, 74, 0.8);
+  }
+}
+
+/* Gentle bounce animation */
+@keyframes bounce-gentle {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-2px);
+  }
+  60% {
+    transform: translateY(-1px);
+  }
+}
+
+/* Rolling gradient for family setup button */
+.family-setup-gradient {
+  background: linear-gradient(
+    45deg,
+    #10b981,
+    #06b6d4,
+    #8b5cf6,
+    #f59e0b,
+    #ef4444,
+    #10b981
+  );
+  background-size: 400% 400%;
+  animation: gradient-roll 4s ease infinite;
+  color: white;
+  border: none;
+  font-weight: 600;
+}
+
+.family-setup-gradient:hover {
+  animation: gradient-roll 2s ease infinite;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+}
+
+@keyframes gradient-roll {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 640px) {
   .account-button-guest,
-  .account-button-logged-in {
+  .account-button-logged-in,
+  .account-button-verification-needed,
+  .account-button-family-setup-needed {
     padding: 0.375rem 0.75rem; /* px-3 py-1.5 */
     font-size: 0.875rem; /* text-sm */
   }
   
   .account-button-guest svg,
-  .account-button-logged-in svg {
+  .account-button-logged-in svg,
+  .account-button-verification-needed svg,
+  .account-button-family-setup-needed svg {
     width: 1rem;
     height: 1rem;
   }
