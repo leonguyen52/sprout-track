@@ -190,15 +190,11 @@ export default function AccountModal({
           familyName: '',
         });
         
-        // Show success and close modal
-        setShowSuccess(true);
-        setTimeout(() => {
-          setShowSuccess(false);
-          onClose();
-          
-          // Redirect to family dashboard
-          window.location.href = `/${result.data.user.familySlug}`;
-        }, 2000);
+        // Close modal immediately and refresh page to show logged-in state
+        onClose();
+        
+        // Refresh the page so the AccountButton updates to show logged-in state
+        window.location.reload();
         
       } else {
         setError(result.error || 'Login failed. Please try again.');

@@ -13,6 +13,8 @@ export default function HomePage() {
   const [deploymentMode, setDeploymentMode] = useState<string>('selfhosted');
 
   useEffect(() => {
+    // This page handles all routing logic for the root path
+    // Individual family pages handle their own authentication checks
     const checkDeploymentMode = async () => {
       try {
         setLoading(true);
@@ -58,17 +60,52 @@ export default function HomePage() {
             // Check if user is already authenticated
             const authToken = localStorage.getItem('authToken');
             const unlockTime = localStorage.getItem('unlockTime');
+            const accountUser = localStorage.getItem('accountUser');
             
-            if (authToken && unlockTime) {
-              // User is authenticated, redirect to main app
+            // Check if this is an account user (this logic only runs in self-hosted mode, 
+            // where account users don't exist, so isAccountAuth will always be false)
+            let isAccountAuth = false;
+            if (authToken && accountUser) {
+              try {
+                // Parse JWT to check if it's account authentication
+                const payload = JSON.parse(atob(authToken.split('.')[1]));
+                isAccountAuth = payload.isAccountAuth || false;
+              } catch (e) {
+                // If we can't parse the token, fall back to checking accountUser existence
+                isAccountAuth = !!accountUser;
+              }
+            }
+            
+            if (authToken && unlockTime && !isAccountAuth) {
+              // PIN-based user is authenticated, redirect to main app
               router.push(`/${familySlug}/log-entry`);
-            } else {
+            } else if (!authToken && !isAccountAuth) {
               // Not authenticated, redirect to login
               router.push(`/${familySlug}/login`);
             }
+            // If isAccountAuth is true, don't redirect - let them stay on homepage
           } else {
-            // Multiple families, redirect to family selection
-            router.push('/family-select');
+            // Multiple families case
+            const authToken = localStorage.getItem('authToken');
+            const accountUser = localStorage.getItem('accountUser');
+            
+            // Check if this is an account user (this logic only runs in self-hosted mode, 
+            // where account users don't exist, so isAccountAuth will always be false)
+            let isAccountAuth = false;
+            if (authToken && accountUser) {
+              try {
+                const payload = JSON.parse(atob(authToken.split('.')[1]));
+                isAccountAuth = payload.isAccountAuth || false;
+              } catch (e) {
+                isAccountAuth = !!accountUser;
+              }
+            }
+            
+            if (!isAccountAuth) {
+              // PIN-based users with multiple families go to family selection
+              router.push('/family-select');
+            }
+            // Account users stay on homepage (they only have one family anyway)
           }
         }
       } catch (error) {
