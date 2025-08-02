@@ -284,7 +284,6 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
         if (idleTimeData.success) {
           localStorage.setItem('idleTimeSeconds', idleTimeData.data.toString());
         }
-        
         // Call the onUnlock callback
         onUnlock(data.data.id);
       } else {

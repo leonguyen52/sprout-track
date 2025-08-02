@@ -76,6 +76,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
     // If no token in header, try to get caretakerId from cookies (backward compatibility)
     const caretakerId = req.cookies.get('caretakerId')?.value;
     
+
     // If we have a JWT token, verify it
     if (token) {
       // Check if token is blacklisted
@@ -166,7 +167,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
         };
         
         // Return authenticated user info from token
-        return {
+        const authResult = {
           authenticated: true,
           caretakerId: regularDecoded.isSysAdmin ? null : regularDecoded.id,
           caretakerType: regularDecoded.type,
@@ -175,6 +176,10 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           familySlug: regularDecoded.familySlug,
           isSysAdmin: regularDecoded.isSysAdmin || false,
         };
+        
+
+        
+        return authResult;
       } catch (jwtError) {
         console.error('JWT verification error:', jwtError);
         return { authenticated: false, error: 'Invalid or expired token' };
@@ -496,29 +501,8 @@ export function withAuthContext<T>(
       return handler(req, modifiedAuthResult);
     }
     
-    // Check if this is a system caretaker by looking up loginId in database
-    if (authResult.caretakerId) {
-      try {
-        const caretaker = await prisma.caretaker.findFirst({
-          where: {
-            id: authResult.caretakerId,
-            loginId: '00', // System caretakers have loginId '00'
-            deletedAt: null,
-          },
-        });
-        
-        if (caretaker) {
-          // This is a system caretaker - set caretakerId to null for database operations
-          const modifiedAuthResult = {
-            ...authResult,
-            caretakerId: null
-          };
-          return handler(req, modifiedAuthResult);
-        }
-      } catch (error) {
-        console.error('Error checking system caretaker:', error);
-      }
-    }
+    // Note: We no longer need to set caretakerId to null for system caretakers
+    // All caretakers (including system ones) should maintain their ID for proper authorization
     
     return handler(req, authResult);
   };
