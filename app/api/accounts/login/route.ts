@@ -24,6 +24,8 @@ interface AccountLoginResponse {
     email: string;
     firstName: string;
     lastName?: string;
+    verified: boolean;
+    hasFamily: boolean;
     familyId?: string;
     familySlug?: string;
   };
@@ -114,17 +116,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
       );
     }
 
-    if (!account.verified) {
-      recordFailedAttempt(ip);
-      return NextResponse.json<ApiResponse<AccountLoginResponse>>(
-        {
-          success: false,
-          error: 'Please verify your email address before logging in',
-        },
-        { status: 401 }
-      );
-    }
-
     // Verify password
     const passwordMatch = await verifyPassword(password, account.password);
     if (!passwordMatch) {
@@ -152,6 +143,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
       isAccountAuth: true,
       accountId: account.id,
       accountEmail: account.email,
+      verified: account.verified,
     }, JWT_SECRET, { expiresIn: `${TOKEN_EXPIRATION}s` });
 
     const response: AccountLoginResponse = {
@@ -163,6 +155,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
         email: account.email,
         firstName: account.firstName || '',
         lastName: account.lastName || undefined,
+        verified: account.verified,
+        hasFamily: !!account.familyId,
         ...(account.familyId && { familyId: account.familyId }),
         ...(account.family?.slug && { familySlug: account.family.slug }),
       }

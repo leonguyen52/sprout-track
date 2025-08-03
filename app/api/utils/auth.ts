@@ -45,6 +45,7 @@ export interface AuthResult {
   accountId?: string;       // Account ID
   accountEmail?: string;    // Account email
   isAccountOwner?: boolean; // True if account owns the family
+  verified?: boolean;       // True if account email is verified
   error?: string;
 }
 
@@ -158,6 +159,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
                 accountId: decoded.accountId,
                 accountEmail: decoded.accountEmail,
                 isAccountOwner: true,
+                verified: account.verified,
               };
             } else {
               // Account without linked caretaker - limited permissions (during setup)
@@ -177,6 +179,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
                   accountId: decoded.accountId,
                   accountEmail: decoded.accountEmail,
                   isAccountOwner: true,
+                  verified: account.verified,
                 };
               } else {
                 // Account has family but no caretaker - this shouldn't happen after proper setup
@@ -192,6 +195,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
                   accountId: decoded.accountId,
                   accountEmail: decoded.accountEmail,
                   isAccountOwner: true,
+                  verified: account.verified,
                 };
               }
             }
