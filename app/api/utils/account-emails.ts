@@ -69,7 +69,7 @@ The Sprout Track Team`,
 
 export async function sendPasswordResetEmail(email: string, token: string, firstName: string) {
   const domainUrl = await getDomainUrl();
-  const resetUrl = `${domainUrl}/account/reset-password?token=${token}`;
+  const resetUrl = `${domainUrl}/#passwordreset?token=${token}`;
   
   const result = await sendEmail({
     to: email,

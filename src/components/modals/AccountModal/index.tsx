@@ -7,14 +7,15 @@ import {
 } from '@/src/components/ui/dialog';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './account-modal.css';
 
 interface AccountModalProps {
   open: boolean;
   onClose: () => void;
-  initialMode?: 'login' | 'register' | 'verify';
+  initialMode?: 'login' | 'register' | 'verify' | 'reset-password';
   verificationToken?: string;
+  resetToken?: string;
 }
 
 export default function AccountModal({
@@ -22,8 +23,9 @@ export default function AccountModal({
   onClose,
   initialMode = 'register',
   verificationToken,
+  resetToken,
 }: AccountModalProps) {
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot-password' | 'verify'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot-password' | 'verify' | 'reset-password'>(initialMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -32,6 +34,7 @@ export default function AccountModal({
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    confirmPassword: '',
     firstName: '',
     lastName: '',
   });
@@ -50,12 +53,25 @@ export default function AccountModal({
   const [verificationMessage, setVerificationMessage] = useState('');
   const [verificationCountdown, setVerificationCountdown] = useState(3);
 
+  // Password reset state
+  const [resetState, setResetState] = useState<'loading' | 'valid' | 'invalid' | 'success' | 'error'>('loading');
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetCountdown, setResetCountdown] = useState(5);
+  const [userEmail, setUserEmail] = useState('');
+
+  // Refs for focus management
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const firstNameInputRef = useRef<HTMLInputElement>(null);
+  const newPasswordInputRef = useRef<HTMLInputElement>(null);
+
   // Reset form when modal opens/closes or mode changes
   useEffect(() => {
     if (open) {
       setFormData({
         email: '',
         password: '',
+        confirmPassword: '',
         firstName: '',
         lastName: '',
       });
@@ -178,6 +194,7 @@ export default function AccountModal({
       setFormData({
         email: '',
         password: '',
+        confirmPassword: '',
         firstName: '',
         lastName: '',
       });
@@ -239,6 +256,7 @@ export default function AccountModal({
         setFormData({
           email: '',
           password: '',
+          confirmPassword: '',
           firstName: '',
           lastName: '',
         });
@@ -300,6 +318,7 @@ export default function AccountModal({
         setFormData({
           email: '',
           password: '',
+          confirmPassword: '',
           firstName: '',
           lastName: '',
         });
@@ -396,12 +415,142 @@ export default function AccountModal({
     }
   };
 
+  // Handle password reset token validation
+  const handlePasswordReset = async (token: string) => {
+    if (!token) {
+      setResetState('invalid');
+      setResetMessage('Reset token is missing from the URL.');
+      return;
+    }
+
+    try {
+      setResetState('loading');
+      const response = await fetch(`/api/accounts/reset-password?token=${encodeURIComponent(token)}`);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        if (data.data.valid) {
+          setResetState('valid');
+          setUserEmail(data.data.email || '');
+        } else {
+          setResetState('invalid');
+          setResetMessage('Invalid or expired reset token.');
+        }
+      } else {
+        setResetState('invalid');
+        setResetMessage(data.error || 'Token validation failed');
+      }
+    } catch (err) {
+      console.error('Token validation error:', err);
+      setResetState('error');
+      setResetMessage('Network error. Please check your connection and try again.');
+    }
+  };
+
+  // Handle password reset submission
+  const handlePasswordResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    // Validate passwords
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.message || 'Invalid password');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+
+      const response = await fetch('/api/accounts/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: resetToken,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setResetState('success');
+        setResetMessage(data.data.message || 'Password has been reset successfully!');
+        
+        // Start countdown to login
+        setResetCountdown(5);
+        const timer = setInterval(() => {
+          setResetCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              // Transition to login mode
+              setMode('login');
+              setResetState('loading');
+              setError('');
+              setShowSuccess(false);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        setResetState('error');
+        setResetMessage(data.error || 'Password reset failed');
+      }
+    } catch (err) {
+      console.error('Password reset error:', err);
+      setResetState('error');
+      setResetMessage('Network error. Please check your connection and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Handle verification when modal opens with verify mode
   useEffect(() => {
     if (mode === 'verify' && verificationToken && open) {
       handleVerification(verificationToken);
     }
   }, [mode, verificationToken, open]);
+
+  // Handle password reset when modal opens with reset-password mode
+  useEffect(() => {
+    if (mode === 'reset-password' && resetToken && open) {
+      handlePasswordReset(resetToken);
+    }
+  }, [mode, resetToken, open]);
+
+  // Focus management - focus the first input field when modal opens or mode changes
+  useEffect(() => {
+    if (open && !showSuccess && !isSubmitting) {
+      // Small delay to ensure the DOM is ready
+      const timer = setTimeout(() => {
+        if (mode === 'register') {
+          // For register mode, focus on email field
+          emailInputRef.current?.focus();
+        } else if (mode === 'login') {
+          // For login mode, focus on email field
+          emailInputRef.current?.focus();
+        } else if (mode === 'forgot-password') {
+          // For forgot password mode, focus on email field
+          emailInputRef.current?.focus();
+        } else if (mode === 'reset-password' && resetState === 'valid') {
+          // For password reset mode, focus on new password field
+          newPasswordInputRef.current?.focus();
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [open, mode, showSuccess, isSubmitting, resetState]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -438,12 +587,14 @@ export default function AccountModal({
                   ? 'Set up your account to get started for free! Beta users get free access for life!'
                   : mode === 'verify'
                   ? 'Verifying your email address...'
+                  : mode === 'reset-password'
+                  ? 'Reset your account password'
                   : 'Enter your email to receive a password reset link'
                 }
               </DialogDescription>
               
-              {/* Mode toggle in header - hide during verification */}
-              {mode !== 'verify' && (
+              {/* Mode toggle in header - hide during verification and reset-password */}
+              {mode !== 'verify' && mode !== 'reset-password' && (
                 <div className="mt-4 text-center">
                   <span className="text-sm text-gray-600 dark:text-gray-400">
                     {mode === 'login' 
@@ -575,12 +726,211 @@ export default function AccountModal({
                 </div>
               )}
             </div>
+          ) : mode === 'reset-password' ? (
+            <div className="account-modal-body">
+              {resetState === 'loading' && (
+                <div className="text-center py-8">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    Validating Reset Token
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Please wait while we validate your password reset request...
+                  </p>
+                </div>
+              )}
+
+              {resetState === 'valid' && (
+                <div>
+                  <div className="text-center mb-6">
+                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                      Set New Password
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Enter your new password for {userEmail}
+                    </p>
+                  </div>
+
+                  <form onSubmit={handlePasswordResetSubmit} className="space-y-4">
+                    {/* New Password */}
+                    <div>
+                      <label className="account-modal-label">New Password</label>
+                      <Input
+                        ref={newPasswordInputRef}
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => {
+                          const newPassword = e.target.value;
+                          setFormData({ ...formData, password: newPassword });
+                          updatePasswordValidation(newPassword);
+                        }}
+                        placeholder="Enter new password"
+                        className="w-full"
+                        required
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div>
+                      <label className="account-modal-label">Confirm New Password</label>
+                      <Input
+                        type="password"
+                        value={formData.confirmPassword}
+                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                        placeholder="Confirm new password"
+                        className="w-full"
+                        required
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* Password Requirements */}
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Password Requirements:</p>
+                      <div className="grid grid-cols-1 gap-1 text-xs">
+                        <div className={`flex items-center gap-2 ${passwordValidation.length ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.length ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 dark:border-gray-600'}`}>
+                            {passwordValidation.length && '✓'}
+                          </span>
+                          At least 8 characters
+                        </div>
+                        <div className={`flex items-center gap-2 ${passwordValidation.lowercase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.lowercase ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 dark:border-gray-600'}`}>
+                            {passwordValidation.lowercase && '✓'}
+                          </span>
+                          One lowercase letter (a-z)
+                        </div>
+                        <div className={`flex items-center gap-2 ${passwordValidation.uppercase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.uppercase ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 dark:border-gray-600'}`}>
+                            {passwordValidation.uppercase && '✓'}
+                          </span>
+                          One uppercase letter (A-Z)
+                        </div>
+                        <div className={`flex items-center gap-2 ${passwordValidation.number ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.number ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 dark:border-gray-600'}`}>
+                            {passwordValidation.number && '✓'}
+                          </span>
+                          One number (0-9)
+                        </div>
+                        <div className={`flex items-center gap-2 ${passwordValidation.special ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.special ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 dark:border-gray-600'}`}>
+                            {passwordValidation.special && '✓'}
+                          </span>
+                          One special character (!@#$%^&*)
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Error message */}
+                    {error && (
+                      <div className="account-modal-error">
+                        {error}
+                      </div>
+                    )}
+
+                    {/* Submit Button */}
+                    <Button 
+                      type="submit"
+                      className="account-modal-submit"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? 'Resetting Password...' : 'Reset Password'}
+                    </Button>
+                  </form>
+                </div>
+              )}
+
+              {resetState === 'success' && (
+                <div className="text-center py-8">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-2xl">✓</span>
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    Password Reset Successful!
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    {resetMessage}
+                  </p>
+                  
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-green-700 dark:text-green-300 mb-2">
+                      You can now log in with your new password! 🎉
+                    </p>
+                  </div>
+
+                  <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-teal-700 dark:text-teal-300 mb-2">
+                      Redirecting to login in {resetCountdown} seconds...
+                    </p>
+                    <div className="w-full bg-teal-200 dark:bg-teal-800 rounded-full h-2">
+                      <div 
+                        className="bg-teal-600 h-2 rounded-full transition-all duration-1000"
+                        style={{ width: `${((5 - resetCountdown) / 5) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={() => {
+                      setMode('login');
+                      setResetState('loading');
+                    }}
+                    className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                  >
+                    Go to Login
+                  </Button>
+                </div>
+              )}
+
+              {(resetState === 'invalid' || resetState === 'error') && (
+                <div className="text-center py-8">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-2xl">✕</span>
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    {resetState === 'invalid' ? 'Invalid Reset Link' : 'Reset Failed'}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    {resetMessage}
+                  </p>
+                  
+                  <div className="space-y-2">
+                    {resetState === 'invalid' && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                        Password reset links expire after 15 minutes for security.
+                      </p>
+                    )}
+                    <Button 
+                      onClick={() => window.location.reload()}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Try Again
+                    </Button>
+                    <Button 
+                      onClick={() => setMode('register')}
+                      className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                    >
+                      Create New Account
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email */}
               <div>
                 <label className="account-modal-label">Email</label>
                 <Input
+                  ref={emailInputRef}
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -691,7 +1041,7 @@ export default function AccountModal({
               {/* Submit button */}
               <Button
                 type="submit"
-                className="account-modal-submit"
+                className="account-modal-submit mt-2"
                 disabled={isSubmitting}
               >
                 {isSubmitting 

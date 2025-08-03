@@ -18,10 +18,11 @@ const ComingSoon = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   
-  // Account modal state for verification
+  // Account modal state for verification and password reset
   const [showAccountModal, setShowAccountModal] = useState(false);
-  const [accountModalMode, setAccountModalMode] = useState<'login' | 'register' | 'verify'>('register');
+  const [accountModalMode, setAccountModalMode] = useState<'login' | 'register' | 'verify' | 'reset-password'>('register');
   const [verificationToken, setVerificationToken] = useState<string | undefined>();
+  const [resetToken, setResetToken] = useState<string | undefined>();
   
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -43,7 +44,7 @@ const ComingSoon = () => {
     return () => clearInterval(interval);
   }, [activities.length]);
 
-  // Check for verification hash on load
+  // Check for verification and password reset hashes on load
   useEffect(() => {
     const checkHash = () => {
       const hash = window.location.hash;
@@ -53,6 +54,16 @@ const ComingSoon = () => {
         if (token) {
           setVerificationToken(token);
           setAccountModalMode('verify');
+          setShowAccountModal(true);
+          // Clear the hash after processing
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      } else if (hash.startsWith('#passwordreset?')) {
+        const urlParams = new URLSearchParams(hash.substring(15)); // Remove '#passwordreset?'
+        const token = urlParams.get('token');
+        if (token) {
+          setResetToken(token);
+          setAccountModalMode('reset-password');
           setShowAccountModal(true);
           // Clear the hash after processing
           window.history.replaceState(null, '', window.location.pathname);
@@ -357,6 +368,7 @@ const ComingSoon = () => {
         onClose={() => setShowAccountModal(false)}
         initialMode={accountModalMode}
         verificationToken={verificationToken}
+        resetToken={resetToken}
       />
     </div>
   );
