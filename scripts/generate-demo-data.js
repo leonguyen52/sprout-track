@@ -307,12 +307,14 @@ async function createDemoCaretaker(family) {
   return caretaker;
 }
 
-// Create demo babies based on source babies
+// Create demo baby based on first source baby
 async function createDemoBabies(family, sourceBabies) {
   const demoBabies = [];
   const demoLastName = family.name.replace(' Family (Demo)', '');
   
-  for (const sourceBaby of sourceBabies) {
+  // Only create one baby based on the first source baby
+  if (sourceBabies.length > 0) {
+    const sourceBaby = sourceBabies[0]; // Use the first baby as template
     const gender = sourceBaby.gender || 'FEMALE';
     const firstName = gender === 'MALE' ? randomChoice(maleFirstNames) : randomChoice(femaleFirstNames);
     
@@ -330,10 +332,14 @@ async function createDemoBabies(family, sourceBabies) {
       }
     });
     
-    demoBabies.push({ demo: demoBaby, source: sourceBaby });
+    // Create mappings for all source babies to this single demo baby
+    // This allows us to use logs from all source babies for the one demo baby
+    for (const sb of sourceBabies) {
+      demoBabies.push({ demo: demoBaby, source: sb });
+    }
   }
   
-  console.log(`Created ${demoBabies.length} demo babies`);
+  console.log(`Created 1 demo baby (mapped from ${sourceBabies.length} source babies)`);
   return demoBabies;
 }
 
