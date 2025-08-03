@@ -1,7 +1,33 @@
 import { sendEmail } from '@/src/lib/email';
+import prisma from '../db';
+
+async function getDomainUrl(): Promise<string> {
+  try {
+    let appConfig = await prisma.appConfig.findFirst();
+    
+    if (!appConfig) {
+      // Create default app config if none exists
+      appConfig = await prisma.appConfig.create({
+        data: {
+          adminPass: 'admin',
+          rootDomain: 'localhost:3000',
+          enableHttps: false,
+        },
+      });
+    }
+
+    const protocol = appConfig.enableHttps ? 'https' : 'http';
+    return `${protocol}://${appConfig.rootDomain}`;
+  } catch (error) {
+    console.error('Error fetching app config for domain URL:', error);
+    // Fallback to environment variable or default
+    return process.env.ROOT_DOMAIN || 'http://localhost:3000';
+  }
+}
 
 export async function sendVerificationEmail(email: string, token: string, firstName: string) {
-  const verificationUrl = `${process.env.ROOT_DOMAIN || 'http://localhost:3000'}/accounts/verify?token=${token}`;
+  const domainUrl = await getDomainUrl();
+  const verificationUrl = `${domainUrl}/account/verify?token=${token}`;
   
   const result = await sendEmail({
     to: email,
@@ -42,7 +68,8 @@ The Sprout Track Team`,
 }
 
 export async function sendPasswordResetEmail(email: string, token: string, firstName: string) {
-  const resetUrl = `${process.env.ROOT_DOMAIN || 'http://localhost:3000'}/accounts/reset-password?token=${token}`;
+  const domainUrl = await getDomainUrl();
+  const resetUrl = `${domainUrl}/account/reset-password?token=${token}`;
   
   const result = await sendEmail({
     to: email,
@@ -85,7 +112,8 @@ The Sprout Track Team`,
 }
 
 export async function sendWelcomeEmail(email: string, firstName: string, familySlug: string, familyPin: string, caretakerLoginId: string) {
-  const familyUrl = `${process.env.ROOT_DOMAIN || 'http://localhost:3000'}/${familySlug}`;
+  const domainUrl = await getDomainUrl();
+  const familyUrl = `${domainUrl}/${familySlug}`;
   
   const result = await sendEmail({
     to: email,
