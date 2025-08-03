@@ -1,17 +1,19 @@
 # Account Modal Component
 
-A modal component that provides login and registration functionality for user accounts in Sprout Track.
+A registration-focused modal component that provides account creation and login functionality for user accounts in Sprout Track.
 
 ## Features
 
-- **Dual Mode**: Supports both login and registration in a single modal
-- **Clean Design**: Modern UI with gradient header and Sprout Track branding
+- **Registration Focused**: Defaults to registration mode with clear transition to login
+- **Enhanced Password Security**: Comprehensive password validation (8+ chars, mixed case, numbers, special characters)
+- **Clean Design**: Modern UI with gradient header, visual separators, and Sprout Track branding
 - **Dark Mode Support**: Full dark mode theming with CSS custom properties
-- **Form Validation**: Client-side validation for email format and password strength
-- **Success States**: Visual feedback for successful registration
-- **Error Handling**: Clear error messages for validation and API failures
-- **Account Registration**: Full integration with the `/api/accounts/register` endpoint
-- **Future Ready**: Structured for easy addition of login functionality
+- **Smart Form Validation**: Real-time client-side validation with detailed error messages
+- **Success States**: Visual feedback for successful registration with auto-close
+- **Error Handling**: Clear, specific error messages for validation and API failures
+- **Account Registration**: Full integration with the `/api/accounts/register` endpoint for secure user account creation
+- **Family Setup Integration**: Account registration creates user accounts; family setup happens later via SetupWizard
+- **Intuitive Mode Transitions**: Clean header-based toggle for switching between registration and login with hover effects
 
 ## Props
 
@@ -19,7 +21,7 @@ A modal component that provides login and registration functionality for user ac
 |------|------|---------|-------------|
 | `open` | `boolean` | `required` | Whether the modal is open |
 | `onClose` | `() => void` | `required` | Callback function to close the modal |
-| `initialMode` | `'login' \| 'register'` | `'login'` | Initial mode when modal opens |
+| `initialMode` | `'login' \| 'register'` | `'register'` | Initial mode when modal opens |
 
 ## Usage Examples
 
@@ -83,7 +85,6 @@ export function MyComponent() {
 - **Password**: At least 8 characters with letters and numbers (required)
 - **First Name**: User's first name (required)
 - **Last Name**: User's last name (optional)
-- **Family Name**: Name for the family account (required)
 
 ## Validation Rules
 
@@ -92,22 +93,25 @@ export function MyComponent() {
 
 ### Password Validation
 - Minimum 8 characters
-- Must contain at least one letter
-- Must contain at least one number
+- Must contain at least one lowercase letter (a-z)
+- Must contain at least one uppercase letter (A-Z)
+- Must contain at least one number (0-9)
+- Must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)
 
 ### Registration Validation
 - All email and password rules apply
 - First name cannot be empty
-- Family name cannot be empty
 
 ## API Integration
 
 ### Registration Flow
 1. User submits registration form
 2. Client-side validation runs
-3. POST request to `/api/accounts/register`
+3. POST request to `/api/accounts/register` (creates user account only)
 4. Success: Shows verification message, auto-closes after 3 seconds
 5. Error: Displays error message in the modal
+
+**Note**: Account registration only creates the user account. Family setup (family name, slug, babies, caretakers) happens later through the SetupWizard component after email verification and initial login.
 
 ### Current Status
 - ✅ **Registration**: Fully implemented with email verification

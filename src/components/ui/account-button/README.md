@@ -53,7 +53,7 @@ export function Navigation() {
 
 ### Guest State (Not Logged In)
 - Displays: "Account" button with User icon
-- Action: Opens AccountModal for login/registration
+- Action: Opens AccountModal in registration mode (with easy switch to login)
 - Styling: Teal border and text, transparent background
 
 ### Logged-in State (Authenticated)
@@ -157,7 +157,7 @@ The component expects user data in localStorage as:
 - AccountModal component for authentication flows
 
 ### API Integration
-- **Login**: Uses AccountModal which calls `/api/accounts/login`
+- **Registration/Login**: Uses AccountModal which defaults to registration mode and calls `/api/accounts/register` or `/api/accounts/login`
 - **Logout**: Calls `/api/auth/logout` with Bearer token
 - **Navigation**: Redirects to family-specific routes
 

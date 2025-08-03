@@ -301,7 +301,6 @@ export function AccountButton({ className }: AccountButtonProps) {
       <AccountModal 
         open={showAccountModal} 
         onClose={() => setShowAccountModal(false)}
-        initialMode="login"
       />
     </>
   );

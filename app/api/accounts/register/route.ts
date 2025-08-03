@@ -15,7 +15,6 @@ interface AccountRegistrationRequest {
   password: string;
   firstName: string;
   lastName?: string;
-  familyName: string;
 }
 
 interface AccountRegistrationResponse {
@@ -85,8 +84,13 @@ function isValidEmail(email: string): boolean {
 }
 
 function isValidPassword(password: string): boolean {
-  // Minimum 8 characters, at least one letter and one number
-  return password.length >= 8 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
+  // Minimum 8 characters, lowercase, uppercase, numbers, and special characters
+  if (password.length < 8) return false;
+  if (!/[a-z]/.test(password)) return false; // lowercase
+  if (!/[A-Z]/.test(password)) return false; // uppercase
+  if (!/[0-9]/.test(password)) return false; // numbers
+  if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) return false; // SQL-safe special characters
+  return true;
 }
 
 function generateVerificationToken(): string {
@@ -112,14 +116,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
     }
     
     const body: AccountRegistrationRequest = await req.json();
-    const { email, password, firstName, lastName, familyName } = body;
+    const { email, password, firstName, lastName } = body;
     
     // Validate required fields
-    if (!email || !password || !firstName || !familyName) {
+    if (!email || !password || !firstName) {
       return NextResponse.json<ApiResponse<AccountRegistrationResponse>>(
         {
           success: false,
-          error: 'Email, password, first name, and family name are required'
+          error: 'Email, password, and first name are required'
         },
         { status: 400 }
       );
@@ -141,18 +145,18 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
       return NextResponse.json<ApiResponse<AccountRegistrationResponse>>(
         {
           success: false,
-          error: 'Password must be at least 8 characters long and contain both letters and numbers'
+          error: 'Password must be at least 8 characters and include lowercase & uppercase letters, numbers, and special characters (!@#$%^&*()_+-=[]{}|;:,.<>?)'
         },
         { status: 400 }
       );
     }
     
     // Validate names
-    if (firstName.trim().length < 1 || familyName.trim().length < 1) {
+    if (firstName.trim().length < 1) {
       return NextResponse.json<ApiResponse<AccountRegistrationResponse>>(
         {
           success: false,
-          error: 'First name and family name must not be empty'
+          error: 'First name must not be empty'
         },
         { status: 400 }
       );

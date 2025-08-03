@@ -19,7 +19,7 @@ interface AccountModalProps {
 export default function AccountModal({
   open,
   onClose,
-  initialMode = 'login',
+  initialMode = 'register',
 }: AccountModalProps) {
   const [mode, setMode] = useState<'login' | 'register' | 'forgot-password'>(initialMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,7 +32,15 @@ export default function AccountModal({
     password: '',
     firstName: '',
     lastName: '',
-    familyName: '',
+  });
+
+  // Password validation state for real-time feedback
+  const [passwordValidation, setPasswordValidation] = useState({
+    length: false,
+    lowercase: false,
+    uppercase: false,
+    number: false,
+    special: false,
   });
 
   // Reset form when modal opens/closes or mode changes
@@ -43,7 +51,13 @@ export default function AccountModal({
         password: '',
         firstName: '',
         lastName: '',
-        familyName: '',
+      });
+      setPasswordValidation({
+        length: false,
+        lowercase: false,
+        uppercase: false,
+        number: false,
+        special: false,
       });
       setError('');
       setShowSuccess(false);
@@ -57,9 +71,41 @@ export default function AccountModal({
     return emailRegex.test(email);
   };
 
-  // Password validation
-  const validatePassword = (password: string): boolean => {
-    return password.length >= 8 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
+  // Password validation - 8+ chars, lowercase, uppercase, numbers, special characters
+  const validatePassword = (password: string): { isValid: boolean; message?: string } => {
+    if (password.length < 8) {
+      return { isValid: false, message: 'Password must be at least 8 characters long' };
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      return { isValid: false, message: 'Password must contain at least one lowercase letter' };
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      return { isValid: false, message: 'Password must contain at least one uppercase letter' };
+    }
+    
+    if (!/[0-9]/.test(password)) {
+      return { isValid: false, message: 'Password must contain at least one number' };
+    }
+    
+    // SQL-safe special characters
+    if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) {
+      return { isValid: false, message: 'Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)' };
+    }
+    
+    return { isValid: true };
+  };
+
+  // Real-time password validation for visual feedback
+  const updatePasswordValidation = (password: string) => {
+    setPasswordValidation({
+      length: password.length >= 8,
+      lowercase: /[a-z]/.test(password),
+      uppercase: /[A-Z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password),
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,8 +125,9 @@ export default function AccountModal({
     }
 
     // Validate password for login and register modes
-    if (!validatePassword(formData.password)) {
-      setError('Password must be at least 8 characters long and contain both letters and numbers');
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.message || 'Invalid password');
       return;
     }
 
@@ -88,11 +135,6 @@ export default function AccountModal({
       // Validate required fields for registration
       if (!formData.firstName.trim()) {
         setError('First name is required');
-        return;
-      }
-      
-      if (!formData.familyName.trim()) {
-        setError('Family name is required');
         return;
       }
 
@@ -115,7 +157,6 @@ export default function AccountModal({
           password: formData.password,
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim() || undefined,
-          familyName: formData.familyName.trim(),
         }),
       });
 
@@ -132,7 +173,13 @@ export default function AccountModal({
         password: '',
         firstName: '',
         lastName: '',
-        familyName: '',
+      });
+      setPasswordValidation({
+        length: false,
+        lowercase: false,
+        uppercase: false,
+        number: false,
+        special: false,
       });
 
       // Auto-close after 3 seconds
@@ -187,7 +234,13 @@ export default function AccountModal({
           password: '',
           firstName: '',
           lastName: '',
-          familyName: '',
+        });
+        setPasswordValidation({
+          length: false,
+          lowercase: false,
+          uppercase: false,
+          number: false,
+          special: false,
         });
         
         // Close modal immediately and refresh page to show logged-in state
@@ -242,7 +295,13 @@ export default function AccountModal({
           password: '',
           firstName: '',
           lastName: '',
-          familyName: '',
+        });
+        setPasswordValidation({
+          length: false,
+          lowercase: false,
+          uppercase: false,
+          number: false,
+          special: false,
         });
 
         // Auto-close after 3 seconds
@@ -295,24 +354,52 @@ export default function AccountModal({
         </div>
 
         <div className="account-modal-body">
-          <DialogHeader className="text-center mb-6">
-            <DialogTitle className="account-modal-title">
-              {mode === 'login' 
-                ? 'Welcome Back' 
-                : mode === 'register' 
-                ? 'Create Account' 
-                : 'Reset Password'
-              }
-            </DialogTitle>
-            <DialogDescription className="account-modal-description">
-              {mode === 'login' 
-                ? 'Sign in to access your family dashboard' 
-                : mode === 'register'
-                ? 'Start tracking your baby\'s activities today'
-                : 'Enter your email to receive a password reset link'
-              }
-            </DialogDescription>
-          </DialogHeader>
+          {!showSuccess && (
+            <DialogHeader className="text-center mb-6">
+              <DialogTitle className="account-modal-title text-center">
+                {mode === 'login' 
+                  ? 'Welcome Back' 
+                  : mode === 'register' 
+                  ? 'The Sprout Track Beta Is Active!' 
+                  : 'Reset Password'
+                }
+              </DialogTitle>
+              <DialogDescription className="account-modal-description text-center">
+                {mode === 'login' 
+                  ? 'Sign in to access your family dashboard' 
+                  : mode === 'register'
+                  ? 'Set up your account to get started for free! Beta users get free access for life!'
+                  : 'Enter your email to receive a password reset link'
+                }
+              </DialogDescription>
+              
+              {/* Mode toggle in header */}
+              <div className="mt-4 text-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {mode === 'login' 
+                    ? "Don't have an account?" 
+                    : mode === 'register'
+                    ? "Already have an account?"
+                    : "Remember your password?"
+                  }
+                </span>
+                {' '}
+                <button
+                  type="button"
+                  onClick={toggleMode}
+                  className="text-sm ml-2 font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors duration-200 underline-offset-4 hover:underline focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded-sm px-1"
+                  disabled={isSubmitting}
+                >
+                  {mode === 'login' 
+                    ? 'Create one' 
+                    : mode === 'register'
+                    ? 'Log in'
+                    : 'Back to login'
+                  }
+                </button>
+              </div>
+            </DialogHeader>
+          )}
 
           {showSuccess ? (
             <div className="account-modal-success">
@@ -350,16 +437,54 @@ export default function AccountModal({
                   <Input
                     type="password"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) => {
+                      const newPassword = e.target.value;
+                      setFormData({ ...formData, password: newPassword });
+                      if (mode === 'register') {
+                        updatePasswordValidation(newPassword);
+                      }
+                    }}
                     placeholder="Enter your password"
                     className="w-full"
                     required
                     disabled={isSubmitting}
                   />
                   {mode === 'register' && (
-                    <p className="account-modal-help-text">
-                      Must be at least 8 characters with letters and numbers
-                    </p>
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Password Requirements:</p>
+                      <div className="grid grid-cols-1 gap-1 text-xs">
+                        <div className={`flex items-center gap-2 ${passwordValidation.length ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.length ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 dark:border-gray-600'}`}>
+                            {passwordValidation.length && '✓'}
+                          </span>
+                          At least 8 characters
+                        </div>
+                        <div className={`flex items-center gap-2 ${passwordValidation.lowercase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.lowercase ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 dark:border-gray-600'}`}>
+                            {passwordValidation.lowercase && '✓'}
+                          </span>
+                          One lowercase letter (a-z)
+                        </div>
+                        <div className={`flex items-center gap-2 ${passwordValidation.uppercase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.uppercase ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 dark:border-gray-600'}`}>
+                            {passwordValidation.uppercase && '✓'}
+                          </span>
+                          One uppercase letter (A-Z)
+                        </div>
+                        <div className={`flex items-center gap-2 ${passwordValidation.number ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.number ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 dark:border-gray-600'}`}>
+                            {passwordValidation.number && '✓'}
+                          </span>
+                          One number (0-9)
+                        </div>
+                        <div className={`flex items-center gap-2 ${passwordValidation.special ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.special ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 dark:border-gray-600'}`}>
+                            {passwordValidation.special && '✓'}
+                          </span>
+                          One special character (!@#$%^&*)
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -391,19 +516,6 @@ export default function AccountModal({
                         disabled={isSubmitting}
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="account-modal-label">Family Name</label>
-                    <Input
-                      type="text"
-                      value={formData.familyName}
-                      onChange={(e) => setFormData({ ...formData, familyName: e.target.value })}
-                      placeholder="Your family name"
-                      className="w-full"
-                      required
-                      disabled={isSubmitting}
-                    />
                   </div>
                 </>
               )}
@@ -442,31 +554,7 @@ export default function AccountModal({
                     </button>
                   </div>
                 )}
-                
-                {/* Mode toggle */}
-                <div className="account-modal-toggle">
-                  <span className="account-modal-toggle-text">
-                    {mode === 'login' 
-                      ? "Don't have an account?" 
-                      : mode === 'register'
-                      ? "Already have an account?"
-                      : "Remember your password?"
-                    }
-                  </span>
-                  <button
-                    type="button"
-                    onClick={toggleMode}
-                    className="account-modal-toggle-button"
-                    disabled={isSubmitting}
-                  >
-                    {mode === 'login' 
-                      ? 'Create one' 
-                      : mode === 'register'
-                      ? 'Sign in'
-                      : 'Back to login'
-                    }
-                  </button>
-                </div>
+
               </div>
             </form>
           )}
