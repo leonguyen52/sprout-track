@@ -67,7 +67,7 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Accou
       data: {
         accountId: account.id,
         email: account.email,
-        firstName: account.firstName,
+        firstName: account.firstName || '',
         lastName: account.lastName || undefined,
         verified: account.verified,
         hasFamily: !!account.family,

@@ -1,4 +1,5 @@
 import { ThemeProvider } from '@/src/context/theme';
+import './accounts.css';
 
 export default function AccountsLayout({
   children,
@@ -7,7 +8,9 @@ export default function AccountsLayout({
 }) {
   return (
     <ThemeProvider>
-      {children}
+      <div className="accounts-layout">
+        {children}
+      </div>
     </ThemeProvider>
   );
 }

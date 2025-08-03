@@ -1,0 +1,43 @@
+/*
+ * Dark Mode Styles for Account Pages
+ *
+ * This file contains all the dark mode overrides for the account-related
+ * pages like login, reset password, and verify account.
+ */
+
+.dark .accounts-layout .from-slate-50.to-slate-100 {
+    --tw-gradient-from: #0f172a; /* slate-900 */
+    --tw-gradient-to: #1e293b;   /* slate-800 */
+}
+
+.dark .accounts-layout .bg-white {
+    background-color: #1e293b; /* slate-800 */
+}
+
+.dark .accounts-layout .border-slate-200 {
+    border-color: #334155; /* slate-700 */
+}
+
+.dark .accounts-layout .text-slate-800 {
+    color: #e2e8f0; /* slate-200 */
+}
+
+.dark .accounts-layout .text-slate-600 {
+    color: #94a3b8; /* slate-400 */
+}
+
+.dark .accounts-layout .text-slate-500 {
+    color: #94a3b8; /* slate-400 */
+}
+
+.dark .accounts-layout .text-slate-700 {
+    color: #cbd5e1; /* slate-300 */
+}
+
+.dark .accounts-layout .bg-slate-50 {
+    background-color: #334155; /* slate-700 */
+}
+
+.dark .accounts-layout .bg-slate-200 {
+    background-color: #475569; /* slate-600 */
+}

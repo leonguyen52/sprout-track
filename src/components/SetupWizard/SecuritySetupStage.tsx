@@ -77,7 +77,7 @@ const SecuritySetupStage: React.FC<SecuritySetupStageProps> = ({
           if (!newCaretaker.loginId || newCaretaker.loginId === '') {
             const generateRandomLoginId = () => {
               // Generate a random 2-digit number between 10-99, avoiding 00
-              let randomId;
+              let randomId: number;
               do {
                 randomId = Math.floor(Math.random() * 90) + 10; // 10-99
               } while (randomId.toString() === '00' || caretakers.some(c => c.loginId === randomId.toString()));
