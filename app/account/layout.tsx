@@ -1,5 +1,5 @@
 import { ThemeProvider } from '@/src/context/theme';
-import './accounts.css';
+import './account.css';
 
 export default function AccountsLayout({
   children,
