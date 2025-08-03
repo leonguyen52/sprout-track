@@ -59,21 +59,54 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Generate random 30-day period between April-June 2025
-function generateRandomDateRange() {
-  // April 1, 2025 to June 30, 2025
-  const startOfPeriod = new Date('2025-04-01T00:00:00Z');
+// Generate 30 random days between March-June 2025
+function generateRandomDates() {
+  // March 1, 2025 to June 30, 2025
+  const startOfPeriod = new Date('2025-03-01T00:00:00Z');
   const endOfPeriod = new Date('2025-06-30T23:59:59Z');
   
-  // Calculate total days available (minus 30 to ensure we can fit a full 30-day period)
-  const totalDaysAvailable = Math.floor((endOfPeriod - startOfPeriod) / (1000 * 60 * 60 * 24)) - 30;
+  const totalDaysAvailable = Math.floor((endOfPeriod - startOfPeriod) / (1000 * 60 * 60 * 24));
+  const randomDates = [];
   
-  // Pick a random starting day
-  const randomStartDays = randomInt(0, totalDaysAvailable);
-  const startDate = new Date(startOfPeriod.getTime() + (randomStartDays * 24 * 60 * 60 * 1000));
-  const endDate = new Date(startDate.getTime() + (30 * 24 * 60 * 60 * 1000));
+  // Generate 30 unique random dates
+  const usedDays = new Set();
+  while (randomDates.length < 30) {
+    const randomDay = randomInt(0, totalDaysAvailable);
+    if (!usedDays.has(randomDay)) {
+      usedDays.add(randomDay);
+      const randomDate = new Date(startOfPeriod.getTime() + (randomDay * 24 * 60 * 60 * 1000));
+      randomDates.push(randomDate);
+    }
+  }
   
-  return { startDate, endDate };
+  // Sort dates chronologically for consistent processing
+  randomDates.sort((a, b) => a.getTime() - b.getTime());
+  
+  return randomDates;
+}
+
+// Generate mapping from source dates to target dates (last 30 days)
+function generateDateMapping(sourceDates) {
+  const now = new Date();
+  const cutoffTime = new Date(now.getTime() - (60 * 60 * 1000)); // 1 hour ago
+  const mapping = [];
+  
+  for (let i = 0; i < sourceDates.length; i++) {
+    const daysAgo = 29 - i; // Start with 29 days ago, end with today
+    const targetDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
+    
+    // For today (daysAgo = 0), use cutoff time as the max time
+    const maxTime = daysAgo === 0 ? cutoffTime : null;
+    
+    mapping.push({
+      sourceDate: sourceDates[i],
+      targetDate: targetDate,
+      maxTime: maxTime,
+      daysAgo: daysAgo
+    });
+  }
+  
+  return mapping;
 }
 
 // Check if existing demo family exists
@@ -105,13 +138,15 @@ async function deleteExistingDemoFamily(demoFamily) {
   }
   
   // Delete in order to respect foreign key constraints
-  const models = [
+  // Models with familyId field
+  const modelsWithFamilyId = [
     'familyMember', 'sleepLog', 'feedLog', 'diaperLog', 'moodLog', 'note', 
     'milestone', 'pumpLog', 'playLog', 'bathLog', 'measurement', 'medicineLog',
-    'medicine', 'calendarEvent', 'contact', 'baby', 'caretaker', 'settings', 'family'
+    'medicine', 'calendarEvent', 'contact', 'baby', 'caretaker', 'settings'
   ];
   
-  for (const model of models) {
+  // Delete records with familyId
+  for (const model of modelsWithFamilyId) {
     try {
       await prisma[model].deleteMany({
         where: { familyId: familyId }
@@ -121,49 +156,29 @@ async function deleteExistingDemoFamily(demoFamily) {
       console.log(`  Note: Could not clear ${model} for demo family: ${error.message}`);
     }
   }
+  
+  // Delete the family record itself (uses id, not familyId)
+  try {
+    await prisma.family.delete({
+      where: { id: familyId }
+    });
+    console.log(`  Cleared family record`);
+  } catch (error) {
+    console.log(`  Note: Could not clear family record: ${error.message}`);
+  }
 }
 
-// Get source family data within the date range
-async function getSourceFamilyData(startDate, endDate) {
-  console.log(`Fetching source data from ${SOURCE_FAMILY_ID} between ${startDate.toISOString()} and ${endDate.toISOString()}...`);
+// Get source family data for the random dates
+async function getSourceFamilyData(sourceDates) {
+  console.log(`Fetching source data from ${SOURCE_FAMILY_ID} for ${sourceDates.length} random dates...`);
   
-  const [family, babies, sleepLogs, feedLogs, diaperLogs] = await Promise.all([
+  const [family, babies] = await Promise.all([
     prisma.family.findUnique({
       where: { id: SOURCE_FAMILY_ID },
       include: { settings: true }
     }),
     prisma.baby.findMany({
       where: { familyId: SOURCE_FAMILY_ID }
-    }),
-    prisma.sleepLog.findMany({
-      where: {
-        familyId: SOURCE_FAMILY_ID,
-        startTime: {
-          gte: startDate,
-          lte: endDate
-        }
-      },
-      include: { baby: true }
-    }),
-    prisma.feedLog.findMany({
-      where: {
-        familyId: SOURCE_FAMILY_ID,
-        time: {
-          gte: startDate,
-          lte: endDate
-        }
-      },
-      include: { baby: true }
-    }),
-    prisma.diaperLog.findMany({
-      where: {
-        familyId: SOURCE_FAMILY_ID,
-        time: {
-          gte: startDate,
-          lte: endDate
-        }
-      },
-      include: { baby: true }
     })
   ]);
   
@@ -171,9 +186,63 @@ async function getSourceFamilyData(startDate, endDate) {
     throw new Error(`Source family ${SOURCE_FAMILY_ID} not found`);
   }
   
-  console.log(`Found source data: ${babies.length} babies, ${sleepLogs.length} sleep logs, ${feedLogs.length} feed logs, ${diaperLogs.length} diaper logs`);
+  // Get data for each random date
+  const allSleepLogs = [];
+  const allFeedLogs = [];
+  const allDiaperLogs = [];
   
-  return { family, babies, sleepLogs, feedLogs, diaperLogs };
+  for (const sourceDate of sourceDates) {
+    const dayStart = new Date(sourceDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(sourceDate);
+    dayEnd.setHours(23, 59, 59, 999);
+    
+    const [sleepLogs, feedLogs, diaperLogs] = await Promise.all([
+      prisma.sleepLog.findMany({
+        where: {
+          familyId: SOURCE_FAMILY_ID,
+          startTime: {
+            gte: dayStart,
+            lte: dayEnd
+          }
+        },
+        include: { baby: true }
+      }),
+      prisma.feedLog.findMany({
+        where: {
+          familyId: SOURCE_FAMILY_ID,
+          time: {
+            gte: dayStart,
+            lte: dayEnd
+          }
+        },
+        include: { baby: true }
+      }),
+      prisma.diaperLog.findMany({
+        where: {
+          familyId: SOURCE_FAMILY_ID,
+          time: {
+            gte: dayStart,
+            lte: dayEnd
+          }
+        },
+        include: { baby: true }
+      })
+    ]);
+    
+    // Add source date to each log for mapping
+    sleepLogs.forEach(log => log.sourceDate = sourceDate);
+    feedLogs.forEach(log => log.sourceDate = sourceDate);
+    diaperLogs.forEach(log => log.sourceDate = sourceDate);
+    
+    allSleepLogs.push(...sleepLogs);
+    allFeedLogs.push(...feedLogs);
+    allDiaperLogs.push(...diaperLogs);
+  }
+  
+  console.log(`Found source data: ${babies.length} babies, ${allSleepLogs.length} sleep logs, ${allFeedLogs.length} feed logs, ${allDiaperLogs.length} diaper logs`);
+  
+  return { family, babies, sleepLogs: allSleepLogs, feedLogs: allFeedLogs, diaperLogs: allDiaperLogs };
 }
 
 // Create demo family
@@ -269,28 +338,58 @@ async function createDemoBabies(family, sourceBabies) {
 }
 
 // Transform and create sleep logs
-async function createDemoSleepLogs(family, caretaker, babyMappings, sourceSleepLogs, dateOffset) {
+async function createDemoSleepLogs(family, caretaker, babyMappings, sourceSleepLogs, dateMapping) {
   const demoLogs = [];
   
   for (const sourceLog of sourceSleepLogs) {
     const babyMapping = babyMappings.find(m => m.source.id === sourceLog.babyId);
     if (!babyMapping) continue;
     
+    // Find the mapping for this source date
+    const mapping = dateMapping.find(m => 
+      m.sourceDate.toDateString() === sourceLog.sourceDate.toDateString()
+    );
+    if (!mapping) continue;
+    
+    // Calculate time offset from source date to target date
+    const sourceDay = new Date(sourceLog.sourceDate);
+    sourceDay.setHours(0, 0, 0, 0);
+    const targetDay = new Date(mapping.targetDate);
+    targetDay.setHours(0, 0, 0, 0);
+    const dateOffset = targetDay.getTime() - sourceDay.getTime();
+    
     const startTime = new Date(sourceLog.startTime.getTime() + dateOffset);
     const endTime = sourceLog.endTime ? new Date(sourceLog.endTime.getTime() + dateOffset) : null;
     
-    demoLogs.push({
-      id: randomUUID(),
-      startTime: startTime,
-      endTime: endTime,
-      duration: sourceLog.duration,
-      type: sourceLog.type,
-      location: sourceLog.location,
-      quality: sourceLog.quality,
-      babyId: babyMapping.demo.id,
-      caretakerId: caretaker.id,
-      familyId: family.id
-    });
+    // Check if this falls within the allowed time range (respect maxTime for today)
+    if (mapping.maxTime && startTime > mapping.maxTime) {
+      continue; // Skip entries that are too recent for today
+    }
+    
+    // If endTime would be beyond maxTime, truncate it
+    let finalEndTime = endTime;
+    if (mapping.maxTime && endTime && endTime > mapping.maxTime) {
+      finalEndTime = mapping.maxTime;
+    }
+    
+    // Recalculate duration if endTime was truncated
+    const duration = finalEndTime ? Math.floor((finalEndTime - startTime) / (1000 * 60)) : sourceLog.duration;
+    
+    // Only add if duration is positive
+    if (duration > 0) {
+      demoLogs.push({
+        id: randomUUID(),
+        startTime: startTime,
+        endTime: finalEndTime,
+        duration: duration,
+        type: sourceLog.type,
+        location: sourceLog.location,
+        quality: sourceLog.quality,
+        babyId: babyMapping.demo.id,
+        caretakerId: caretaker.id,
+        familyId: family.id
+      });
+    }
   }
   
   if (demoLogs.length > 0) {
@@ -302,16 +401,34 @@ async function createDemoSleepLogs(family, caretaker, babyMappings, sourceSleepL
 }
 
 // Transform and create feed logs
-async function createDemoFeedLogs(family, caretaker, babyMappings, sourceFeedLogs, dateOffset) {
+async function createDemoFeedLogs(family, caretaker, babyMappings, sourceFeedLogs, dateMapping) {
   const demoLogs = [];
   
   for (const sourceLog of sourceFeedLogs) {
     const babyMapping = babyMappings.find(m => m.source.id === sourceLog.babyId);
     if (!babyMapping) continue;
     
+    // Find the mapping for this source date
+    const mapping = dateMapping.find(m => 
+      m.sourceDate.toDateString() === sourceLog.sourceDate.toDateString()
+    );
+    if (!mapping) continue;
+    
+    // Calculate time offset from source date to target date
+    const sourceDay = new Date(sourceLog.sourceDate);
+    sourceDay.setHours(0, 0, 0, 0);
+    const targetDay = new Date(mapping.targetDate);
+    targetDay.setHours(0, 0, 0, 0);
+    const dateOffset = targetDay.getTime() - sourceDay.getTime();
+    
     const time = new Date(sourceLog.time.getTime() + dateOffset);
     const startTime = sourceLog.startTime ? new Date(sourceLog.startTime.getTime() + dateOffset) : null;
     const endTime = sourceLog.endTime ? new Date(sourceLog.endTime.getTime() + dateOffset) : null;
+    
+    // Check if this falls within the allowed time range (respect maxTime for today)
+    if (mapping.maxTime && time > mapping.maxTime) {
+      continue; // Skip entries that are too recent for today
+    }
     
     demoLogs.push({
       id: randomUUID(),
@@ -339,14 +456,32 @@ async function createDemoFeedLogs(family, caretaker, babyMappings, sourceFeedLog
 }
 
 // Transform and create diaper logs
-async function createDemoDiaperLogs(family, caretaker, babyMappings, sourceDiaperLogs, dateOffset) {
+async function createDemoDiaperLogs(family, caretaker, babyMappings, sourceDiaperLogs, dateMapping) {
   const demoLogs = [];
   
   for (const sourceLog of sourceDiaperLogs) {
     const babyMapping = babyMappings.find(m => m.source.id === sourceLog.babyId);
     if (!babyMapping) continue;
     
+    // Find the mapping for this source date
+    const mapping = dateMapping.find(m => 
+      m.sourceDate.toDateString() === sourceLog.sourceDate.toDateString()
+    );
+    if (!mapping) continue;
+    
+    // Calculate time offset from source date to target date
+    const sourceDay = new Date(sourceLog.sourceDate);
+    sourceDay.setHours(0, 0, 0, 0);
+    const targetDay = new Date(mapping.targetDate);
+    targetDay.setHours(0, 0, 0, 0);
+    const dateOffset = targetDay.getTime() - sourceDay.getTime();
+    
     const time = new Date(sourceLog.time.getTime() + dateOffset);
+    
+    // Check if this falls within the allowed time range (respect maxTime for today)
+    if (mapping.maxTime && time > mapping.maxTime) {
+      continue; // Skip entries that are too recent for today
+    }
     
     demoLogs.push({
       id: randomUUID(),
@@ -368,17 +503,21 @@ async function createDemoDiaperLogs(family, caretaker, babyMappings, sourceDiape
   return demoLogs.length;
 }
 
-// Generate random bath logs (like the original script)
-async function generateDemoBathLogs(family, caretaker, babyMappings, startDate, endDate) {
+// Generate random bath logs using date mapping
+async function generateDemoBathLogs(family, caretaker, babyMappings, dateMapping) {
   const logs = [];
-  const currentDate = new Date(startDate);
   
-  while (currentDate <= endDate) {
+  for (const mapping of dateMapping) {
     for (const babyMapping of babyMappings) {
       // 80% chance of bath per day, usually in the evening
       if (Math.random() > 0.2) {
-        const bathTime = new Date(currentDate);
+        const bathTime = new Date(mapping.targetDate);
         bathTime.setHours(19, randomInt(-60, 60), randomInt(0, 59)); // 7 PM +/- 1 hour
+        
+        // Check if this falls within the allowed time range (respect maxTime for today)
+        if (mapping.maxTime && bathTime > mapping.maxTime) {
+          continue; // Skip bath logs that are too recent for today
+        }
         
         const soapUsed = Math.random() > 0.1; // 90% chance
         const shampooUsed = Math.random() > 0.3; // 70% chance
@@ -401,8 +540,6 @@ async function generateDemoBathLogs(family, caretaker, babyMappings, startDate, 
         });
       }
     }
-    
-    currentDate.setDate(currentDate.getDate() + 1);
   }
   
   if (logs.length > 0) {
@@ -413,17 +550,21 @@ async function generateDemoBathLogs(family, caretaker, babyMappings, startDate, 
   return logs.length;
 }
 
-// Generate random notes (like the original script)
-async function generateDemoNotes(family, caretaker, babyMappings, startDate, endDate) {
+// Generate random notes using date mapping
+async function generateDemoNotes(family, caretaker, babyMappings, dateMapping) {
   const logs = [];
-  const currentDate = new Date(startDate);
   
-  while (currentDate <= endDate) {
+  for (const mapping of dateMapping) {
     for (const babyMapping of babyMappings) {
       // 60% chance of note per day (roughly 1 every day or two)
       if (Math.random() > 0.4) {
-        const noteTime = new Date(currentDate);
+        const noteTime = new Date(mapping.targetDate);
         noteTime.setHours(randomInt(8, 20), randomInt(0, 30), randomInt(0, 59));
+        
+        // Check if this falls within the allowed time range (respect maxTime for today)
+        if (mapping.maxTime && noteTime > mapping.maxTime) {
+          continue; // Skip notes that are too recent for today
+        }
         
         logs.push({
           id: randomUUID(),
@@ -436,8 +577,6 @@ async function generateDemoNotes(family, caretaker, babyMappings, startDate, end
         });
       }
     }
-    
-    currentDate.setDate(currentDate.getDate() + 1);
   }
   
   if (logs.length > 0) {
@@ -449,14 +588,19 @@ async function generateDemoNotes(family, caretaker, babyMappings, startDate, end
 }
 
 // Create demo tracker record
-async function createDemoTracker(family, startDate, endDate) {
+async function createDemoTracker(family, sourceDates, dateMapping) {
+  const earliestSourceDate = sourceDates[0];
+  const latestSourceDate = sourceDates[sourceDates.length - 1];
+  const earliestTargetDate = dateMapping[0].targetDate;
+  const latestTargetDate = dateMapping[dateMapping.length - 1].targetDate;
+  
   const tracker = await prisma.demoTracker.create({
     data: {
       familyId: family.id,
       sourceFamilyId: SOURCE_FAMILY_ID,
-      dateRangeStart: startDate,
-      dateRangeEnd: endDate,
-      notes: `Demo generated from family ${SOURCE_FAMILY_ID} using ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`
+      dateRangeStart: earliestSourceDate,
+      dateRangeEnd: latestSourceDate,
+      notes: `Demo generated from family ${SOURCE_FAMILY_ID} using 30 random days from ${earliestSourceDate.toLocaleDateString()} to ${latestSourceDate.toLocaleDateString()}, mapped to ${earliestTargetDate.toLocaleDateString()} to ${latestTargetDate.toLocaleDateString()}`
     }
   });
   
@@ -475,37 +619,34 @@ async function generateDemoData() {
       await deleteExistingDemoFamily(existingDemo);
     }
     
-    // Generate random 30-day period between April-June 2025
-    const { startDate, endDate } = generateRandomDateRange();
-    console.log(`Using date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
+    // Generate 30 random dates between March-June 2025
+    const sourceDates = generateRandomDates();
+    console.log(`Using 30 random dates from ${sourceDates[0].toLocaleDateString()} to ${sourceDates[sourceDates.length - 1].toLocaleDateString()}`);
     
-    // Get source family data
-    const sourceData = await getSourceFamilyData(startDate, endDate);
+    // Create mapping from source dates to target dates (last 30 days)
+    const dateMapping = generateDateMapping(sourceDates);
+    console.log(`Mapping to target period: ${dateMapping[0].targetDate.toLocaleDateString()} to ${dateMapping[dateMapping.length - 1].targetDate.toLocaleDateString()}`);
+    console.log(`Today's entries will be cutoff at: ${dateMapping[dateMapping.length - 1].maxTime?.toLocaleString() || 'no limit'}`);
     
-    // Calculate date offset to shift source data to present time
-    const now = new Date();
-    const sourceStartTime = startDate;
-    const dateOffset = now.getTime() - sourceStartTime.getTime();
+    // Get source family data for the random dates
+    const sourceData = await getSourceFamilyData(sourceDates);
     
     // Create demo family structure
     const demoFamily = await createDemoFamily();
     const demoCaretaker = await createDemoCaretaker(demoFamily);
     const demoBabyMappings = await createDemoBabies(demoFamily, sourceData.babies);
     
-    // Transform and create log data with time offset to present
-    const presentStartDate = new Date(startDate.getTime() + dateOffset);
-    const presentEndDate = new Date(endDate.getTime() + dateOffset);
+    // Transform and create log data using date mapping
+    const sleepCount = await createDemoSleepLogs(demoFamily, demoCaretaker, demoBabyMappings, sourceData.sleepLogs, dateMapping);
+    const feedCount = await createDemoFeedLogs(demoFamily, demoCaretaker, demoBabyMappings, sourceData.feedLogs, dateMapping);
+    const diaperCount = await createDemoDiaperLogs(demoFamily, demoCaretaker, demoBabyMappings, sourceData.diaperLogs, dateMapping);
     
-    const sleepCount = await createDemoSleepLogs(demoFamily, demoCaretaker, demoBabyMappings, sourceData.sleepLogs, dateOffset);
-    const feedCount = await createDemoFeedLogs(demoFamily, demoCaretaker, demoBabyMappings, sourceData.feedLogs, dateOffset);
-    const diaperCount = await createDemoDiaperLogs(demoFamily, demoCaretaker, demoBabyMappings, sourceData.diaperLogs, dateOffset);
-    
-    // Generate random bath logs and notes for the present time period
-    const bathCount = await generateDemoBathLogs(demoFamily, demoCaretaker, demoBabyMappings, presentStartDate, presentEndDate);
-    const noteCount = await generateDemoNotes(demoFamily, demoCaretaker, demoBabyMappings, presentStartDate, presentEndDate);
+    // Generate random bath logs and notes using date mapping
+    const bathCount = await generateDemoBathLogs(demoFamily, demoCaretaker, demoBabyMappings, dateMapping);
+    const noteCount = await generateDemoNotes(demoFamily, demoCaretaker, demoBabyMappings, dateMapping);
     
     // Create demo tracker record
-    await createDemoTracker(demoFamily, startDate, endDate);
+    await createDemoTracker(demoFamily, sourceDates, dateMapping);
     
     console.log('\n========================================');
     console.log('   Demo family generation completed!');
@@ -514,7 +655,9 @@ async function generateDemoData() {
     console.log(`Slug: ${demoFamily.slug}`);
     console.log(`Caretaker: Login ID "${DEMO_CARETAKER_LOGIN_ID}", PIN "${DEMO_CARETAKER_PIN}"`);
     console.log(`Babies: ${demoBabyMappings.length}`);
-    console.log(`Data period: ${presentStartDate.toLocaleDateString()} to ${presentEndDate.toLocaleDateString()}`);
+    console.log(`Source dates: 30 random days from March-June 2025`);
+    console.log(`Target period: Last 30 days (${dateMapping[0].targetDate.toLocaleDateString()} to ${dateMapping[dateMapping.length - 1].targetDate.toLocaleDateString()})`);
+    console.log(`Today's cutoff: ${dateMapping[dateMapping.length - 1].maxTime?.toLocaleTimeString() || 'none'} (1 hour ago)`);
     console.log('\nGenerated logs:');
     console.log(`- Sleep logs: ${sleepCount}`);
     console.log(`- Feed logs: ${feedCount}`);

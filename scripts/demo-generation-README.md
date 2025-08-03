@@ -15,7 +15,8 @@ The main JavaScript script that performs the demo family generation.
 - Creates a demo family with slug "demo"
 - Single caretaker with login ID "01" and PIN "111111"
 - Extracts sleep, feed, and diaper logs from an existing family
-- Uses a random 30-day period from April-June 2025
+- Uses 30 random days from March-June 2025, mapped to the last 30 actual days
+- Ensures today's entries are at least 1 hour old
 - Generates randomized names for family members
 - Creates random bath logs and notes similar to test data generation
 - Records generation metadata in DemoTracker table
@@ -79,7 +80,7 @@ The scripts use family ID `cmcqdc0gj0000s6xh8gp1sj0x` as the source for demo dat
 - **Slug:** `demo`
 - **Caretaker Login ID:** `01`
 - **Security PIN:** `111111`
-- **Data Period:** Random 30 days from April-June 2025 (shifted to present time)
+- **Data Period:** 30 random days from March-June 2025 (mapped to last 30 actual days)
 
 ## Access Demo Family
 
@@ -90,12 +91,13 @@ After generation, access the demo family at:
 ## Data Generation Process
 
 1. **Cleanup:** Removes existing demo family data if present
-2. **Date Selection:** Chooses random 30-day period from April-June 2025
-3. **Source Data Extraction:** Fetches logs from source family within date range
-4. **Family Creation:** Creates new demo family with randomized names
-5. **Data Transformation:** Converts source logs to present time period
-6. **Random Generation:** Adds bath logs and notes using random templates
-7. **Tracking:** Records generation metadata in DemoTracker table
+2. **Date Selection:** Chooses 30 random (non-consecutive) days from March-June 2025
+3. **Date Mapping:** Maps those 30 days to the last 30 actual days, with today's cutoff at 1 hour ago
+4. **Source Data Extraction:** Fetches logs from source family for each random day
+5. **Family Creation:** Creates new demo family with randomized names
+6. **Data Transformation:** Converts source logs to target dates using date mapping
+7. **Random Generation:** Adds bath logs and notes using date mapping and time constraints
+8. **Tracking:** Records generation metadata in DemoTracker table
 
 ## Logs and Monitoring
 
