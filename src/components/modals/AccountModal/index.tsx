@@ -13,15 +13,17 @@ import './account-modal.css';
 interface AccountModalProps {
   open: boolean;
   onClose: () => void;
-  initialMode?: 'login' | 'register';
+  initialMode?: 'login' | 'register' | 'verify';
+  verificationToken?: string;
 }
 
 export default function AccountModal({
   open,
   onClose,
   initialMode = 'register',
+  verificationToken,
 }: AccountModalProps) {
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot-password'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot-password' | 'verify'>(initialMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -42,6 +44,11 @@ export default function AccountModal({
     number: false,
     special: false,
   });
+
+  // Verification state
+  const [verificationState, setVerificationState] = useState<'loading' | 'success' | 'error' | 'already-verified'>('loading');
+  const [verificationMessage, setVerificationMessage] = useState('');
+  const [verificationCountdown, setVerificationCountdown] = useState(3);
 
   // Reset form when modal opens/closes or mode changes
   useEffect(() => {
@@ -338,6 +345,64 @@ export default function AccountModal({
     setShowSuccess(false);
   };
 
+  // Handle email verification
+  const handleVerification = async (token: string) => {
+    if (!token) {
+      setVerificationState('error');
+      setVerificationMessage('Verification token is missing from the URL.');
+      return;
+    }
+
+    try {
+      setVerificationState('loading');
+      const response = await fetch('/api/accounts/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setVerificationState('success');
+        setVerificationMessage(data.data.message || 'Account verified successfully!');
+        
+        // Start countdown to login
+        setVerificationCountdown(3);
+        const timer = setInterval(() => {
+          setVerificationCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              // Transition to login mode
+              setMode('login');
+              setVerificationState('loading');
+              setError('');
+              setShowSuccess(false);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        setVerificationState('error');
+        setVerificationMessage(data.error || 'Verification failed');
+      }
+    } catch (err) {
+      console.error('Verification error:', err);
+      setVerificationState('error');
+      setVerificationMessage('Network error. Please check your connection and try again.');
+    }
+  };
+
+  // Handle verification when modal opens with verify mode
+  useEffect(() => {
+    if (mode === 'verify' && verificationToken && open) {
+      handleVerification(verificationToken);
+    }
+  }, [mode, verificationToken, open]);
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="account-modal-content !p-0 max-w-md">
@@ -361,6 +426,8 @@ export default function AccountModal({
                   ? 'Welcome Back' 
                   : mode === 'register' 
                   ? 'The Sprout Track Beta Is Active!' 
+                  : mode === 'verify'
+                  ? 'Email Verification'
                   : 'Reset Password'
                 }
               </DialogTitle>
@@ -369,35 +436,39 @@ export default function AccountModal({
                   ? 'Sign in to access your family dashboard' 
                   : mode === 'register'
                   ? 'Set up your account to get started for free! Beta users get free access for life!'
+                  : mode === 'verify'
+                  ? 'Verifying your email address...'
                   : 'Enter your email to receive a password reset link'
                 }
               </DialogDescription>
               
-              {/* Mode toggle in header */}
-              <div className="mt-4 text-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {mode === 'login' 
-                    ? "Don't have an account?" 
-                    : mode === 'register'
-                    ? "Already have an account?"
-                    : "Remember your password?"
-                  }
-                </span>
-                {' '}
-                <button
-                  type="button"
-                  onClick={toggleMode}
-                  className="text-sm ml-2 font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors duration-200 underline-offset-4 hover:underline focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded-sm px-1"
-                  disabled={isSubmitting}
-                >
-                  {mode === 'login' 
-                    ? 'Create one' 
-                    : mode === 'register'
-                    ? 'Log in'
-                    : 'Back to login'
-                  }
-                </button>
-              </div>
+              {/* Mode toggle in header - hide during verification */}
+              {mode !== 'verify' && (
+                <div className="mt-4 text-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {mode === 'login' 
+                      ? "Don't have an account?" 
+                      : mode === 'register'
+                      ? "Already have an account?"
+                      : "Remember your password?"
+                    }
+                  </span>
+                  {' '}
+                  <button
+                    type="button"
+                    onClick={toggleMode}
+                    className="text-sm ml-2 font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors duration-200 underline-offset-4 hover:underline focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded-sm px-1"
+                    disabled={isSubmitting}
+                  >
+                    {mode === 'login' 
+                      ? 'Create one' 
+                      : mode === 'register'
+                      ? 'Log in'
+                      : 'Back to login'
+                    }
+                  </button>
+                </div>
+              )}
             </DialogHeader>
           )}
 
@@ -413,6 +484,96 @@ export default function AccountModal({
                   : 'Please check your email for verification instructions.'
                 }
               </p>
+            </div>
+          ) : mode === 'verify' ? (
+            <div className="account-modal-body">
+              {verificationState === 'loading' && (
+                <div className="text-center py-8">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    Verifying Your Account
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Please wait while we verify your email address...
+                  </p>
+                </div>
+              )}
+
+              {verificationState === 'success' && (
+                <div className="text-center py-8">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-2xl">✓</span>
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    Verification Successful!
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    {verificationMessage}
+                  </p>
+                  
+                  <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-teal-700 dark:text-teal-300 mb-2">
+                      Switching to login in {verificationCountdown} seconds...
+                    </p>
+                    <div className="w-full bg-teal-200 dark:bg-teal-800 rounded-full h-2">
+                      <div 
+                        className="bg-teal-600 h-2 rounded-full transition-all duration-1000"
+                        style={{ width: `${((3 - verificationCountdown) / 3) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={() => {
+                      setMode('login');
+                      setVerificationState('loading');
+                    }}
+                    className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                  >
+                    Continue to Login
+                  </Button>
+                </div>
+              )}
+
+              {verificationState === 'error' && (
+                <div className="text-center py-8">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-2xl">✕</span>
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    Verification Failed
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    {verificationMessage}
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={() => {
+                        if (verificationToken) {
+                          handleVerification(verificationToken);
+                        }
+                      }}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Try Again
+                    </Button>
+                    <Button 
+                      onClick={() => setMode('register')}
+                      className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                    >
+                      Create New Account
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">

@@ -6,6 +6,7 @@ import { Input } from '@/src/components/ui/input';
 import { Badge } from '@/src/components/ui/badge';
 import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 import { AccountButton } from '@/src/components/ui/account-button';
+import AccountModal from '@/src/components/modals/AccountModal';
 import { useTheme } from '@/src/context/theme';
 import { Github } from 'lucide-react';
 import './coming-soon.css';
@@ -16,6 +17,11 @@ const ComingSoon = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  
+  // Account modal state for verification
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [accountModalMode, setAccountModalMode] = useState<'login' | 'register' | 'verify'>('register');
+  const [verificationToken, setVerificationToken] = useState<string | undefined>();
   
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -36,6 +42,31 @@ const ComingSoon = () => {
     }, 2000);
     return () => clearInterval(interval);
   }, [activities.length]);
+
+  // Check for verification hash on load
+  useEffect(() => {
+    const checkHash = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#verify?')) {
+        const urlParams = new URLSearchParams(hash.substring(8)); // Remove '#verify?'
+        const token = urlParams.get('token');
+        if (token) {
+          setVerificationToken(token);
+          setAccountModalMode('verify');
+          setShowAccountModal(true);
+          // Clear the hash after processing
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      }
+    };
+
+    // Check on mount
+    checkHash();
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, []);
 
   // Email validation
   const validateEmail = (emailValue: string): boolean => {
@@ -319,6 +350,14 @@ const ComingSoon = () => {
           </div>
       </div>
       </footer>
+
+      {/* Account Modal for verification and other auth flows */}
+      <AccountModal 
+        open={showAccountModal} 
+        onClose={() => setShowAccountModal(false)}
+        initialMode={accountModalMode}
+        verificationToken={verificationToken}
+      />
     </div>
   );
 };

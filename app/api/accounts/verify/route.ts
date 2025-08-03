@@ -104,43 +104,5 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<E
   }
 }
 
-// GET handler for verification links clicked from email
-export async function GET(req: NextRequest): Promise<NextResponse> {
-  try {
-    const { searchParams } = new URL(req.url);
-    const token = searchParams.get('token');
-    
-    if (!token) {
-      // Redirect to verification page with error
-      return NextResponse.redirect(new URL('/accounts/verify?error=missing-token', req.url));
-    }
-    
-    // Check if account exists and verification status
-    const account = await prisma.account.findUnique({
-      where: { verificationToken: token },
-      include: { family: true }
-    });
-    
-    if (!account) {
-      // Redirect to verification page with error
-      return NextResponse.redirect(new URL('/accounts/verify?error=invalid-token', req.url));
-    }
-    
-    if (account.verified) {
-      if (account.family) {
-        // Already verified and has family, redirect to family dashboard
-        return NextResponse.redirect(new URL(`/${account.family.slug}`, req.url));
-      } else {
-        // Already verified but no family, redirect to coming soon page
-        return NextResponse.redirect(new URL('/coming-soon', req.url));
-      }
-    }
-    
-    // If not verified, redirect to verification page to handle the process
-    return NextResponse.redirect(new URL(`/accounts/verify?token=${token}`, req.url));
-    
-  } catch (error) {
-    console.error('Email verification GET error:', error);
-    return NextResponse.redirect(new URL('/accounts/verify?error=verification-failed', req.url));
-  }
-}
+// Note: Email verification now uses hash-based URLs (/#verify?token=...) 
+// and is handled by the AccountModal component, so no GET handler needed.

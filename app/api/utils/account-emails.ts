@@ -27,7 +27,7 @@ async function getDomainUrl(): Promise<string> {
 
 export async function sendVerificationEmail(email: string, token: string, firstName: string) {
   const domainUrl = await getDomainUrl();
-  const verificationUrl = `${domainUrl}/account/verify?token=${token}`;
+  const verificationUrl = `${domainUrl}/#verify?token=${token}`;
   
   const result = await sendEmail({
     to: email,
