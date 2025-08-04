@@ -137,12 +137,91 @@ async function deleteExistingDemoFamily(demoFamily) {
     console.log(`  Note: Could not clear demo tracker: ${error.message}`);
   }
   
+  // Delete junction tables first (many-to-many relationships)
+  const junctionTables = [
+    'babyEvent', 'caretakerEvent', 'contactEvent', 'contactMedicine', 'familyMember'
+  ];
+  
+  for (const table of junctionTables) {
+    try {
+      // For junction tables, we need to find records through related entities
+      if (table === 'familyMember') {
+        await prisma.familyMember.deleteMany({
+          where: { familyId: familyId }
+        });
+      } else if (table === 'babyEvent') {
+        // Delete baby events for babies in this family
+        const babies = await prisma.baby.findMany({
+          where: { familyId: familyId },
+          select: { id: true }
+        });
+        const babyIds = babies.map(b => b.id);
+        if (babyIds.length > 0) {
+          await prisma.babyEvent.deleteMany({
+            where: { babyId: { in: babyIds } }
+          });
+        }
+      } else if (table === 'caretakerEvent') {
+        // Delete caretaker events for caretakers in this family
+        const caretakers = await prisma.caretaker.findMany({
+          where: { familyId: familyId },
+          select: { id: true }
+        });
+        const caretakerIds = caretakers.map(c => c.id);
+        if (caretakerIds.length > 0) {
+          await prisma.caretakerEvent.deleteMany({
+            where: { caretakerId: { in: caretakerIds } }
+          });
+        }
+      } else if (table === 'contactEvent') {
+        // Delete contact events for contacts in this family
+        const contacts = await prisma.contact.findMany({
+          where: { familyId: familyId },
+          select: { id: true }
+        });
+        const contactIds = contacts.map(c => c.id);
+        if (contactIds.length > 0) {
+          await prisma.contactEvent.deleteMany({
+            where: { contactId: { in: contactIds } }
+          });
+        }
+      } else if (table === 'contactMedicine') {
+        // Delete contact medicine relationships for contacts in this family
+        const contacts = await prisma.contact.findMany({
+          where: { familyId: familyId },
+          select: { id: true }
+        });
+        const contactIds = contacts.map(c => c.id);
+        if (contactIds.length > 0) {
+          await prisma.contactMedicine.deleteMany({
+            where: { contactId: { in: contactIds } }
+          });
+        }
+      }
+      console.log(`  Cleared ${table} junction records for demo family`);
+    } catch (error) {
+      console.log(`  Note: Could not clear ${table} junction records: ${error.message}`);
+    }
+  }
+  
   // Delete in order to respect foreign key constraints
-  // Models with familyId field
+  // Models with familyId field - ordered to handle dependencies
   const modelsWithFamilyId = [
-    'familyMember', 'sleepLog', 'feedLog', 'diaperLog', 'moodLog', 'note', 
-    'milestone', 'pumpLog', 'playLog', 'bathLog', 'measurement', 'medicineLog',
-    'medicine', 'calendarEvent', 'contact', 'baby', 'caretaker', 'settings'
+    // Activity logs (depend on baby/caretaker)
+    'sleepLog', 'feedLog', 'diaperLog', 'moodLog', 'note', 'milestone', 
+    'pumpLog', 'playLog', 'bathLog', 'measurement', 'medicineLog',
+    
+    // Calendar events (depend on babies/caretakers through junction tables)
+    'calendarEvent',
+    
+    // Medicine and contacts
+    'medicine', 'contact',
+    
+    // Core entities
+    'baby', 'caretaker', 
+    
+    // Settings and family setup
+    'settings', 'familySetup'
   ];
   
   // Delete records with familyId
