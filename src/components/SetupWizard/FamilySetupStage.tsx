@@ -63,6 +63,30 @@ const FamilySetupStage: React.FC<FamilySetupStageProps> = ({
       return;
     }
 
+    // Check for reserved URLs used by the main app
+    const reservedUrls = [
+      'account',
+      'api',
+      'coming-soon',
+      'family-manager',
+      'family-select',
+      'setup',
+      'sphome',
+      'login',
+      'auth',
+      'context',
+      'globals',
+      'layout',
+      'metadata',
+      'page',
+      'template'
+    ];
+
+    if (reservedUrls.includes(slug.toLowerCase())) {
+      setSlugError('This URL is reserved by the system and cannot be used');
+      return;
+    }
+
     setCheckingSlug(true);
     try {
       const response = await fetch(`/api/family/by-slug/${encodeURIComponent(slug)}`);
@@ -137,12 +161,12 @@ const FamilySetupStage: React.FC<FamilySetupStageProps> = ({
   return (
     <div className={cn(styles.stageContainer, "setup-wizard-stage-container")}>
       <h2 className={cn(styles.stageTitle, "setup-wizard-stage-title")}>
-        {token ? 'Create Your Family' : 'Welcome to Sprout Track!'}
+        {token ? 'Create Your Family' : 'Create Your Family'}
       </h2>
       <p className={cn(styles.stageDescription, "setup-wizard-stage-description")}>
         {token 
           ? 'You\'ve been invited to create a new family. Let\'s get started with some basic information.' 
-          : 'Since this is a brand new setup, let\'s get started with some basic information.'
+          : 'Let\'s get started with some basic information.'
         }
       </p>
       
