@@ -373,7 +373,15 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
           </div>
         </FormPageContent>
         <FormPageFooter>
-          <div className="flex justify-end w-full">
+          <div className="flex justify-end space-x-2 w-full">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={false}
+            >
+              Close
+            </Button>
             <Button onClick={handleAddEvent}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Event
