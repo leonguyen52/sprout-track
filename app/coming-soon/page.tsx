@@ -152,7 +152,20 @@ const ComingSoon = () => {
               <span className="saas-logo-text">Sprout Track</span>
             </div>
             <div className="saas-nav-links">
-              <AccountButton className="saas-account-btn" />
+            <AccountButton 
+                label="Sign Up" 
+                showIcon={false} 
+                variant="link"
+                initialMode="register"
+                hideWhenLoggedIn={true}
+                className="saas-account-btn-signup mr-2" 
+              />
+              <AccountButton 
+                label="Sign In" 
+                showIcon={false} 
+                initialMode="login"
+                className="saas-account-btn mr-2" 
+              />
               <ThemeToggle variant="light" className="saas-theme-toggle" />
             </div>
           </div>

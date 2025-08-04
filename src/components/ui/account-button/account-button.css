@@ -23,6 +23,23 @@
   color: white;
 }
 
+.account-button-link {
+  border: none;
+  color: #0d9488; /* teal-600 */
+  background-color: transparent;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  padding: 0;
+  height: auto;
+  font-weight: normal;
+}
+
+.account-button-link:hover {
+  color: #0f766e; /* teal-700 */
+  background-color: transparent;
+  text-decoration: underline;
+}
+
 /* Dark mode styles */
 html.dark .account-button-guest {
   border-color: #5eead4; /* teal-300 */
@@ -44,6 +61,17 @@ html.dark .account-button-logged-in {
 html.dark .account-button-logged-in:hover {
   background-color: #6ee7b7; /* emerald-300 */
   color: #1f2937; /* gray-800 */
+}
+
+html.dark .account-button-link {
+  color: #5eead4; /* teal-300 */
+  background-color: transparent;
+}
+
+html.dark .account-button-link:hover {
+  color: #7dd3fc; /* sky-300 */
+  background-color: transparent;
+  text-decoration: underline;
 }
 
 /* Focus states for accessibility */

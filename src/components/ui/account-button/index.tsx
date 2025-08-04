@@ -27,9 +27,21 @@ interface AccountStatus {
 
 interface AccountButtonProps {
   className?: string;
+  label?: string;
+  showIcon?: boolean;
+  variant?: 'button' | 'link';
+  initialMode?: 'login' | 'register';
+  hideWhenLoggedIn?: boolean;
 }
 
-export function AccountButton({ className }: AccountButtonProps) {
+export function AccountButton({ 
+  className, 
+  label,
+  showIcon = true,
+  variant = 'button',
+  initialMode = 'register',
+  hideWhenLoggedIn = false
+}: AccountButtonProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -182,6 +194,11 @@ export function AccountButton({ className }: AccountButtonProps) {
     window.location.href = '/account/family-setup';
   };
 
+  // Hide button if logged in and hideWhenLoggedIn is true
+  if (isLoggedIn && hideWhenLoggedIn) {
+    return null;
+  }
+
   if (isLoggedIn && accountStatus) {
     // Determine button state and styling
     let buttonClass = 'account-button-logged-in';
@@ -286,21 +303,26 @@ export function AccountButton({ className }: AccountButtonProps) {
     );
   }
 
+  const buttonVariant = variant === 'link' ? 'ghost' : 'outline';
+  const buttonClass = variant === 'link' ? 'account-button-link' : 'account-button-guest';
+  const displayLabel = label || 'Account';
+
   return (
     <>
       <Button 
-        variant="outline" 
+        variant={buttonVariant}
         size="sm" 
-        className={`account-button-guest ${className}`}
+        className={`${buttonClass} ${className}`}
         onClick={() => setShowAccountModal(true)}
       >
-        <User className="w-4 h-4 mr-2" />
-        Account
+        {showIcon && <User className="w-4 h-4 mr-2" />}
+        {displayLabel}
       </Button>
       
       <AccountModal 
         open={showAccountModal} 
         onClose={() => setShowAccountModal(false)}
+        initialMode={initialMode}
       />
     </>
   );

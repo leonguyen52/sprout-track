@@ -123,7 +123,12 @@ export default function AccountFamilySetupPage() {
                 <span className="saas-logo-text">Sprout Track</span>
               </Link>
               <div className="saas-nav-links">
-                <AccountButton className="saas-account-btn" />
+                <AccountButton 
+                  label="Sign In" 
+                  showIcon={false} 
+                  initialMode="login"
+                  className="saas-account-btn" 
+                />
                 <ThemeToggle variant="light" className="saas-theme-toggle" />
               </div>
             </div>
@@ -215,7 +220,12 @@ export default function AccountFamilySetupPage() {
                 <span className="saas-logo-text">Sprout Track</span>
               </Link>
               <div className="saas-nav-links">
-                <AccountButton className="saas-account-btn" />
+                <AccountButton 
+                  label="Sign In" 
+                  showIcon={false} 
+                  initialMode="login"
+                  className="saas-account-btn" 
+                />
                 <ThemeToggle variant="light" className="saas-theme-toggle" />
               </div>
             </div>
