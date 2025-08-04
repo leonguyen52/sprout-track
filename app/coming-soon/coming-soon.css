@@ -1203,3 +1203,17 @@ html.dark .saas-phone-mockup {
 html.dark .saas-phone-mockup-text {
   color: #6b7280;
 }
+
+/* Demo phone video container */
+.saas-demo-phone-video {
+  aspect-ratio: 427/720;
+  max-width: 320px;
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 8px solid #e5e7eb;
+  overflow: hidden;
+}
+
+html.dark .saas-demo-phone-video {
+  border-color: #374151;
+}

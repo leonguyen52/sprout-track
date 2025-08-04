@@ -20,6 +20,8 @@ const ComingSoon = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [currentCaretakerVideo, setCurrentCaretakerVideo] = useState(0);
+  const [isCaretakerTransitioning, setIsCaretakerTransitioning] = useState(false);
   
   // Account modal state for verification and password reset
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -50,6 +52,34 @@ const ComingSoon = () => {
     }, 2000);
     return () => clearInterval(interval);
   }, [activities.length]);
+
+  // Caretaker video transition effect with different timing for each video and theme
+  useEffect(() => {
+    const scheduleNextTransition = () => {
+      // Different durations for each video and theme (in milliseconds)
+      // [light_mode_duration, dark_mode_duration]
+      const videoDurations = [
+        [15500, 14000], // AddCaretaker: Light 15.5s, Dark 14s
+        [7500, 9500]    // Login: Light 7.5s, Dark 9.5s
+      ];
+      
+      const themeIndex = theme === 'dark' ? 1 : 0;
+      const currentDuration = videoDurations[currentCaretakerVideo][themeIndex];
+      
+      const timeout = setTimeout(() => {
+        setIsCaretakerTransitioning(true);
+        setTimeout(() => {
+          setCurrentCaretakerVideo((prev) => (prev + 1) % 2);
+          setIsCaretakerTransitioning(false);
+        }, 100); // 100ms transition
+      }, currentDuration);
+      
+      return timeout;
+    };
+
+    const timeout = scheduleNextTransition();
+    return () => clearTimeout(timeout);
+  }, [currentCaretakerVideo, theme]);
 
   // Check for verification and password reset hashes on load
   useEffect(() => {
@@ -218,7 +248,7 @@ const ComingSoon = () => {
           <div className="saas-main-demo-video">
             <div style={{borderRadius: '5px', backgroundColor: '#0d9488', overflow: 'hidden' }}>
               <video 
-                src="/Demo1.mp4"
+                src={theme === 'dark' ? '/DemoMainDark.mp4' : '/DemoMainLight.mp4'}
                 autoPlay
                 loop
                 muted
@@ -314,10 +344,30 @@ const ComingSoon = () => {
               <div className="absolute bottom-16 -right-12 z-0">
                 <Users size={200} className="text-teal-500 opacity-20" />
               </div>
-              {/* Phone mockup */}
+              {/* Caretaker Demo Videos */}
               <div className="relative z-10 max-w-sm mx-auto">
-                <div className="saas-phone-mockup">
-                  <span className="saas-phone-mockup-text">Caretaker Management Preview</span>
+                <div className="saas-demo-phone-video">
+                  <video 
+                    key={`${theme}-${currentCaretakerVideo}`}
+                    src={
+                      theme === 'dark' 
+                        ? (currentCaretakerVideo === 0 ? '/AddCaretakerDark.mp4' : '/LoginDark.mp4')
+                        : (currentCaretakerVideo === 0 ? '/AddCaretakerLight.mp4' : '/LoginLight.mp4')
+                    }
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    style={{ 
+                      width: '100%', 
+                      height: '100%',
+                      objectFit: 'cover',
+                      opacity: isCaretakerTransitioning ? 0 : 1,
+                      transition: 'opacity 400ms ease-in-out'
+                    }}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
               </div>
             </div>
@@ -334,10 +384,23 @@ const ComingSoon = () => {
               <div className="absolute bottom-16 -left-12 z-0">
                 <TrendingUp size={200} className="text-emerald-500 opacity-20" />
               </div>
-              {/* Phone mockup */}
+              {/* Baby Info Demo Video */}
               <div className="relative z-10 max-w-sm mx-auto">
-                <div className="saas-phone-mockup">
-                  <span className="saas-phone-mockup-text">Baby Statistics Dashboard</span>
+                <div className="saas-demo-phone-video">
+                  <video 
+                    src={theme === 'dark' ? '/BabyInfoButtonDark.mp4' : '/BabyInfoButtonLight.mp4'}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    style={{ 
+                      width: '100%', 
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
               </div>
             </div>
@@ -398,10 +461,23 @@ const ComingSoon = () => {
               <div className="absolute bottom-16 -right-12 z-0">
                 <BarChart3 size={200} className="text-teal-600 opacity-20" />
               </div>
-              {/* Phone mockup */}
+              {/* Daily Stats Demo Video */}
               <div className="relative z-10 max-w-sm mx-auto">
-                <div className="saas-phone-mockup">
-                  <span className="saas-phone-mockup-text">Daily Statistics View</span>
+                <div className="saas-demo-phone-video">
+                  <video 
+                    src={theme === 'dark' ? '/DailyStatsDark.mp4' : '/DailyStatsLight.mp4'}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    style={{ 
+                      width: '100%', 
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
               </div>
             </div>
@@ -418,10 +494,23 @@ const ComingSoon = () => {
               <div className="absolute bottom-16 -left-12 z-0">
                 <Calendar size={200} className="text-teal-600 opacity-20" />
               </div>
-              {/* Phone mockup */}
+              {/* Calendar Demo Video */}
               <div className="relative z-10 max-w-sm mx-auto">
-                <div className="saas-phone-mockup">
-                  <span className="saas-phone-mockup-text">Calendar & Events View</span>
+                <div className="saas-demo-phone-video">
+                  <video 
+                    src={theme === 'dark' ? '/CalendarDark.mp4' : '/CalendarLight.mp4'}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    style={{ 
+                      width: '100%', 
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
               </div>
             </div>
