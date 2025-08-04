@@ -14,6 +14,7 @@ import { Textarea } from '@/src/components/ui/textarea';
 import { DateTimePicker } from '@/src/components/ui/date-time-picker';
 import { Button } from '@/src/components/ui/button';
 import { Checkbox } from '@/src/components/ui/checkbox';
+import { Label } from '@/src/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -405,14 +406,14 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
           <div className="space-y-6 pb-24">
             {/* Event details section */}
             <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>Event Details</h3>
+              <Label className="text-lg font-semibold">Event Details</Label>
               
               {/* Title */}
               <div className={styles.fieldGroup}>
-                <label htmlFor="title" className={styles.fieldLabel}>
+                <Label htmlFor="title">
                   Title
-                  <span className={styles.fieldRequired}>*</span>
-                </label>
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Input
                   type="text"
                   id="title"
@@ -432,10 +433,10 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
 
               {/* Event type */}
               <div className={styles.fieldGroup}>
-                <label htmlFor="type" className={styles.fieldLabel}>
+                <Label htmlFor="type">
                   Event Type
-                  <span className={styles.fieldRequired}>*</span>
-                </label>
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="w-full justify-between">
@@ -478,19 +479,19 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                     } as React.ChangeEvent<HTMLInputElement>)
                   }
                 />
-                <label htmlFor="allDay" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Label htmlFor="allDay">
                   All day event
-                </label>
+                </Label>
               </div>
 
               {/* Date and time - each on its own row */}
               <div className="space-y-4">
                 {/* Start Date/Time - Full width */}
                 <div className={styles.fieldGroup}>
-                  <label htmlFor="startTime" className={styles.fieldLabel}>
+                  <Label htmlFor="startTime">
                     Start Time
-                    <span className={styles.fieldRequired}>*</span>
-                  </label>
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <div className="grid w-full">
                     <DateTimePicker
                       className="flex-none"
@@ -510,9 +511,9 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                 
                 {/* End Date/Time - Full width */}
                 <div className={styles.fieldGroup}>
-                  <label htmlFor="endTime" className={styles.fieldLabel}>
+                  <Label htmlFor="endTime">
                     End Time
-                  </label>
+                  </Label>
                   <div className="grid w-full">
                     <DateTimePicker
                       className="flex-none"
@@ -533,9 +534,9 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
               
               {/* Location */}
               <div className={styles.fieldGroup}>
-                <label htmlFor="location" className={styles.fieldLabel}>
+                <Label htmlFor="location">
                   Location
-                </label>
+                </Label>
                 <div className="relative">
                   <Input
                     type="text"
@@ -552,9 +553,9 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
               
               {/* Description */}
               <div className={styles.fieldGroup}>
-                <label htmlFor="description" className={styles.fieldLabel}>
+                <Label htmlFor="description">
                   Description
-                </label>
+                </Label>
                 <Textarea
                   id="description"
                   name="description"
@@ -567,9 +568,9 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
               
               {/* Color */}
               <div className={styles.fieldGroup}>
-                <label htmlFor="color" className={styles.fieldLabel}>
+                <Label htmlFor="color">
                   Color
-                </label>
+                </Label>
                 <div className="flex items-center space-x-2">
                   <div 
                     className="h-6 w-6 rounded-full border border-gray-300 dark:border-gray-700"
@@ -678,14 +679,14 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
             
             {/* People section */}
             <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>People</h3>
+              <Label className="text-lg font-semibold">People</Label>
               
               {/* Babies - Only show if there's more than one active baby */}
               {babies.filter(baby => baby.inactive !== true).length > 1 ? (
                 <div className={styles.fieldGroup}>
-                  <label className={styles.fieldLabel}>
+                  <Label>
                     Babies
-                  </label>
+                  </Label>
                   <div className="space-y-2">
                     {babies.map(baby => (
                       <div key={baby.id} className="flex items-center space-x-2">
@@ -694,17 +695,17 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                           checked={formData.babyIds.includes(baby.id)}
                           onCheckedChange={() => handleBabyChange(baby.id)}
                         />
-                        <label 
+                        <Label 
                           htmlFor={`baby-${baby.id}`} 
-                          className={`text-sm font-medium ${
+                          className={
                             baby.inactive === true
                               ? "text-gray-400 dark:text-gray-500 italic" 
-                              : "text-gray-700 dark:text-gray-300"
-                          }`}
+                              : undefined
+                          }
                         >
                           {baby.firstName} {baby.lastName}
                           {baby.inactive === true && " (inactive)"}
-                        </label>
+                        </Label>
                       </div>
                     ))}
                     
@@ -743,9 +744,9 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
               
               {/* Caretakers */}
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>
+                <Label>
                   Caretakers
-                </label>
+                </Label>
                 <div className="space-y-2">
                   {caretakers.map(caretaker => (
                     <div key={caretaker.id} className="flex items-center space-x-2">
@@ -754,9 +755,9 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                         checked={formData.caretakerIds.includes(caretaker.id)}
                         onCheckedChange={() => handleCaretakerChange(caretaker.id)}
                       />
-                      <label htmlFor={`caretaker-${caretaker.id}`} className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <Label htmlFor={`caretaker-${caretaker.id}`}>
                         {caretaker.name} {caretaker.type ? `(${caretaker.type})` : ''}
-                      </label>
+                      </Label>
                     </div>
                   ))}
                   
@@ -770,9 +771,9 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
               
               {/* Contacts */}
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>
+                <Label>
                   Contacts
-                </label>
+                </Label>
                 <ContactSelector
                   contacts={localContacts}
                   selectedContactIds={formData.contactIds}
