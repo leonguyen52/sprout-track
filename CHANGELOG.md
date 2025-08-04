@@ -1,5 +1,31 @@
 # Sprout Track Changelog
 
+## v0.94.0 - Live Beta Edition
+
+### Changes
+
+#### Beta Functionality
+- Added ability for SaaS version to have accounts, link accounts to new families, and a caretaker that allows pass-through permissions
+- Added account workflow for SaaS mode
+- Removed access to certain screens and settings in SaaS mode
+- Added complete account management workflow, account verification, password resets
+- Overhauled email communications
+- Added Sprout Track terms and privacy policy
+
+#### Demo Enhancements
+- Added new demo scripts to overhaul the demo to be more realistic
+- Added functionality to clean up demo data every hour
+- Streamlined the demo in the app so it is single tenant instead of needing multiple apps running for the demo environment
+
+#### Bug Fixes
+- Added deployment context to minimize API calls
+- Calendar fixes for baby context
+- Added a close button to the calendar day view
+- Adjusted calendar event form to provide enough space at the bottom of the form
+- Bug fixes to API handling of permissions in elevated contexts for accounts and admins
+
+---
+
 ## v0.92.32 - Beta Subscriber Management & Email Integration
 
 ### Changes
