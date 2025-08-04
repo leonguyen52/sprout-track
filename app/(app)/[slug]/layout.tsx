@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname, useParams } from 'next/navigation';
 import { BabyProvider, useBaby } from '../../context/baby';
 import { TimezoneProvider } from '../../context/timezone';
+import { DeploymentProvider } from '../../context/deployment';
 import { ThemeProvider } from '@/src/context/theme';
 import { FamilyProvider, useFamily } from '@/src/context/family';
 import Image from 'next/image';
@@ -650,14 +651,16 @@ export default function AppLayout({
   children: React.ReactNode
 }) {
   return (
-    <FamilyProvider>
-      <BabyProvider>
-        <TimezoneProvider>
-          <ThemeProvider>
-            <AppContent>{children}</AppContent>
-          </ThemeProvider>
-        </TimezoneProvider>
-      </BabyProvider>
-    </FamilyProvider>
+    <DeploymentProvider>
+      <FamilyProvider>
+        <BabyProvider>
+          <TimezoneProvider>
+            <ThemeProvider>
+              <AppContent>{children}</AppContent>
+            </ThemeProvider>
+          </TimezoneProvider>
+        </BabyProvider>
+      </FamilyProvider>
+    </DeploymentProvider>
   );
 }
