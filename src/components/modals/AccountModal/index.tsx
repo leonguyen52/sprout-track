@@ -8,6 +8,8 @@ import {
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { useState, useEffect, useRef } from 'react';
+import PrivacyPolicyModal from '@/src/components/modals/privacy-policy';
+import TermsOfUseModal from '@/src/components/modals/terms-of-use';
 import './account-modal.css';
 
 interface AccountModalProps {
@@ -58,6 +60,10 @@ export default function AccountModal({
   const [resetMessage, setResetMessage] = useState('');
   const [resetCountdown, setResetCountdown] = useState(5);
   const [userEmail, setUserEmail] = useState('');
+
+  // Privacy Policy and Terms of Use modal state
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showTermsOfUse, setShowTermsOfUse] = useState(false);
 
   // Refs for focus management
   const emailInputRef = useRef<HTMLInputElement>(null);
@@ -1066,11 +1072,49 @@ export default function AccountModal({
                   </div>
                 )}
 
+                {/* Privacy Policy and Terms of Use links for registration mode */}
+                {mode === 'register' && (
+                  <div className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
+                    <p className="mb-2">By creating an account, you agree to our</p>
+                    <div className="flex items-center justify-center gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowPrivacyPolicy(true)}
+                        className="text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors cursor-pointer underline-offset-4 hover:underline"
+                        disabled={isSubmitting}
+                      >
+                        Privacy Policy
+                      </button>
+                      <span className="text-gray-400">and</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowTermsOfUse(true)}
+                        className="text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors cursor-pointer underline-offset-4 hover:underline"
+                        disabled={isSubmitting}
+                      >
+                        Terms of Use
+                      </button>
+                    </div>
+                  </div>
+                )}
+
               </div>
             </form>
           )}
         </div>
       </DialogContent>
+
+      {/* Privacy Policy Modal */}
+      <PrivacyPolicyModal 
+        open={showPrivacyPolicy} 
+        onClose={() => setShowPrivacyPolicy(false)} 
+      />
+
+      {/* Terms of Use Modal */}
+      <TermsOfUseModal 
+        open={showTermsOfUse} 
+        onClose={() => setShowTermsOfUse(false)} 
+      />
     </Dialog>
   );
 }

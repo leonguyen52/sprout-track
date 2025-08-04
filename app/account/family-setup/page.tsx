@@ -9,6 +9,8 @@ import { AccountButton } from '@/src/components/ui/account-button';
 import SetupWizard from '@/src/components/SetupWizard';
 import AccountModal from '@/src/components/modals/AccountModal';
 import { Loader2, AlertCircle } from 'lucide-react';
+import PrivacyPolicyModal from '@/src/components/modals/privacy-policy';
+import TermsOfUseModal from '@/src/components/modals/terms-of-use';
 import '../../coming-soon/coming-soon.css';
 
 interface AccountStatus {
@@ -28,6 +30,10 @@ export default function AccountFamilySetupPage() {
   
   // Account modal state
   const [showAccountModal, setShowAccountModal] = useState(false);
+  
+  // Privacy Policy and Terms of Use modal state
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showTermsOfUse, setShowTermsOfUse] = useState(false);
 
   useEffect(() => {
     const checkAccountStatus = async () => {
@@ -195,9 +201,25 @@ export default function AccountFamilySetupPage() {
             </div>
           </div>
           <div className="saas-footer-bottom relative flex flex-col sm:flex-row items-center justify-center gap-4">
-            <p className="saas-footer-copyright">
-              © 2025 Oak and Sprout. All rights reserved.
-            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <p className="saas-footer-copyright">
+                © 2025 Oak and Sprout. All rights reserved.
+              </p>
+              <div className="flex items-center gap-4 text-sm">
+                <button
+                  onClick={() => setShowPrivacyPolicy(true)}
+                  className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer underline-offset-4 hover:underline"
+                >
+                  Privacy Policy
+                </button>
+                <button
+                  onClick={() => setShowTermsOfUse(true)}
+                  className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer underline-offset-4 hover:underline"
+                >
+                  Terms of Use
+                </button>
+              </div>
+            </div>
           </div>
         </footer>
       </div>
@@ -298,9 +320,25 @@ export default function AccountFamilySetupPage() {
             </div>
           </div>
           <div className="saas-footer-bottom relative flex flex-col sm:flex-row items-center justify-center gap-4">
-            <p className="saas-footer-copyright">
-              © 2025 Oak and Sprout. All rights reserved.
-            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <p className="saas-footer-copyright">
+                © 2025 Oak and Sprout. All rights reserved.
+              </p>
+              <div className="flex items-center gap-4 text-sm">
+                <button
+                  onClick={() => setShowPrivacyPolicy(true)}
+                  className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer underline-offset-4 hover:underline"
+                >
+                  Privacy Policy
+                </button>
+                <button
+                  onClick={() => setShowTermsOfUse(true)}
+                  className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer underline-offset-4 hover:underline"
+                >
+                  Terms of Use
+                </button>
+              </div>
+            </div>
           </div>
         </footer>
       </div>
@@ -391,9 +429,25 @@ export default function AccountFamilySetupPage() {
           </div>
         </div>
         <div className="saas-footer-bottom relative flex flex-col sm:flex-row items-center justify-center gap-4">
-          <p className="saas-footer-copyright">
-            © 2025 Oak and Sprout. All rights reserved.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <p className="saas-footer-copyright">
+              © 2025 Oak and Sprout. All rights reserved.
+            </p>
+            <div className="flex items-center gap-4 text-sm">
+              <button
+                onClick={() => setShowPrivacyPolicy(true)}
+                className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer underline-offset-4 hover:underline"
+              >
+                Privacy Policy
+              </button>
+              <button
+                onClick={() => setShowTermsOfUse(true)}
+                className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer underline-offset-4 hover:underline"
+              >
+                Terms of Use
+              </button>
+            </div>
+          </div>
         </div>
       </footer>
 
@@ -401,6 +455,18 @@ export default function AccountFamilySetupPage() {
       <AccountModal 
         open={showAccountModal} 
         onClose={() => setShowAccountModal(false)}
+      />
+
+      {/* Privacy Policy Modal */}
+      <PrivacyPolicyModal 
+        open={showPrivacyPolicy} 
+        onClose={() => setShowPrivacyPolicy(false)} 
+      />
+
+      {/* Terms of Use Modal */}
+      <TermsOfUseModal 
+        open={showTermsOfUse} 
+        onClose={() => setShowTermsOfUse(false)} 
       />
     </div>
   );

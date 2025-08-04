@@ -1,0 +1,44 @@
+/* Dark mode overrides for Privacy Policy Modal component */
+html.dark .privacy-policy-modal-title {
+  color: #e5e7eb; /* gray-200 */
+}
+
+html.dark .privacy-policy-modal-description {
+  color: #9ca3af; /* gray-400 */
+}
+
+html.dark .privacy-policy-modal-close-button {
+  background-image: linear-gradient(to right, #0d9488, #059669); /* dark:from-teal-600 dark:to-emerald-600 */
+}
+
+html.dark .privacy-policy-modal-close-button:hover {
+  background-image: linear-gradient(to right, #0f766e, #047857); /* dark:hover:from-teal-700 dark:hover:to-emerald-700 */
+}
+
+/* Dark mode text color fixes */
+html.dark .privacy-policy-modal-content p,
+html.dark .privacy-policy-modal-content li,
+html.dark .privacy-policy-modal-content h1,
+html.dark .privacy-policy-modal-content h2,
+html.dark .privacy-policy-modal-content h3,
+html.dark .privacy-policy-modal-content span {
+  color: #e5e7eb; /* gray-200 */
+}
+
+html.dark .privacy-policy-modal-content h4 {
+  color: #5eead4; /* teal-300 */
+}
+
+html.dark .privacy-policy-modal-markdown {
+  color: #e5e7eb; /* gray-200 */
+}
+
+/* Text formatting support in dark mode */
+html.dark .privacy-policy-modal-content strong {
+  color: #f3f4f6; /* gray-100 - slightly lighter for bold text */
+  font-weight: 600;
+}
+
+html.dark .privacy-policy-modal-content em {
+  color: #d1d5db; /* gray-300 - slightly muted for italic text */
+}

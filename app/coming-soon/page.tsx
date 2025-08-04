@@ -9,6 +9,8 @@ import { AccountButton } from '@/src/components/ui/account-button';
 import AccountModal from '@/src/components/modals/AccountModal';
 import { useTheme } from '@/src/context/theme';
 import { Github, Users, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
+import PrivacyPolicyModal from '@/src/components/modals/privacy-policy';
+import TermsOfUseModal from '@/src/components/modals/terms-of-use';
 import './coming-soon.css';
 
 const ComingSoon = () => {
@@ -23,6 +25,10 @@ const ComingSoon = () => {
   const [accountModalMode, setAccountModalMode] = useState<'login' | 'register' | 'verify' | 'reset-password'>('register');
   const [verificationToken, setVerificationToken] = useState<string | undefined>();
   const [resetToken, setResetToken] = useState<string | undefined>();
+  
+  // Privacy Policy and Terms of Use modal state
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showTermsOfUse, setShowTermsOfUse] = useState(false);
   
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -290,11 +296,11 @@ const ComingSoon = () => {
               <ul className="saas-feature-list">
                 <li className="saas-feature-list-item">
                   <span className="w-2 h-2 bg-teal-500 rounded-full mr-3"></span>
-                  Individual login credentials for each caretaker
+                  Easy ID and Pin access for each caretaker (no account required)
                 </li>
                 <li className="saas-feature-list-item">
                   <span className="w-2 h-2 bg-teal-500 rounded-full mr-3"></span>
-                  Role-based permissions and access control
+                  Everything accessible from your unique family web address.
                 </li>
                 <li className="saas-feature-list-item">
                   <span className="w-2 h-2 bg-teal-500 rounded-full mr-3"></span>
@@ -336,23 +342,23 @@ const ComingSoon = () => {
             </div>
             <div>
               <h3 className="saas-feature-title">
-                Track Growth & Development
+                Track Important Baby Info
               </h3>
               <p className="saas-feature-description">
-                Monitor your baby's growth patterns, feeding trends, and sleep schedules with comprehensive statistics and beautiful visualizations that help you understand your little one's needs.
+                Instantly see your baby's latest events, check family contacts, and view trends for the past month—like average feedings, diapers, wake windows, sleep windows, and more—all in one place.
               </p>
               <ul className="saas-feature-list">
                 <li className="saas-feature-list-item">
                   <span className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>
-                  Growth charts and percentile tracking
+                  View the most recent important activities at a glance
                 </li>
                 <li className="saas-feature-list-item">
                   <span className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>
-                  Feeding patterns and nutrition insights
+                  Quickly view emergency contacts
                 </li>
                 <li className="saas-feature-list-item">
                   <span className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>
-                  Sleep quality and duration analysis
+                  Spot trends and changes in your baby's daily routines
                 </li>
               </ul>
             </div>
@@ -373,16 +379,16 @@ const ComingSoon = () => {
               </p>
               <ul className="saas-feature-list">
                 <li className="saas-feature-list-item">
-                  <span className="w-3 h-3 bg-teal-600 rounded-sm mr-3"></span>
+                <span className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>
                   Timeline view of daily activities
                 </li>
                 <li className="saas-feature-list-item">
-                  <span className="w-3 h-3 bg-teal-600 rounded-sm mr-3"></span>
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>
                   Quick stats and totals for the day
                 </li>
                 <li className="saas-feature-list-item">
-                  <span className="w-3 h-3 bg-teal-600 rounded-sm mr-3"></span>
-                  Easy comparison with previous days
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>
+                  Filter for specific activities
                 </li>
               </ul>
             </div>
@@ -423,20 +429,20 @@ const ComingSoon = () => {
                 Schedule & Plan Ahead
               </h3>
               <p className="saas-feature-description">
-                Keep track of appointments, milestones, and important events with our integrated calendar. Never miss a pediatrician visit or vaccination date again.
+                Keep track of appointments, caretaker schedules, and important events with our integrated calendar. Keep everyone in the loop!
               </p>
               <ul className="saas-feature-list">
                 <li className="saas-feature-list-item">
-                  <span className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-teal-600 mr-3"></span>
-                  Doctor appointments and checkups
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>
+                  Help coordinate schedules between caretakers
                 </li>
                 <li className="saas-feature-list-item">
-                  <span className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-teal-600 mr-3"></span>
-                  Vaccination schedules and reminders
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>
+                  Keep track of appoitnments
                 </li>
                 <li className="saas-feature-list-item">
-                  <span className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-teal-600 mr-3"></span>
-                  Milestone tracking and celebrations
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>
+                  Add custom events and reminders
                 </li>
               </ul>
             </div>
@@ -517,9 +523,25 @@ const ComingSoon = () => {
           </div>
         </div>
       <div className="saas-footer-bottom relative flex flex-col sm:flex-row items-center justify-center gap-4">
-        <p className="saas-footer-copyright">
-          © 2025 Oak and Sprout. All rights reserved.
-        </p>
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <p className="saas-footer-copyright">
+            © 2025 Oak and Sprout. All rights reserved.
+          </p>
+          <div className="flex items-center gap-4 text-sm">
+            <button
+              onClick={() => setShowPrivacyPolicy(true)}
+              className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer underline-offset-4 hover:underline"
+            >
+              Privacy Policy
+            </button>
+            <button
+              onClick={() => setShowTermsOfUse(true)}
+              className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer underline-offset-4 hover:underline"
+            >
+              Terms of Use
+            </button>
+          </div>
+        </div>
         <div className="flex items-center gap-2 saas-footer-copyright">
         <p>Follow on</p>
         <Button variant="outline" size="sm" asChild className="p-2">
@@ -553,6 +575,18 @@ const ComingSoon = () => {
         initialMode={accountModalMode}
         verificationToken={verificationToken}
         resetToken={resetToken}
+      />
+
+      {/* Privacy Policy Modal */}
+      <PrivacyPolicyModal 
+        open={showPrivacyPolicy} 
+        onClose={() => setShowPrivacyPolicy(false)} 
+      />
+
+      {/* Terms of Use Modal */}
+      <TermsOfUseModal 
+        open={showTermsOfUse} 
+        onClose={() => setShowTermsOfUse(false)} 
       />
     </div>
   );

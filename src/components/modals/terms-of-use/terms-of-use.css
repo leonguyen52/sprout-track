@@ -1,0 +1,44 @@
+/* Dark mode overrides for Terms of Use Modal component */
+html.dark .terms-of-use-modal-title {
+  color: #e5e7eb; /* gray-200 */
+}
+
+html.dark .terms-of-use-modal-description {
+  color: #9ca3af; /* gray-400 */
+}
+
+html.dark .terms-of-use-modal-close-button {
+  background-image: linear-gradient(to right, #0d9488, #059669); /* dark:from-teal-600 dark:to-emerald-600 */
+}
+
+html.dark .terms-of-use-modal-close-button:hover {
+  background-image: linear-gradient(to right, #0f766e, #047857); /* dark:hover:from-teal-700 dark:hover:to-emerald-700 */
+}
+
+/* Dark mode text color fixes */
+html.dark .terms-of-use-modal-content p,
+html.dark .terms-of-use-modal-content li,
+html.dark .terms-of-use-modal-content h1,
+html.dark .terms-of-use-modal-content h2,
+html.dark .terms-of-use-modal-content h3,
+html.dark .terms-of-use-modal-content span {
+  color: #e5e7eb; /* gray-200 */
+}
+
+html.dark .terms-of-use-modal-content h4 {
+  color: #5eead4; /* teal-300 */
+}
+
+html.dark .terms-of-use-modal-markdown {
+  color: #e5e7eb; /* gray-200 */
+}
+
+/* Text formatting support in dark mode */
+html.dark .terms-of-use-modal-content strong {
+  color: #f3f4f6; /* gray-100 - slightly lighter for bold text */
+  font-weight: 600;
+}
+
+html.dark .terms-of-use-modal-content em {
+  color: #d1d5db; /* gray-300 - slightly muted for italic text */
+}
