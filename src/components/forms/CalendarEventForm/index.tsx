@@ -402,7 +402,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
     <FormPage isOpen={isOpen} onClose={handleClose} title={event ? 'Edit Event' : 'New Event'}>
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
         <FormPageContent>
-          <div className="space-y-6">
+          <div className="space-y-6 pb-24">
             {/* Event details section */}
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>Event Details</h3>
