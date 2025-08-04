@@ -78,8 +78,15 @@ export default function CaretakerForm({
     if (!isEditing && isOpen) {
       const checkFirstCaretaker = async () => {
         try {
+          // Get the JWT token from localStorage
+          const token = localStorage.getItem('authToken');
+          
           // The backend will automatically scope this to the user's family
-          const response = await fetch(`/api/caretaker`);
+          const response = await fetch(`/api/caretaker`, {
+            headers: {
+              'Authorization': token ? `Bearer ${token}` : '',
+            },
+          });
           if (response.ok) {
             const data = await response.json();
             const isFirst = !data.data || data.data.length === 0;
@@ -148,10 +155,14 @@ export default function CaretakerForm({
       setIsSubmitting(true);
       setError('');
       
+      // Get the JWT token from localStorage
+      const token = localStorage.getItem('authToken');
+      
       const response = await fetch('/api/caretaker', {
         method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
         },
         body: JSON.stringify({
           ...formData,
