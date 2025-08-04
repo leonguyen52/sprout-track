@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/src/components/ui/button';
 import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 import { AccountButton } from '@/src/components/ui/account-button';
+import { MobileMenu } from '@/src/components/ui/mobile-menu';
 import SetupWizard from '@/src/components/SetupWizard';
 import AccountModal from '@/src/components/modals/AccountModal';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -128,7 +129,7 @@ export default function AccountFamilySetupPage() {
                 />
                 <span className="saas-logo-text">Sprout Track</span>
               </Link>
-              <div className="saas-nav-links">
+              <MobileMenu>
                 <AccountButton 
                   label="Sign In" 
                   showIcon={false} 
@@ -136,7 +137,7 @@ export default function AccountFamilySetupPage() {
                   className="saas-account-btn" 
                 />
                 <ThemeToggle variant="light" className="saas-theme-toggle" />
-              </div>
+              </MobileMenu>
             </div>
           </nav>
         </header>
@@ -241,7 +242,7 @@ export default function AccountFamilySetupPage() {
                 />
                 <span className="saas-logo-text">Sprout Track</span>
               </Link>
-              <div className="saas-nav-links">
+              <MobileMenu>
                 <AccountButton 
                   label="Sign In" 
                   showIcon={false} 
@@ -249,7 +250,7 @@ export default function AccountFamilySetupPage() {
                   className="saas-account-btn" 
                 />
                 <ThemeToggle variant="light" className="saas-theme-toggle" />
-              </div>
+              </MobileMenu>
             </div>
           </nav>
         </header>
@@ -363,10 +364,10 @@ export default function AccountFamilySetupPage() {
               />
               <span className="saas-logo-text">Sprout Track</span>
             </Link>
-            <div className="saas-nav-links">
+            <MobileMenu>
               <AccountButton className="saas-account-btn" />
               <ThemeToggle variant="light" className="saas-theme-toggle" />
-            </div>
+            </MobileMenu>
           </div>
         </nav>
       </header>

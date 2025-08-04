@@ -6,6 +6,7 @@ import { Input } from '@/src/components/ui/input';
 import { Badge } from '@/src/components/ui/badge';
 import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 import { AccountButton } from '@/src/components/ui/account-button';
+import { MobileMenu } from '@/src/components/ui/mobile-menu';
 import AccountModal from '@/src/components/modals/AccountModal';
 import { useTheme } from '@/src/context/theme';
 import { Github, Users, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
@@ -157,23 +158,23 @@ const ComingSoon = () => {
               />
               <span className="saas-logo-text">Sprout Track</span>
             </div>
-            <div className="saas-nav-links">
-            <AccountButton 
+            <MobileMenu>
+              <AccountButton 
                 label="Sign Up" 
                 showIcon={false} 
                 variant="link"
                 initialMode="register"
                 hideWhenLoggedIn={true}
-                className="saas-account-btn-signup mr-2" 
+                className="saas-account-btn-signup" 
               />
               <AccountButton 
                 label="Sign In" 
                 showIcon={false} 
                 initialMode="login"
-                className="saas-account-btn mr-2" 
+                className="saas-account-btn" 
               />
               <ThemeToggle variant="light" className="saas-theme-toggle" />
-            </div>
+            </MobileMenu>
           </div>
         </nav>
       </header>
