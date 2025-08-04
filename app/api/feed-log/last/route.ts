@@ -10,7 +10,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const { searchParams } = new URL(req.url);
     const babyId = searchParams.get('babyId');
     const type = searchParams.get('type') as FeedType | undefined;
-    const { familyId } = authContext;
+    const { familyId, isAccountAuth, caretakerId, accountId } = authContext;
 
     if (!babyId) {
       return NextResponse.json<ApiResponse<FeedLogResponse>>(
@@ -20,6 +20,27 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
         },
         { status: 400 }
       );
+    }
+
+    // Handle case where account user doesn't have familyId yet
+    if (!familyId) {
+      if (isAccountAuth) {
+        return NextResponse.json<ApiResponse<null>>(
+          {
+            success: false,
+            error: 'Account setup incomplete. Please complete family setup.',
+          },
+          { status: 403 }
+        );
+      } else {
+        return NextResponse.json<ApiResponse<null>>(
+          {
+            success: false,
+            error: 'User is not associated with a family.',
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // Validate that the baby belongs to the family

@@ -20,8 +20,33 @@ export default function FamilySelectPage() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [selectedFamily, setSelectedFamily] = useState<FamilyResponse | null>(null);
+  const [deploymentMode, setDeploymentMode] = useState<string>('selfhosted');
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Check deployment mode and redirect if SaaS
+  useEffect(() => {
+    const checkDeploymentMode = async () => {
+      try {
+        const response = await fetch('/api/deployment-config');
+        const data = await response.json();
+        
+        if (data.success && data.data?.deploymentMode === 'saas') {
+          // In SaaS mode, family-select page should not be accessible
+          router.push('/');
+          return;
+        }
+        
+        setDeploymentMode(data.data?.deploymentMode || 'selfhosted');
+      } catch (error) {
+        console.error('Error checking deployment mode:', error);
+        // Default to selfhosted if we can't determine the mode
+        setDeploymentMode('selfhosted');
+      }
+    };
+    
+    checkDeploymentMode();
+  }, [router]);
 
   // Handle click outside to close dropdown
   useEffect(() => {

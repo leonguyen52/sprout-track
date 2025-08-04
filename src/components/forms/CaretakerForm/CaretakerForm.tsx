@@ -52,6 +52,8 @@ export default function CaretakerForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [isFirstCaretaker, setIsFirstCaretaker] = useState(false);
+  const [existingCaretakers, setExistingCaretakers] = useState<string[]>([]);
+  const [loginIdError, setLoginIdError] = useState('');
 
   // Reset form when form opens/closes or caretaker changes
   useEffect(() => {
@@ -70,34 +72,63 @@ export default function CaretakerForm({
       setFormData(defaultFormData);
       setConfirmPin('');
       setError('');
+      setLoginIdError('');
     }
   }, [caretaker, isOpen]);
 
-  // Check if this is the first caretaker in the system
+  // Validate login ID for duplicates
   useEffect(() => {
-    if (!isEditing && isOpen) {
-      const checkFirstCaretaker = async () => {
+    if (formData.loginId && formData.loginId.length === 2) {
+      if (existingCaretakers.includes(formData.loginId)) {
+        setLoginIdError('This Login ID is already in use. Please choose a different one.');
+      } else if (formData.loginId === '00') {
+        setLoginIdError('Login ID "00" is reserved for system use. Please choose a different one.');
+      } else {
+        setLoginIdError('');
+      }
+    } else {
+      setLoginIdError('');
+    }
+  }, [formData.loginId, existingCaretakers]);
+
+  // Check if this is the first caretaker in the system and fetch existing caretakers for validation
+  useEffect(() => {
+    if (isOpen) {
+      const fetchCaretakers = async () => {
         try {
+          // Get the JWT token from localStorage
+          const token = localStorage.getItem('authToken');
+          
           // The backend will automatically scope this to the user's family
-          const response = await fetch(`/api/caretaker`);
+          const response = await fetch(`/api/caretaker`, {
+            headers: {
+              'Authorization': token ? `Bearer ${token}` : '',
+            },
+          });
           if (response.ok) {
             const data = await response.json();
             const isFirst = !data.data || data.data.length === 0;
-            setIsFirstCaretaker(isFirst);
+            setIsFirstCaretaker(isFirst && !isEditing);
             
-            // If this is the first caretaker, set role to ADMIN
-            if (isFirst) {
+            // Store existing login IDs for validation (excluding current caretaker if editing)
+            const existingLoginIds = data.data ? data.data
+              .filter((c: any) => !isEditing || c.id !== caretaker?.id)
+              .map((c: any) => c.loginId) : [];
+            setExistingCaretakers(existingLoginIds);
+            
+            // If this is the first caretaker and we're creating, set role to ADMIN
+            if (isFirst && !isEditing) {
               setFormData(prev => ({ ...prev, role: 'ADMIN' }));
             }
           }
         } catch (error) {
-          console.error('Error checking caretakers:', error);
+          console.error('Error fetching caretakers:', error);
         }
       };
       
-      checkFirstCaretaker();
+      fetchCaretakers();
     }
-  }, [isEditing, isOpen]);
+  }, [isEditing, isOpen, caretaker?.id]);
 
   const validatePIN = () => {
     if (formData.securityPin.length < 6) {
@@ -135,6 +166,12 @@ export default function CaretakerForm({
       return;
     }
 
+    // Check for client-side login ID validation errors
+    if (loginIdError) {
+      setError(loginIdError);
+      return;
+    }
+
     if (!formData.name.trim()) {
       setError('Name is required');
       return;
@@ -148,10 +185,14 @@ export default function CaretakerForm({
       setIsSubmitting(true);
       setError('');
       
+      // Get the JWT token from localStorage
+      const token = localStorage.getItem('authToken');
+      
       const response = await fetch('/api/caretaker', {
         method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
         },
         body: JSON.stringify({
           ...formData,
@@ -200,7 +241,7 @@ export default function CaretakerForm({
                   setFormData({ ...formData, loginId: value });
                 }
               }}
-              className="w-full"
+              className={`w-full ${loginIdError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
               placeholder="Enter 2-digit ID"
               maxLength={2}
               required
@@ -208,9 +249,13 @@ export default function CaretakerForm({
               inputMode="numeric"
               pattern="\d*"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Login ID must be exactly 2 digits (currently: {formData.loginId.length}/2)
-            </p>
+            {loginIdError ? (
+              <p className="text-xs text-red-500 mt-1">{loginIdError}</p>
+            ) : (
+              <p className="text-xs text-gray-500 mt-1">
+                Login ID must be exactly 2 digits (currently: {formData.loginId.length}/2)
+              </p>
+            )}
           </div>
           <div>
             <label className="form-label">Name</label>

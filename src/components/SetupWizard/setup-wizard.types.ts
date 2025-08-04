@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from 'react';
 import { Gender } from '@prisma/client';
 
 /**
@@ -60,6 +61,18 @@ export interface FamilySetupStageProps {
 }
 
 /**
+ * Represents the data for a caretaker during the setup process.
+ */
+export type CaretakerData = {
+  loginId: string;
+  name: string;
+  type: string;
+  role: 'ADMIN' | 'USER';
+  securityPin: string;
+};
+
+
+/**
  * Props for the SecuritySetupStage component
  */
 export interface SecuritySetupStageProps {
@@ -96,46 +109,22 @@ export interface SecuritySetupStageProps {
   /**
    * List of caretakers
    */
-  caretakers: Array<{
-    loginId: string;
-    name: string;
-    type: string;
-    role: 'ADMIN' | 'USER';
-    securityPin: string;
-  }>;
+  caretakers: CaretakerData[];
   
   /**
    * Function to update caretakers
    */
-  setCaretakers: (caretakers: Array<{
-    loginId: string;
-    name: string;
-    type: string;
-    role: 'ADMIN' | 'USER';
-    securityPin: string;
-  }>) => void;
+  setCaretakers: (caretakers: CaretakerData[]) => void;
   
   /**
    * New caretaker data
    */
-  newCaretaker: {
-    loginId: string;
-    name: string;
-    type: string;
-    role: 'ADMIN' | 'USER';
-    securityPin: string;
-  };
+  newCaretaker: CaretakerData;
   
   /**
    * Function to update new caretaker data
    */
-  setNewCaretaker: (caretaker: {
-    loginId: string;
-    name: string;
-    type: string;
-    role: 'ADMIN' | 'USER';
-    securityPin: string;
-  }) => void;
+  setNewCaretaker: Dispatch<SetStateAction<CaretakerData>>;
   
   /**
    * Function to add a caretaker

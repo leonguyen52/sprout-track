@@ -7,15 +7,15 @@ import { withAuthContext, AuthResult } from '../utils/auth';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId: userFamilyId, isSetupAuth, isSysAdmin } = authContext;
+    const { familyId: userFamilyId, isSetupAuth, isSysAdmin, isAccountAuth } = authContext;
     
     const requestBody = await req.json();
     const { familyId: bodyFamilyId, ...babyData } = requestBody;
     const body: BabyCreate = babyData;
     
-    // Determine target family ID - prefer auth context, but allow body override for setup auth and sysadmin
+    // Determine target family ID - prefer auth context, but allow body override for setup auth, account auth, and sysadmin
     let targetFamilyId = userFamilyId;
-    if (!userFamilyId && (isSetupAuth || isSysAdmin) && bodyFamilyId) {
+    if (!userFamilyId && (isSetupAuth || isSysAdmin || isAccountAuth) && bodyFamilyId) {
       targetFamilyId = bodyFamilyId;
     }
     

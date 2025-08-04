@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { useTheme } from '@/src/context/theme';
+import { useDeployment } from '@/app/context/deployment';
 import { ShareButton } from '@/src/components/ui/share-button';
 import './login-security.css';
 import { ApiResponse } from '@/app/api/types';
@@ -18,6 +20,8 @@ interface LoginSecurityProps {
 
 export default function LoginSecurity({ onUnlock, familySlug, familyName }: LoginSecurityProps) {
   const { theme } = useTheme();
+  const { isSaasMode } = useDeployment();
+  const router = useRouter();
   const [loginId, setLoginId] = useState<string>('');
   const [pin, setPin] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -284,7 +288,6 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
         if (idleTimeData.success) {
           localStorage.setItem('idleTimeSeconds', idleTimeData.data.toString());
         }
-        
         // Call the onUnlock callback
         onUnlock(data.data.id);
       } else {
@@ -390,6 +393,13 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
     };
   }, [clickTimer]);
 
+  // Handle logo click - redirect to home in SaaS mode
+  const handleLogoClick = () => {
+    if (isSaasMode) {
+      router.push('/');
+    }
+  };
+
   const formatTimeRemaining = (lockoutTime: number) => {
     const remaining = Math.ceil((lockoutTime - Date.now()) / 1000);
     const minutes = Math.floor(remaining / 60);
@@ -435,7 +445,10 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
           )}
         </div>
         <div className="flex flex-col items-center space-y-4 pb-6 pl-6 pr-6">
-          <div className="w-24 h-24 p-1 flex items-center justify-center">
+          <div 
+            className={`w-24 h-24 p-1 flex items-center justify-center ${isSaasMode ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+            onClick={handleLogoClick}
+          >
             <Image
               src="/sprout-128.png"
               alt="Sprout Logo"

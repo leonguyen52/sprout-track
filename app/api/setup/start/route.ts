@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/prisma/db';
-import { ApiResponse, withAdminAuth, getAuthenticatedUser } from '@/app/api/utils/auth';
+import { ApiResponse, withAdminAuth, getAuthenticatedUser, AuthResult } from '@/app/api/utils/auth';
 import { Family } from '@prisma/client';
 
 interface SetupStartRequest {
@@ -103,8 +103,79 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
       });
 
       return NextResponse.json({ success: true, data: updatedFamily });
+    } else if (authResult.isAccountAuth && authResult.accountId) {
+      // SCENARIO 4: Account owner setting up their family
+      
+      // Check if slug is unique
+      const existingFamily = await prisma.family.findUnique({ where: { slug } });
+      if (existingFamily) {
+        return NextResponse.json({ success: false, error: 'That URL is already taken' }, { status: 409 });
+      }
+
+      // Check if account already has a family
+      const existingAccountFamily = await prisma.family.findFirst({
+        where: { accountId: authResult.accountId }
+      });
+      if (existingAccountFamily) {
+        return NextResponse.json({ success: false, error: 'Account already has a family' }, { status: 409 });
+      }
+
+      const family = await prisma.$transaction(async (tx) => {
+        // Create new family linked to account
+        const newFamily = await tx.family.create({
+          data: {
+            name,
+            slug,
+            isActive: true,
+            accountId: authResult.accountId,
+          },
+        });
+
+        // Create default settings for the family
+        await tx.settings.create({
+          data: {
+            familyId: newFamily.id,
+            familyName: name,
+            securityPin: '111222', // Default PIN, user can change later
+            defaultBottleUnit: 'OZ',
+            defaultSolidsUnit: 'TBSP',
+            defaultHeightUnit: 'IN',
+            defaultWeightUnit: 'LB',
+            defaultTempUnit: 'F',
+            activitySettings: JSON.stringify({
+              global: {
+                order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'],
+                visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine']
+              }
+            })
+          },
+        });
+
+        // Create system caretaker for the family
+        await tx.caretaker.create({
+          data: {
+            loginId: '00',
+            name: 'system',
+            type: 'System Administrator',
+            role: 'ADMIN',
+            securityPin: '111222', // Default PIN
+            familyId: newFamily.id,
+            inactive: false,
+          },
+        });
+
+        // Update account to link to family
+        await tx.account.update({
+          where: { id: authResult.accountId },
+          data: { familyId: newFamily.id }
+        });
+
+        return newFamily;
+      });
+
+      return NextResponse.json({ success: true, data: family });
     } else if (authResult.isSysAdmin || authResult.caretakerRole === 'ADMIN') {
-      // System admin or admin caretaker scenarios (requires appropriate authentication)
+      // System admin or admin caretaker scenarios
       
       // Check if slug is unique
       const existingFamily = await prisma.family.findUnique({ where: { slug } });
@@ -212,4 +283,23 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
   }
 }
 
-export const POST = withAdminAuth(handler); 
+// Custom wrapper to allow both admin auth and account owners
+async function authWrapper(req: NextRequest): Promise<NextResponse<ApiResponse<Family>>> {
+  const authResult = await getAuthenticatedUser(req);
+  
+  if (!authResult.authenticated) {
+    return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+  }
+  
+  // Allow admin users, system administrators, setup tokens, or account owners
+  if (authResult.isSysAdmin || 
+      authResult.caretakerRole === 'ADMIN' || 
+      authResult.isSetupAuth || 
+      authResult.isAccountAuth) {
+    return handler(req);
+  }
+  
+  return NextResponse.json({ success: false, error: 'Insufficient permissions' }, { status: 403 });
+}
+
+export const POST = authWrapper; 

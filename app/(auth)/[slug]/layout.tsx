@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ThemeProvider } from '@/src/context/theme';
 import { FamilyProvider } from '@/src/context/family';
+import { DeploymentProvider } from '@/app/context/deployment';
 
 export default function AuthLayout({
   children,
@@ -39,10 +40,12 @@ export default function AuthLayout({
   }, [familySlug, router]);
 
   return (
+    <DeploymentProvider>
     <ThemeProvider>
       <FamilyProvider>
         {children}
       </FamilyProvider>
     </ThemeProvider>
+    </DeploymentProvider>
   );
 }

@@ -98,6 +98,24 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     }
 
     if (babyId) {
+      // Verify that the baby belongs to the user's family before filtering
+      const baby = await prisma.baby.findFirst({
+        where: {
+          id: babyId,
+          familyId: userFamilyId,
+        },
+        select: {
+          familyId: true,
+        },
+      });
+
+      if (!baby) {
+        return NextResponse.json<ApiResponse<null>>(
+          { success: false, error: "Baby not found in this family." },
+          { status: 404 }
+        );
+      }
+
       where.babies = {
         some: {
           babyId,

@@ -71,6 +71,27 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
     };
   };
 
+  // Check if this is account-based authentication
+  const isAccountAuth = () => {
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) return false;
+    
+    try {
+      // Decode token to check if it's account auth (without verifying signature)
+      const base64Url = authToken.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      
+      const decoded = JSON.parse(jsonPayload);
+      return decoded.isAccountAuth === true;
+    } catch (error) {
+      console.error('Error checking account auth:', error);
+      return false;
+    }
+  };
+
   const handleNext = async () => {
     setError('');
     
@@ -139,9 +160,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
           return;
         }
         
-        // For token-based setup, defer system PIN saving until final stage
+        // For token-based setup or account-based setup, defer system PIN saving until final stage
         // to avoid authentication conflicts
-        if (token) {
+        if (token || isAccountAuth()) {
           setStage(3);
           return;
         }
@@ -193,9 +214,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
           return;
         }
         
-        // For token-based setup, defer caretaker creation until final stage
+        // For token-based setup or account-based setup, defer caretaker creation until final stage
         // to avoid authentication conflicts
-        if (token) {
+        if (token || isAccountAuth()) {
           setStage(3);
           return;
         }
@@ -251,9 +272,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
       try {
         setLoading(true);
         
-        // For token-based setup, save baby first, then security settings/caretakers
+        // For token-based setup or account-based setup, save baby first, then security settings/caretakers
         // This avoids authentication conflicts where creating caretakers disables token access
-        if (token) {
+        if (token || isAccountAuth()) {
           // Step 1: Save baby information first
           const babyResponse = await fetch('/api/baby', {
             method: 'POST',
@@ -287,8 +308,45 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
             if (!settingsResponse.ok) {
               throw new Error('Failed to save security PIN to settings');
             }
+            
+            // For account authentication, link to the system caretaker
+            if (isAccountAuth()) {
+              try {
+                // Get the system caretaker (loginId '00') for this family
+                const systemCaretakerResponse = await fetch(`/api/caretaker/system?familyId=${createdFamily?.id}`, {
+                  headers: getAuthHeaders(),
+                });
+                
+                if (systemCaretakerResponse.ok) {
+                  const systemCaretakerData = await systemCaretakerResponse.json();
+                  if (systemCaretakerData.success && systemCaretakerData.data?.id) {
+                    // Link the account to the system caretaker
+                    const linkResponse = await fetch('/api/accounts/link-caretaker', {
+                      method: 'POST',
+                      headers: getAuthHeaders(),
+                      body: JSON.stringify({
+                        caretakerId: systemCaretakerData.data.id,
+                      }),
+                    });
+                    
+                    if (!linkResponse.ok) {
+                      console.error('Failed to link account to system caretaker');
+                    } else {
+                      console.log('Successfully linked account to system caretaker');
+                    }
+                  }
+                } else {
+                  console.error('Failed to fetch system caretaker for linking');
+                }
+              } catch (error) {
+                console.error('Error linking account to system caretaker:', error);
+                // Don't throw error here as the main setup is complete
+              }
+            }
           } else {
             // Save caretakers
+            let accountCaretakerId: string | null = null;
+            
             for (const caretaker of caretakers) {
               const caretakerResponse = await fetch('/api/caretaker', {
                 method: 'POST',
@@ -301,6 +359,35 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
               
               if (!caretakerResponse.ok) {
                 throw new Error(`Failed to save caretaker: ${caretaker.name}`);
+              }
+              
+              // For account authentication, link the first (and only) caretaker to the account
+              if (isAccountAuth() && !accountCaretakerId) {
+                const caretakerData = await caretakerResponse.json();
+                if (caretakerData.success && caretakerData.data?.id) {
+                  accountCaretakerId = caretakerData.data.id;
+                }
+              }
+            }
+            
+            // Link the caretaker to the account
+            if (isAccountAuth() && accountCaretakerId) {
+              try {
+                const linkResponse = await fetch('/api/accounts/link-caretaker', {
+                  method: 'POST',
+                  headers: getAuthHeaders(),
+                  body: JSON.stringify({
+                    caretakerId: accountCaretakerId,
+                  }),
+                });
+                
+                if (!linkResponse.ok) {
+                  console.error('Failed to link caretaker to account, but continuing setup');
+                  // Don't throw error here as the main setup is complete
+                }
+              } catch (error) {
+                console.error('Error linking caretaker to account:', error);
+                // Don't throw error here as the main setup is complete
               }
             }
           }
@@ -325,12 +412,15 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
           }
         }
         
-        // Setup complete - logout and pass the family data to the callback
+        // Setup complete - pass the family data to the callback
         if (createdFamily) {
-          // Clear authentication tokens to force re-login with new family context
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('unlockTime');
-          localStorage.removeItem('caretakerId');
+          // For non-account authentication, clear tokens to force re-login with new family context
+          // For account authentication, keep the user logged in
+          if (!isAccountAuth()) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('unlockTime');
+            localStorage.removeItem('caretakerId');
+          }
           
           onComplete(createdFamily);
         }

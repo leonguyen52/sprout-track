@@ -6,14 +6,24 @@ import { withAuthContext, AuthResult } from '../utils/auth';
 
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId: userFamilyId } = authContext;
+    const { familyId: userFamilyId, isSetupAuth, isSysAdmin, isAccountAuth } = authContext;
     
-    if (!userFamilyId) {
+    // Determine target family ID - prefer auth context, but allow query parameter for setup auth, account auth, and sysadmin
+    let targetFamilyId = userFamilyId;
+    if (!userFamilyId && (isSetupAuth || isSysAdmin || isAccountAuth)) {
+      const { searchParams } = new URL(req.url);
+      const queryFamilyId = searchParams.get('familyId');
+      if (queryFamilyId) {
+        targetFamilyId = queryFamilyId;
+      }
+    }
+    
+    if (!targetFamilyId) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
 
     let settings = await prisma.settings.findFirst({
-      where: { familyId: userFamilyId },
+      where: { familyId: targetFamilyId },
     });
     
     if (!settings) {
@@ -25,7 +35,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
           defaultHeightUnit: 'IN',
           defaultWeightUnit: 'LB',
           defaultTempUnit: 'F',
-          familyId: userFamilyId,
+          familyId: targetFamilyId,
         },
       });
     }
@@ -48,16 +58,26 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
 
 async function handlePut(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId: userFamilyId } = authContext;
+    const { familyId: userFamilyId, isSetupAuth, isSysAdmin, isAccountAuth } = authContext;
     
-    if (!userFamilyId) {
+    // Determine target family ID - prefer auth context, but allow query parameter for setup auth, account auth, and sysadmin
+    let targetFamilyId = userFamilyId;
+    if (!userFamilyId && (isSetupAuth || isSysAdmin || isAccountAuth)) {
+      const { searchParams } = new URL(req.url);
+      const queryFamilyId = searchParams.get('familyId');
+      if (queryFamilyId) {
+        targetFamilyId = queryFamilyId;
+      }
+    }
+    
+    if (!targetFamilyId) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
 
     const body = await req.json();
     
     let existingSettings = await prisma.settings.findFirst({
-      where: { familyId: userFamilyId },
+      where: { familyId: targetFamilyId },
     });
     
     if (!existingSettings) {
@@ -94,7 +114,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
         const systemCaretaker = await prisma.caretaker.findFirst({
           where: { 
             loginId: '00',
-            familyId: userFamilyId 
+            familyId: targetFamilyId 
           }
         });
 

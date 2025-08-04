@@ -71,6 +71,7 @@ export default function SettingsForm({
   const [showChangePinModal, setShowChangePinModal] = useState(false);
   const [units, setUnits] = useState<Unit[]>([]);
   const [appConfig, setAppConfig] = useState<{ rootDomain: string; enableHttps: boolean } | null>(null);
+  const [deploymentConfig, setDeploymentConfig] = useState<{ deploymentMode: string; enableAccounts: boolean; allowAccountRegistration: boolean } | null>(null);
 
   // Family editing state
   const [editingFamily, setEditingFamily] = useState(false);
@@ -154,14 +155,15 @@ export default function SettingsForm({
       const contactsUrl = isSysAdmin && familyId ? `/api/contact?familyId=${familyId}` : '/api/contact';
       const familyUrl = '/api/family';
       
-      const [settingsResponse, familyResponse, babiesResponse, unitsResponse, caretakersResponse, contactsResponse, appConfigResponse] = await Promise.all([
+      const [settingsResponse, familyResponse, babiesResponse, unitsResponse, caretakersResponse, contactsResponse, appConfigResponse, deploymentConfigResponse] = await Promise.all([
         fetch(settingsUrl, { headers }),
         fetch(familyUrl, { headers }),
         fetch(babiesUrl, { headers }),
         fetch('/api/units', { headers }),
         fetch(caretakersUrl, { headers }),
         fetch(contactsUrl, { headers }),
-        fetch('/api/app-config/public', { headers })
+        fetch('/api/app-config/public', { headers }),
+        fetch('/api/deployment-config', { headers })
       ]);
 
       if (settingsResponse.ok) {
@@ -202,6 +204,11 @@ export default function SettingsForm({
       if (appConfigResponse.ok) {
         const appConfigData = await appConfigResponse.json();
         setAppConfig(appConfigData.data);
+      }
+
+      if (deploymentConfigResponse.ok) {
+        const deploymentConfigData = await deploymentConfigResponse.json();
+        setDeploymentConfig(deploymentConfigData.data);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -792,23 +799,26 @@ export default function SettingsForm({
               </div>
             </div>
 
-            <div className="border-t border-slate-200 pt-6">
-              <h3 className="form-label mb-4">System Administration</h3>
-              <div className="space-y-4">
-                <Button
-                  variant="outline"
-                  onClick={handleOpenFamilyManager}
-                  className="w-full"
-                  disabled={loading}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open Family Manager
-                </Button>
-                <p className="text-sm text-gray-500">
-                  Access system-wide family management and advanced settings
-                </p>
+            {/* Only show System Administration section in self-hosted mode */}
+            {deploymentConfig?.deploymentMode !== 'saas' && (
+              <div className="border-t border-slate-200 pt-6">
+                <h3 className="form-label mb-4">System Administration</h3>
+                <div className="space-y-4">
+                  <Button
+                    variant="outline"
+                    onClick={handleOpenFamilyManager}
+                    className="w-full"
+                    disabled={loading}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open Family Manager
+                  </Button>
+                  <p className="text-sm text-gray-500">
+                    Access system-wide family management and advanced settings
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </FormPageContent>
         

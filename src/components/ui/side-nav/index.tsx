@@ -4,6 +4,7 @@ import { X, Settings, LogOut } from 'lucide-react';
 import ThemeToggle from '@/src/components/ui/theme-toggle';
 import Image from 'next/image';
 import { useTheme } from '@/src/context/theme';
+import { useDeployment } from '@/app/context/deployment';
 import { cn } from '@/src/lib/utils';
 import { sideNavStyles, triggerButtonVariants } from './side-nav.styles';
 import { SideNavProps, SideNavTriggerProps, SideNavItemProps } from './side-nav.types';
@@ -114,6 +115,7 @@ export const SideNav: React.FC<SideNavProps> = ({
   nonModal = false,
 }) => {
   const { theme } = useTheme();
+  const { isSaasMode } = useDeployment();
   const [isSystemDarkMode, setIsSystemDarkMode] = useState<boolean>(false);
   const [showChangelog, setShowChangelog] = useState<boolean>(false);
   
@@ -185,17 +187,37 @@ export const SideNav: React.FC<SideNavProps> = ({
         <header className="w-full bg-white sticky top-0 z-40 side-nav-header">
           <div className="mx-auto">
             <div className={cn("flex justify-between items-center h-20", sideNavStyles.header)}>
-              <div className={sideNavStyles.logoContainer}>
-                <Image
-                  src="/sprout-128.png"
-                  alt="Sprout Logo"
-                  width={40}
-                  height={40}
-                  className={sideNavStyles.logo}
-                  priority
-                />
-                <span className={cn(sideNavStyles.appName, "side-nav-app-name")}>Sprout Track</span>
-              </div>
+              {isSaasMode ? (
+                <button
+                  onClick={() => {
+                    window.location.href = '/';
+                  }}
+                  className={cn(sideNavStyles.logoContainer, "cursor-pointer hover:opacity-80 transition-opacity")}
+                  aria-label="Go to home page"
+                >
+                  <Image
+                    src="/sprout-128.png"
+                    alt="Sprout Logo"
+                    width={40}
+                    height={40}
+                    className={sideNavStyles.logo}
+                    priority
+                  />
+                  <span className={cn(sideNavStyles.appName, "side-nav-app-name")}>Sprout Track</span>
+                </button>
+              ) : (
+                <div className={sideNavStyles.logoContainer}>
+                  <Image
+                    src="/sprout-128.png"
+                    alt="Sprout Logo"
+                    width={40}
+                    height={40}
+                    className={sideNavStyles.logo}
+                    priority
+                  />
+                  <span className={cn(sideNavStyles.appName, "side-nav-app-name")}>Sprout Track</span>
+                </div>
+              )}
               {/* Only show close button in modal mode */}
               {!nonModal && (
                 <button

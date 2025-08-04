@@ -39,6 +39,13 @@ export interface AuthResult {
   isSysAdmin?: boolean;
   isSetupAuth?: boolean;
   setupToken?: string;
+  
+  // New account fields
+  isAccountAuth?: boolean;  // True if authenticated via account
+  accountId?: string;       // Account ID
+  accountEmail?: string;    // Account email
+  isAccountOwner?: boolean; // True if account owns the family
+  verified?: boolean;       // True if account email is verified
   error?: string;
 }
 
@@ -70,6 +77,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
     // If no token in header, try to get caretakerId from cookies (backward compatibility)
     const caretakerId = req.cookies.get('caretakerId')?.value;
     
+
     // If we have a JWT token, verify it
     if (token) {
       // Check if token is blacklisted
@@ -80,6 +88,18 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
       try {
         // Verify and decode the token
         const decoded = jwt.verify(token, JWT_SECRET) as any;
+        
+        // Debug logging for intermittent 401s
+        if (decoded.isAccountAuth) {
+          console.log('Processing account auth token:', {
+            accountId: decoded.accountId,
+            accountEmail: decoded.accountEmail,
+            familyId: decoded.familyId,
+            familySlug: decoded.familySlug,
+            exp: decoded.exp,
+            isExpired: decoded.exp && decoded.exp * 1000 < Date.now()
+          });
+        }
         
         // Handle setup authentication tokens
         if (decoded.isSetupAuth && decoded.setupToken) {
@@ -96,6 +116,95 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           };
         }
         
+        // Handle account authentication tokens
+        if (decoded.isAccountAuth) {
+          // For account authentication, always fetch fresh family info from database
+          // since family association can change after JWT was issued (e.g., after family setup)
+          try {
+            const account = await prisma.account.findUnique({
+              where: { id: decoded.accountId },
+              include: { 
+                family: { select: { id: true, slug: true } },
+                caretaker: { select: { id: true, role: true, type: true, loginId: true } }
+              }
+            });
+
+            if (!account) {
+              console.log('Account authentication failed: Account not found for ID:', decoded.accountId);
+              return { authenticated: false, error: 'Account not found' };
+            }
+
+            // Debug logging for account authentication
+            console.log('Account authentication result:', {
+              accountId: account.id,
+              email: account.email,
+              hasFamily: !!account.family,
+              familyId: account.family?.id,
+              familySlug: account.family?.slug,
+              hasLinkedCaretaker: !!account.caretaker,
+              caretakerId: account.caretaker?.id,
+              caretakerRole: account.caretaker?.role
+            });
+
+            // If account has a linked caretaker, use that caretaker's permissions
+            if (account.caretaker) {
+              return {
+                authenticated: true,
+                caretakerId: account.caretaker.id,
+                caretakerType: account.caretaker.type || 'Account Owner',
+                caretakerRole: account.caretaker.role,
+                familyId: account.family?.id || null,
+                familySlug: account.family?.slug || null,
+                isAccountAuth: true,
+                accountId: decoded.accountId,
+                accountEmail: decoded.accountEmail,
+                isAccountOwner: true,
+                verified: account.verified,
+              };
+            } else {
+              // Account without linked caretaker - limited permissions (during setup)
+              console.log('Account has no linked caretaker - setup may be incomplete');
+              
+              // If account has no family AND no caretaker, they're in initial setup phase
+              if (!account.family) {
+                console.log('Account has no family - redirect to setup needed');
+                return {
+                  authenticated: true,
+                  caretakerId: decoded.accountId, // Use account ID as fallback
+                  caretakerType: 'ACCOUNT',
+                  caretakerRole: 'OWNER',
+                  familyId: null,
+                  familySlug: null,
+                  isAccountAuth: true,
+                  accountId: decoded.accountId,
+                  accountEmail: decoded.accountEmail,
+                  isAccountOwner: true,
+                  verified: account.verified,
+                };
+              } else {
+                // Account has family but no caretaker - this shouldn't happen after proper setup
+                console.log('WARNING: Account has family but no linked caretaker - data inconsistency!');
+                return {
+                  authenticated: true,
+                  caretakerId: decoded.accountId, // Use account ID as fallback
+                  caretakerType: 'ACCOUNT',
+                  caretakerRole: 'OWNER',
+                  familyId: account.family.id,
+                  familySlug: account.family.slug,
+                  isAccountAuth: true,
+                  accountId: decoded.accountId,
+                  accountEmail: decoded.accountEmail,
+                  isAccountOwner: true,
+                  verified: account.verified,
+                };
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching account family info:', error);
+            return { authenticated: false, error: 'Failed to verify account status' };
+          }
+        }
+        
         // Handle regular user/admin tokens
         const regularDecoded = decoded as {
           id: string;
@@ -108,7 +217,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
         };
         
         // Return authenticated user info from token
-        return {
+        const authResult = {
           authenticated: true,
           caretakerId: regularDecoded.isSysAdmin ? null : regularDecoded.id,
           caretakerType: regularDecoded.type,
@@ -117,6 +226,10 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           familySlug: regularDecoded.familySlug,
           isSysAdmin: regularDecoded.isSysAdmin || false,
         };
+        
+
+        
+        return authResult;
       } catch (jwtError) {
         console.error('JWT verification error:', jwtError);
         return { authenticated: false, error: 'Invalid or expired token' };
@@ -272,6 +385,29 @@ export function withSysAdminAuth<T>(
 }
 
 /**
+ * Middleware function to require account owner authentication for API routes
+ * @param handler The API route handler function
+ * @returns A wrapped handler that checks account owner authentication before proceeding
+ */
+export function withAccountOwner<T>(
+  handler: (req: NextRequest, authContext: AuthResult) => Promise<NextResponse<ApiResponse<T>>>
+) {
+  return async (req: NextRequest): Promise<NextResponse<ApiResponse<T | null>>> => {
+    const authResult = await getAuthenticatedUser(req);
+    
+    if (!authResult.authenticated) {
+      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+    }
+    
+    if (!authResult.isAccountOwner && !authResult.isSysAdmin) {
+      return NextResponse.json({ success: false, error: 'Account owner access required' }, { status: 403 });
+    }
+    
+    return handler(req, authResult);
+  };
+}
+
+/**
  * Middleware function to attach authenticated user info to the request context
  * This allows handlers to access the authenticated user's information
  * @param handler The API route handler function that receives auth context
@@ -415,29 +551,8 @@ export function withAuthContext<T>(
       return handler(req, modifiedAuthResult);
     }
     
-    // Check if this is a system caretaker by looking up loginId in database
-    if (authResult.caretakerId) {
-      try {
-        const caretaker = await prisma.caretaker.findFirst({
-          where: {
-            id: authResult.caretakerId,
-            loginId: '00', // System caretakers have loginId '00'
-            deletedAt: null,
-          },
-        });
-        
-        if (caretaker) {
-          // This is a system caretaker - set caretakerId to null for database operations
-          const modifiedAuthResult = {
-            ...authResult,
-            caretakerId: null
-          };
-          return handler(req, modifiedAuthResult);
-        }
-      } catch (error) {
-        console.error('Error checking system caretaker:', error);
-      }
-    }
+    // Note: We no longer need to set caretakerId to null for system caretakers
+    // All caretakers (including system ones) should maintain their ID for proper authorization
     
     return handler(req, authResult);
   };
