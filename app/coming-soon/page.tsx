@@ -8,7 +8,7 @@ import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 import { AccountButton } from '@/src/components/ui/account-button';
 import AccountModal from '@/src/components/modals/AccountModal';
 import { useTheme } from '@/src/context/theme';
-import { Github } from 'lucide-react';
+import { Github, Users, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
 import './coming-soon.css';
 
 const ComingSoon = () => {
@@ -178,7 +178,7 @@ const ComingSoon = () => {
           <div className="saas-hero-text">
             
             <Badge className="saas-hero-badge">
-              <u>Beta</u> coming soon!
+              🎉 The Sprout Track Beta is Live 🎉
             </Badge>
             <h1 className="saas-hero-title">
               Easily track your baby's{' '}
@@ -234,67 +234,242 @@ const ComingSoon = () => {
         <div className="saas-transition-content"></div>
       </section>
 
-      {/* CTA Section */}
-      <section id="signup" className="saas-cta">
+      {/* Demo Section */}
+      <section id="demo" className="saas-cta">
         <div className="saas-cta-content">
-          <h2 className="saas-cta-title">Get early access, for free!</h2>
+          <h2 className="saas-cta-title">Don't take our word for it - try it yourself!</h2>
           <p className="saas-cta-description">
-            Our beta program is coming soon! Enter your information to get early access to the app.
+            Experience Sprout Track with our live demo environment. The demo refreshes every 1 hour with fresh sample data.
           </p>
           <div className="saas-cta-actions">
             <div className="max-w-md mx-auto space-y-4">
-              <div className="flex gap-3">
-                <Input
-                  type="text"
-                  placeholder="First name (optional)"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  disabled={isSubmitting}
-                  className="flex-1"
-                />
-                <Input
-                  type="text"
-                  placeholder="Last name (optional)"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  disabled={isSubmitting}
-                  className="flex-1"
-                />
-              </div>
-              <div>
-                <Input
-                  type="email"
-                  placeholder="Enter your email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isSubmitting}
-                  className="w-full"
-                />
-                {emailError && (
-                  <p className="text-red-500 text-sm mt-1">{emailError}</p>
-                )}
-              </div>
               <Button
-                variant="success"
                 size="lg"
-                onClick={handleFormSubmit}
-                disabled={isSubmitting}
-                className="w-full"
+                className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
+                asChild
               >
-                {isSubmitting ? 'Signing up...' : 'Get Notified!'}
+                <a href="/demo">
+                  Try the Live Demo
+                </a>
               </Button>
-              <p className="saas-privacy-notice">
-                This signup is only for beta notifications. We respect your privacy and will never use your information for anything else or share it with third parties.
+              <div className="saas-demo-details">
+                <p className="saas-demo-details-title">
+                  Demo Access Details:
+                </p>
+                <div className="saas-demo-details-grid">
+                  <div>
+                    <span className="saas-demo-label">Login ID:</span>
+                    <span className="saas-demo-value">01</span>
+                  </div>
+                  <div>
+                    <span className="saas-demo-label">PIN:</span>
+                    <span className="saas-demo-value">111111</span>
+                  </div>
+                </div>
+              </div>
+              <p className="saas-demo-refresh-note">
+                Demo data refreshes automatically every hour
               </p>
             </div>
-            {showSuccess && (
-              <div className="mt-4 flex justify-center">
-                <Badge className="saas-success-badge">
-                  ✓ Thank you for signing up! We'll notify you when the beta is ready.
-                </Badge>
-              </div>
-            )}
           </div>
+        </div>
+      </section>
+
+      {/* Feature Sections */}
+      {/* Adding Caretakers */}
+      <section className="saas-feature-section saas-feature-section-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="order-2 lg:order-1">
+              <h3 className="saas-feature-title">
+                Manage Your Care Team
+              </h3>
+              <p className="saas-feature-description">
+                Add multiple caretakers to your family account. Parents, grandparents, babysitters, and daycare providers can all contribute to tracking your baby's activities with secure, individual access.
+              </p>
+              <ul className="saas-feature-list">
+                <li className="saas-feature-list-item">
+                  <span className="w-2 h-2 bg-teal-500 rounded-full mr-3"></span>
+                  Individual login credentials for each caretaker
+                </li>
+                <li className="saas-feature-list-item">
+                  <span className="w-2 h-2 bg-teal-500 rounded-full mr-3"></span>
+                  Role-based permissions and access control
+                </li>
+                <li className="saas-feature-list-item">
+                  <span className="w-2 h-2 bg-teal-500 rounded-full mr-3"></span>
+                  Real-time sync across all devices
+                </li>
+              </ul>
+            </div>
+            <div className="order-1 lg:order-2 relative overflow-visible">
+              {/* Background icon - offset to bottom right */}
+              <div className="absolute bottom-16 -right-12 z-0">
+                <Users size={200} className="text-teal-500 opacity-20" />
+              </div>
+              {/* Phone mockup */}
+              <div className="relative z-10 max-w-sm mx-auto">
+                <div className="saas-phone-mockup">
+                  <span className="saas-phone-mockup-text">Caretaker Management Preview</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Baby Stats */}
+      <section className="saas-feature-section saas-feature-section-gray">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="relative overflow-visible">
+              {/* Background icon - offset to bottom left */}
+              <div className="absolute bottom-16 -left-12 z-0">
+                <TrendingUp size={200} className="text-emerald-500 opacity-20" />
+              </div>
+              {/* Phone mockup */}
+              <div className="relative z-10 max-w-sm mx-auto">
+                <div className="saas-phone-mockup">
+                  <span className="saas-phone-mockup-text">Baby Statistics Dashboard</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 className="saas-feature-title">
+                Track Growth & Development
+              </h3>
+              <p className="saas-feature-description">
+                Monitor your baby's growth patterns, feeding trends, and sleep schedules with comprehensive statistics and beautiful visualizations that help you understand your little one's needs.
+              </p>
+              <ul className="saas-feature-list">
+                <li className="saas-feature-list-item">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>
+                  Growth charts and percentile tracking
+                </li>
+                <li className="saas-feature-list-item">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>
+                  Feeding patterns and nutrition insights
+                </li>
+                <li className="saas-feature-list-item">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>
+                  Sleep quality and duration analysis
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Daily Stats */}
+      <section className="saas-feature-section saas-feature-section-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="order-2 lg:order-1">
+              <h3 className="saas-feature-title">
+                Daily Activity Overview
+              </h3>
+              <p className="saas-feature-description">
+                Get a complete picture of your baby's day with intuitive daily summaries. See feeding times, diaper changes, sleep periods, and activities at a glance.
+              </p>
+              <ul className="saas-feature-list">
+                <li className="saas-feature-list-item">
+                  <span className="w-3 h-3 bg-teal-600 rounded-sm mr-3"></span>
+                  Timeline view of daily activities
+                </li>
+                <li className="saas-feature-list-item">
+                  <span className="w-3 h-3 bg-teal-600 rounded-sm mr-3"></span>
+                  Quick stats and totals for the day
+                </li>
+                <li className="saas-feature-list-item">
+                  <span className="w-3 h-3 bg-teal-600 rounded-sm mr-3"></span>
+                  Easy comparison with previous days
+                </li>
+              </ul>
+            </div>
+            <div className="order-1 lg:order-2 relative overflow-visible">
+              {/* Background icon - offset to bottom right */}
+              <div className="absolute bottom-16 -right-12 z-0">
+                <BarChart3 size={200} className="text-teal-600 opacity-20" />
+              </div>
+              {/* Phone mockup */}
+              <div className="relative z-10 max-w-sm mx-auto">
+                <div className="saas-phone-mockup">
+                  <span className="saas-phone-mockup-text">Daily Statistics View</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Calendar */}
+      <section className="saas-feature-section saas-feature-section-gray">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="relative overflow-visible">
+              {/* Background icon - offset to bottom left */}
+              <div className="absolute bottom-16 -left-12 z-0">
+                <Calendar size={200} className="text-teal-600 opacity-20" />
+              </div>
+              {/* Phone mockup */}
+              <div className="relative z-10 max-w-sm mx-auto">
+                <div className="saas-phone-mockup">
+                  <span className="saas-phone-mockup-text">Calendar & Events View</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 className="saas-feature-title">
+                Schedule & Plan Ahead
+              </h3>
+              <p className="saas-feature-description">
+                Keep track of appointments, milestones, and important events with our integrated calendar. Never miss a pediatrician visit or vaccination date again.
+              </p>
+              <ul className="saas-feature-list">
+                <li className="saas-feature-list-item">
+                  <span className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-teal-600 mr-3"></span>
+                  Doctor appointments and checkups
+                </li>
+                <li className="saas-feature-list-item">
+                  <span className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-teal-600 mr-3"></span>
+                  Vaccination schedules and reminders
+                </li>
+                <li className="saas-feature-list-item">
+                  <span className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-teal-600 mr-3"></span>
+                  Milestone tracking and celebrations
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Beta CTA Section */}
+      <section id="signup" className="py-16 bg-gradient-to-r from-teal-600 to-emerald-600">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            The Beta is Live!
+          </h2>
+          <p className="text-xl text-teal-100 mb-8 max-w-2xl mx-auto">
+            Join our beta program and get Sprout Track for free for life for your entire family. 
+            Be among the first to experience the future of baby tracking.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button
+              size="lg"
+              className="bg-white text-teal-600 hover:bg-gray-100 font-semibold py-3 px-8 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
+              onClick={() => {
+                setAccountModalMode('register');
+                setShowAccountModal(true);
+              }}
+            >
+              Sign Up for the Beta
+            </Button>
+          </div>
+          <p className="text-sm text-teal-100 mt-6 max-w-lg mx-auto">
+            Beta users get lifetime free access for their family. No credit card required. 
+            Start tracking your baby's journey today!
+          </p>
         </div>
       </section>
       
@@ -321,26 +496,22 @@ const ComingSoon = () => {
               className="mb-4" 
               asChild
             >
-              <a 
-                href="https://demo.sprout-track.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
+              <a href="/demo">
                 Try the Demo
               </a>
             </Button>
             <p className="saas-footer-description text-sm mb-4">
-              Demo refreshes every 2 hours
+              Demo refreshes every 1 hour
             </p>
             <div className="space-y-1">
               <p className="saas-footer-description text-sm">
                 <strong>Demo Access:</strong>
               </p>
               <p className="saas-footer-description text-sm">
-                Login IDs: 01, 02, 03
+                Login ID: 01
               </p>
               <p className="saas-footer-description text-sm">
-                PIN: 111222
+                PIN: 111111
               </p>
             </div>
           </div>
