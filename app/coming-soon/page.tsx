@@ -300,7 +300,7 @@ const ComingSoon = () => {
                 </li>
                 <li className="saas-feature-list-item">
                   <span className="w-2 h-2 bg-teal-500 rounded-full mr-3"></span>
-                  Everything accessible from your unique family web address.
+                  Everything accessible from your unique family web address
                 </li>
                 <li className="saas-feature-list-item">
                   <span className="w-2 h-2 bg-teal-500 rounded-full mr-3"></span>
