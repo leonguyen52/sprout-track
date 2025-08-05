@@ -275,9 +275,6 @@ const ComingSoon = () => {
       <section id="demo" className="saas-cta">
         <div className="saas-cta-content">
           <h2 className="saas-cta-title">Don't take our word for it - try it yourself!</h2>
-          <p className="saas-cta-description">
-            Experience Sprout Track with our live demo environment. The demo refreshes every 1 hour with fresh sample data.
-          </p>
           <div className="saas-cta-actions">
             <div className="max-w-md mx-auto space-y-4">
               <Button
