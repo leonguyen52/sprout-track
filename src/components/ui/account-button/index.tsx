@@ -23,6 +23,7 @@ interface AccountStatus {
   hasFamily: boolean;
   familySlug?: string;
   familyName?: string;
+  betaparticipant: boolean;
 }
 
 interface AccountButtonProps {
@@ -88,7 +89,8 @@ export function AccountButton({
                 verified: true, // Assume verified if cached
                 hasFamily: !!user.familySlug,
                 familySlug: user.familySlug,
-                familyName: undefined
+                familyName: undefined,
+                betaparticipant: false // Default to false for cached data
               });
               setIsLoggedIn(true);
             } catch (parseError) {
@@ -233,10 +235,22 @@ export function AccountButton({
         <DropdownMenuContent align="end" className="w-64">
           <DropdownMenuLabel>
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{accountStatus.firstName}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium leading-none">{accountStatus.firstName}</p>
+                {accountStatus.betaparticipant && (
+                  <div className="beta-badge">
+                    <span className="beta-badge-text">✨ Beta User</span>
+                  </div>
+                )}
+              </div>
               <p className="text-xs leading-none text-muted-foreground">
                 {accountStatus.email}
               </p>
+              {accountStatus.betaparticipant && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium italic">
+                  Thank you for being a beta user! 🙏
+                </p>
+              )}
               {!accountStatus.verified && (
                 <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                   ⚠️ Email verification required

@@ -228,6 +228,75 @@ html.dark .account-button-family-setup-needed:hover {
   }
 }
 
+/* Beta Badge Styles */
+.beta-badge {
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+  color: #1f2937;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  box-shadow: 0 2px 4px rgba(251, 191, 36, 0.3);
+  animation: beta-shimmer 3s ease-in-out infinite;
+}
+
+.beta-badge::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706, #fbbf24);
+  border-radius: 0.375rem;
+  z-index: -1;
+  opacity: 0.7;
+  animation: beta-glow 2s ease-in-out infinite alternate;
+}
+
+.beta-badge-text {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode beta badge */
+html.dark .beta-badge {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+  color: #1f2937;
+  box-shadow: 0 2px 4px rgba(251, 191, 36, 0.4);
+}
+
+html.dark .beta-badge::before {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706, #fbbf24);
+  opacity: 0.8;
+}
+
+/* Beta badge animations */
+@keyframes beta-shimmer {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 2px 4px rgba(251, 191, 36, 0.3);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 4px 8px rgba(251, 191, 36, 0.4);
+  }
+}
+
+@keyframes beta-glow {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 0.9;
+  }
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 640px) {
   .account-button-guest,
@@ -244,5 +313,10 @@ html.dark .account-button-family-setup-needed:hover {
   .account-button-family-setup-needed svg {
     width: 1rem;
     height: 1rem;
+  }
+  
+  .beta-badge {
+    font-size: 0.5rem;
+    padding: 0.0625rem 0.25rem;
   }
 }
