@@ -54,6 +54,18 @@ export default function BreastFeedForm({
   const [isEditingLeft, setIsEditingLeft] = useState(false);
   const [isEditingRight, setIsEditingRight] = useState(false);
   
+  // Timer start times for calculating elapsed duration
+  const [leftStartTime, setLeftStartTime] = useState<number | null>(null);
+  const [rightStartTime, setRightStartTime] = useState<number | null>(null);
+  
+  // Base durations when timer starts (to avoid feedback loop)
+  const [leftBaseDuration, setLeftBaseDuration] = useState(leftDuration);
+  const [rightBaseDuration, setRightBaseDuration] = useState(rightDuration);
+  
+  // Current displayed durations (updated by timer)
+  const [displayLeftDuration, setDisplayLeftDuration] = useState(leftDuration);
+  const [displayRightDuration, setDisplayRightDuration] = useState(rightDuration);
+  
   // Local state for editing
   const [leftHours, setLeftHours] = useState(0);
   const [leftMinutes, setLeftMinutes] = useState(0);
@@ -63,36 +75,148 @@ export default function BreastFeedForm({
   const [rightMinutes, setRightMinutes] = useState(0);
   const [rightSeconds, setRightSeconds] = useState(0);
   
+  // Update display durations when props change (only when not timing)
+  useEffect(() => {
+    if (!leftStartTime) {
+      setDisplayLeftDuration(leftDuration);
+      setLeftBaseDuration(leftDuration);
+    }
+  }, [leftDuration, leftStartTime]);
+  
+  useEffect(() => {
+    if (!rightStartTime) {
+      setDisplayRightDuration(rightDuration);
+      setRightBaseDuration(rightDuration);
+    }
+  }, [rightDuration, rightStartTime]);
+  
   // Update local state when durations change
   useEffect(() => {
     if (!isEditingLeft) {
-      const { hours, minutes, seconds } = extractTimeComponents(leftDuration);
+      const { hours, minutes, seconds } = extractTimeComponents(displayLeftDuration);
       setLeftHours(hours);
       setLeftMinutes(minutes);
       setLeftSeconds(seconds);
     }
-  }, [leftDuration, isEditingLeft]);
+  }, [displayLeftDuration, isEditingLeft]);
   
   useEffect(() => {
     if (!isEditingRight) {
-      const { hours, minutes, seconds } = extractTimeComponents(rightDuration);
+      const { hours, minutes, seconds } = extractTimeComponents(displayRightDuration);
       setRightHours(hours);
       setRightMinutes(minutes);
       setRightSeconds(seconds);
     }
-  }, [rightDuration, isEditingRight]);
+  }, [displayRightDuration, isEditingRight]);
+  
+  // Timer effect that updates display durations based on start times
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (isTimerRunning && (leftStartTime || rightStartTime)) {
+      interval = setInterval(() => {
+        const now = Date.now();
+        
+        if (leftStartTime && activeBreast === 'LEFT') {
+          const elapsedSeconds = Math.floor((now - leftStartTime) / 1000);
+          const newDuration = leftBaseDuration + elapsedSeconds;
+          setDisplayLeftDuration(newDuration);
+        }
+        
+        if (rightStartTime && activeBreast === 'RIGHT') {
+          const elapsedSeconds = Math.floor((now - rightStartTime) / 1000);
+          const newDuration = rightBaseDuration + elapsedSeconds;
+          setDisplayRightDuration(newDuration);
+        }
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isTimerRunning, leftStartTime, rightStartTime, activeBreast, leftBaseDuration, rightBaseDuration]);
+  
+  // Handle visibility change to recalculate elapsed time when returning to the app
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isTimerRunning) {
+        const now = Date.now();
+        
+        if (leftStartTime && activeBreast === 'LEFT') {
+          const elapsedSeconds = Math.floor((now - leftStartTime) / 1000);
+          const newDuration = leftBaseDuration + elapsedSeconds;
+          setDisplayLeftDuration(newDuration);
+        }
+        
+        if (rightStartTime && activeBreast === 'RIGHT') {
+          const elapsedSeconds = Math.floor((now - rightStartTime) / 1000);
+          const newDuration = rightBaseDuration + elapsedSeconds;
+          setDisplayRightDuration(newDuration);
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isTimerRunning, leftStartTime, rightStartTime, activeBreast, leftBaseDuration, rightBaseDuration]);
   
   // Handle saving edited duration
   const saveLeftDuration = () => {
     const totalSeconds = (leftHours * 3600) + (leftMinutes * 60) + leftSeconds;
+    setDisplayLeftDuration(totalSeconds);
     onDurationChange('LEFT', totalSeconds);
     setIsEditingLeft(false);
   };
   
   const saveRightDuration = () => {
     const totalSeconds = (rightHours * 3600) + (rightMinutes * 60) + rightSeconds;
+    setDisplayRightDuration(totalSeconds);
     onDurationChange('RIGHT', totalSeconds);
     setIsEditingRight(false);
+  };
+  
+  // Handle timer start with timestamp tracking
+  const handleTimerStart = (breast: 'LEFT' | 'RIGHT') => {
+    const now = Date.now();
+    
+    if (breast === 'LEFT') {
+      setLeftStartTime(now);
+      setLeftBaseDuration(leftDuration); // Set base duration when starting
+    } else {
+      setRightStartTime(now);
+      setRightBaseDuration(rightDuration); // Set base duration when starting
+    }
+    
+    onTimerStart(breast);
+  };
+  
+  // Handle timer stop
+  const handleTimerStop = () => {
+    // Calculate final durations before stopping
+    const now = Date.now();
+    
+    if (leftStartTime && activeBreast === 'LEFT') {
+      const elapsedSeconds = Math.floor((now - leftStartTime) / 1000);
+      const finalDuration = leftBaseDuration + elapsedSeconds;
+      setDisplayLeftDuration(finalDuration);
+      onDurationChange('LEFT', finalDuration);
+      setLeftStartTime(null);
+    }
+    
+    if (rightStartTime && activeBreast === 'RIGHT') {
+      const elapsedSeconds = Math.floor((now - rightStartTime) / 1000);
+      const finalDuration = rightBaseDuration + elapsedSeconds;
+      setDisplayRightDuration(finalDuration);
+      onDurationChange('RIGHT', finalDuration);
+      setRightStartTime(null);
+    }
+    
+    onTimerStop();
   };
   
   const handleKeyDown = (e: React.KeyboardEvent, saveFn: () => void) => {
@@ -115,6 +239,7 @@ export default function BreastFeedForm({
       setter(Math.min(Math.max(0, numValue), max));
     }
   };
+  
   return (
     <>
       <div>
@@ -123,13 +248,10 @@ export default function BreastFeedForm({
           <Button
             type="button"
             onClick={() => {
-              // Toggle the side selection only if not editing an existing record
-              if (!isEditing) {
-                const newSide = side === 'LEFT' ? '' : 'LEFT';
-                onSideChange(newSide as BreastSide | '');
-              }
+              const newSide = side === 'LEFT' ? '' : 'LEFT';
+              onSideChange(newSide as BreastSide | '');
             }}
-            disabled={loading || (isEditing && side !== 'LEFT')} // Disable if editing and not LEFT
+            disabled={loading}
             variant={side === 'LEFT' ? 'default' : 'outline'}
             className="w-full"
           >
@@ -139,13 +261,10 @@ export default function BreastFeedForm({
           <Button
             type="button"
             onClick={() => {
-              // Toggle the side selection only if not editing an existing record
-              if (!isEditing) {
-                const newSide = side === 'RIGHT' ? '' : 'RIGHT';
-                onSideChange(newSide as BreastSide | '');
-              }
+              const newSide = side === 'RIGHT' ? '' : 'RIGHT';
+              onSideChange(newSide as BreastSide | '');
             }}
-            disabled={loading || (isEditing && side !== 'RIGHT')} // Disable if editing and not RIGHT
+            disabled={loading}
             variant={side === 'RIGHT' ? 'default' : 'outline'}
             className="w-full"
           >
@@ -199,7 +318,7 @@ export default function BreastFeedForm({
                   </div>
                 ) : (
                   <div className="text-2xl font-medium tracking-wider">
-                    {formatTime(leftDuration)}
+                    {formatTime(displayLeftDuration)}
                   </div>
                 )}
               </div>
@@ -224,7 +343,7 @@ export default function BreastFeedForm({
                     size="sm"
                     onClick={(e) => {
                       e.preventDefault();
-                      if (isTimerRunning) onTimerStop();
+                      if (isTimerRunning) handleTimerStop();
                       setIsEditingLeft(true);
                     }}
                     disabled={loading}
@@ -241,11 +360,11 @@ export default function BreastFeedForm({
                   onClick={(e: React.MouseEvent) => {
                     e.preventDefault();
                     if (isTimerRunning && activeBreast === 'LEFT') {
-                      onTimerStop();
+                      handleTimerStop();
                     } else {
-                      onTimerStop(); // Stop any existing timer
+                      handleTimerStop(); // Stop any existing timer
                       setIsEditingLeft(false); // Exit edit mode if active
-                      onTimerStart('LEFT');
+                      handleTimerStart('LEFT');
                     }
                   }}
                   disabled={loading || isEditingLeft}
@@ -299,7 +418,7 @@ export default function BreastFeedForm({
                   </div>
                 ) : (
                   <div className="text-2xl font-medium tracking-wider">
-                    {formatTime(rightDuration)}
+                    {formatTime(displayRightDuration)}
                   </div>
                 )}
               </div>
@@ -324,7 +443,7 @@ export default function BreastFeedForm({
                     size="sm"
                     onClick={(e) => {
                       e.preventDefault();
-                      if (isTimerRunning) onTimerStop();
+                      if (isTimerRunning) handleTimerStop();
                       setIsEditingRight(true);
                     }}
                     disabled={loading}
@@ -341,11 +460,11 @@ export default function BreastFeedForm({
                   onClick={(e: React.MouseEvent) => {
                     e.preventDefault();
                     if (isTimerRunning && activeBreast === 'RIGHT') {
-                      onTimerStop();
+                      handleTimerStop();
                     } else {
-                      onTimerStop(); // Stop any existing timer
+                      handleTimerStop(); // Stop any existing timer
                       setIsEditingRight(false); // Exit edit mode if active
-                      onTimerStart('RIGHT');
+                      handleTimerStart('RIGHT');
                     }
                   }}
                   disabled={loading || isEditingRight}
