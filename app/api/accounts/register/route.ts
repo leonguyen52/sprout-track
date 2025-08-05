@@ -189,6 +189,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
     // Hash password
     const hashedPassword = await hashPassword(password);
     
+    // Check if beta mode is enabled
+    const isBetaEnabled = process.env.BETA === '1';
+    
     // Create account (unverified)
     const account = await prisma.account.create({
       data: {
@@ -198,6 +201,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
         lastName: lastName?.trim() || null,
         verified: false,
         verificationToken,
+        betaparticipant: isBetaEnabled,
         provider: 'email'
       }
     });

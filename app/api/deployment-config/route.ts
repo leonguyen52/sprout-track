@@ -15,6 +15,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse<an
       // Add other public configuration options here as needed
       enableAccounts: process.env.ENABLE_ACCOUNTS === 'true',
       allowAccountRegistration: process.env.ALLOW_ACCOUNT_REGISTRATION === 'true',
+      betaEnabled: process.env.BETA === '1',
     };
 
     return NextResponse.json<ApiResponse<typeof config>>({

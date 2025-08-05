@@ -9,6 +9,7 @@ interface DeploymentConfig {
   deploymentMode: 'saas' | 'selfhosted';
   enableAccounts: boolean;
   allowAccountRegistration: boolean;
+  betaEnabled: boolean;
 }
 
 /**
@@ -44,6 +45,11 @@ interface DeploymentContextType {
    * Whether account registration is allowed
    */
   registrationAllowed: boolean;
+  
+  /**
+   * Whether beta mode is enabled
+   */
+  betaEnabled: boolean;
   
   /**
    * Force refresh the deployment configuration
@@ -97,6 +103,7 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
           deploymentMode: result.data.deploymentMode || 'selfhosted',
           enableAccounts: result.data.enableAccounts || false,
           allowAccountRegistration: result.data.allowAccountRegistration || false,
+          betaEnabled: result.data.betaEnabled || false,
         };
         
         setConfig(deploymentConfig);
@@ -114,6 +121,7 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
         deploymentMode: 'selfhosted',
         enableAccounts: false,
         allowAccountRegistration: false,
+        betaEnabled: false,
       };
       
       setConfig(fallbackConfig);
@@ -170,6 +178,7 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
   const isSelfHosted = config?.deploymentMode === 'selfhosted';
   const accountsEnabled = config?.enableAccounts || false;
   const registrationAllowed = config?.allowAccountRegistration || false;
+  const betaEnabled = config?.betaEnabled || false;
 
   return (
     <DeploymentContext.Provider value={{
@@ -179,6 +188,7 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
       isSelfHosted,
       accountsEnabled,
       registrationAllowed,
+      betaEnabled,
       refreshConfig,
       getDeploymentInfo,
     }}>
