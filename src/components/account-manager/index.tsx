@@ -60,38 +60,50 @@ const AccountManager: React.FC<AccountManagerProps> = ({
         headers: { 'Authorization': `Bearer ${authToken}` }
       };
       
-      // Fetch data in parallel
-      const [accountStatusRes, familyRes] = await Promise.all([
-        fetch('/api/accounts/status', fetchOptions),
-        fetch('/api/family', fetchOptions)
-      ]);
+      // Fetch account status first (includes family info)
+      const accountStatusRes = await fetch('/api/accounts/status', fetchOptions);
       
-      // Process account status response
       if (accountStatusRes.ok) {
         const data = await accountStatusRes.json();
         if (data.success) {
           setAccountStatus(data.data);
+          
+          // If account has family, fetch detailed family data
+          if (data.data.hasFamily && data.data.familySlug) {
+            try {
+              const familyRes = await fetch('/api/family', fetchOptions);
+              if (familyRes.ok) {
+                const familyData = await familyRes.json();
+                if (familyData.success) {
+                  setFamilyData(familyData.data);
+                } else {
+                  // Family data fetch failed, but we can still show account info
+                  console.warn('Failed to fetch detailed family data:', familyData.error);
+                  setFamilyData(null);
+                }
+              } else {
+                // Family API call failed, but we can still show account info
+                console.warn('Family API call failed');
+                setFamilyData(null);
+              }
+            } catch (familyErr) {
+              // Family fetch failed, but we can still show account info
+              console.warn('Family data not available:', familyErr);
+              setFamilyData(null);
+            }
+          } else {
+            // Account has no family - this is normal for new accounts
+            setFamilyData(null);
+          }
         } else {
           throw new Error(data.error || 'Failed to fetch account status');
         }
       } else {
         throw new Error('Failed to fetch account status');
       }
-      
-      // Process family response
-      if (familyRes.ok) {
-        const data = await familyRes.json();
-        if (data.success) {
-          setFamilyData(data.data);
-        } else {
-          throw new Error(data.error || 'Failed to fetch family data');
-        }
-      } else {
-        throw new Error('Failed to fetch family data');
-      }
     } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load data. Please try again.');
+      console.error('Error fetching account data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load account data. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -102,11 +114,11 @@ const AccountManager: React.FC<AccountManagerProps> = ({
     fetchData();
   };
 
-  // Create tabs configuration
+  // Create tabs configuration - conditionally include family people tab
   const tabs: FormPageTab[] = [
     {
       id: 'account-settings',
-      label: 'Account & Family',
+      label: familyData ? 'Account & Family' : 'Account',
       icon: Settings,
       content: (
         <>
@@ -137,7 +149,7 @@ const AccountManager: React.FC<AccountManagerProps> = ({
           )}
           
           {/* Tab content */}
-          {!isLoading && !error && accountStatus && familyData && (
+          {!isLoading && !error && accountStatus && (
             <AccountSettingsTab
               accountStatus={accountStatus}
               familyData={familyData}
@@ -146,8 +158,12 @@ const AccountManager: React.FC<AccountManagerProps> = ({
           )}
         </>
       )
-    },
-    {
+    }
+  ];
+
+  // Only add family people tab if family data exists
+  if (familyData) {
+    tabs.push({
       id: 'family-people',
       label: 'Family People',
       icon: Users,
@@ -188,8 +204,8 @@ const AccountManager: React.FC<AccountManagerProps> = ({
           )}
         </>
       )
-    }
-  ];
+    });
+  }
   
   return (
     <FormPage

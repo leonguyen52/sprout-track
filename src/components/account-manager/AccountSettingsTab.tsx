@@ -43,8 +43,8 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
   });
   
   const [familyFormData, setFamilyFormData] = useState({
-    name: familyData.name,
-    slug: familyData.slug,
+    name: familyData?.name || '',
+    slug: familyData?.slug || '',
   });
 
   // Password change form data
@@ -94,7 +94,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
 
   // Check slug uniqueness
   const checkSlugUniqueness = useCallback(async (slug: string) => {
-    if (!slug || slug.trim() === '' || slug === familyData.slug) {
+    if (!familyData || !slug || slug.trim() === '' || slug === familyData.slug) {
       setSlugError('');
       return;
     }
@@ -137,7 +137,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
     } finally {
       setCheckingSlug(false);
     }
-  }, [familyData.id, familyData.slug]);
+  }, [familyData?.id, familyData?.slug]);
 
   // Handle account form submission
   const handleAccountSave = async () => {
@@ -241,7 +241,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = `${familyData.slug}-data-export.zip`;
+        a.download = `${familyData?.slug || 'account'}-data-export.zip`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -255,48 +255,6 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
       alert('Error: Failed to download data');
     } finally {
       setDownloadingData(false);
-    }
-  };
-
-  // Handle account closure
-  const handleAccountClosure = async () => {
-    const confirmed = window.confirm(
-      'Are you sure you want to close your account? This action cannot be undone and will disable access to your family data.'
-    );
-    
-    if (!confirmed) return;
-    
-    setClosingAccount(true);
-    
-    try {
-      const authToken = localStorage.getItem('authToken');
-      const response = await fetch('/api/accounts/close', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        alert('Your account has been closed successfully. You will now be logged out.');
-        
-        // Clear authentication and redirect
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('accountUser');
-        localStorage.removeItem('unlockTime');
-        localStorage.removeItem('caretakerId');
-        
-        window.location.href = '/';
-      } else {
-        alert(`Error: ${data.error || 'Failed to close account'}`);
-      }
-    } catch (error) {
-      console.error('Error closing account:', error);
-      alert('Error: Failed to close account');
-    } finally {
-      setClosingAccount(false);
     }
   };
 
@@ -517,14 +475,14 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
 
   // Handle slug input change with debounced validation
   React.useEffect(() => {
-    if (familyFormData.slug && familyFormData.slug !== familyData.slug) {
+    if (familyData && familyFormData.slug && familyFormData.slug !== familyData.slug) {
       const timeoutId = setTimeout(() => {
         checkSlugUniqueness(familyFormData.slug);
       }, 500);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [familyFormData.slug, familyData.slug, checkSlugUniqueness]);
+  }, [familyFormData.slug, familyData?.slug, checkSlugUniqueness]);
 
   return (
     <div className="space-y-6">
@@ -817,160 +775,164 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
         )}
       </div>
 
-      {/* Family Information Section */}
-      <div className={cn(styles.sectionBorder, "account-manager-section-border")}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className={cn(styles.sectionTitle, "account-manager-section-title")}>
-            Family Information
-          </h3>
-          {!editingFamily && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setEditingFamily(true);
-                setFamilyMessage('');
-              }}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          )}
-        </div>
-
-        {editingFamily ? (
-          <div className={cn(styles.formGroup, "account-manager-form-group")}>
-            <div className={cn(styles.formField, "account-manager-form-field")}>
-              <Label htmlFor="familyName">Family Name</Label>
-              <Input
-                id="familyName"
-                value={familyFormData.name}
-                onChange={(e) => setFamilyFormData(prev => ({ ...prev, name: e.target.value }))}
-                disabled={savingFamily}
-              />
-            </div>
-            <div className={cn(styles.formField, "account-manager-form-field")}>
-              <Label htmlFor="familySlug">Family URL Slug</Label>
-              <div className="relative">
-                <Input
-                  id="familySlug"
-                  value={familyFormData.slug}
-                  onChange={(e) => setFamilyFormData(prev => ({ ...prev, slug: e.target.value.toLowerCase() }))}
-                  disabled={savingFamily}
-                  className={slugError ? 'border-red-500' : ''}
-                />
-                {checkingSlug && (
-                  <Loader2 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
-                )}
-              </div>
-              {slugError && (
-                <div className="flex items-center gap-1 text-red-600 text-sm mt-1 account-manager-validation-error">
-                  <AlertTriangle className="h-3 w-3" />
-                  {slugError}
-                </div>
-              )}
-              <p className="text-sm text-gray-500 mt-1 account-manager-info-text">
-                This is your family's unique URL identifier
-              </p>
-            </div>
-            
-            <div className={styles.buttonGroup}>
-              <Button
-                onClick={handleFamilySave}
-                disabled={savingFamily || !!slugError || checkingSlug}
-              >
-                {savingFamily ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
-                  </>
-                )}
-              </Button>
+      {/* Family Information Section - Only show if family data exists */}
+      {familyData && (
+        <div className={cn(styles.sectionBorder, "account-manager-section-border")}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={cn(styles.sectionTitle, "account-manager-section-title")}>
+              Family Information
+            </h3>
+            {!editingFamily && (
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => {
-                  setEditingFamily(false);
-                  setFamilyFormData({
-                    name: familyData.name,
-                    slug: familyData.slug,
-                  });
-                  setSlugError('');
+                  setEditingFamily(true);
                   setFamilyMessage('');
                 }}
-                disabled={savingFamily}
               >
-                <X className="h-4 w-4 mr-2" />
-                Cancel
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
               </Button>
-            </div>
-          </div>
-        ) : (
-          <div className={styles.formGroup}>
-            <div className="flex items-center gap-2 mb-2">
-              <Home className="h-4 w-4 text-gray-500" />
-              <span className="font-medium">{familyData.name}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link className="h-4 w-4 text-gray-500" />
-              <span className="font-mono">/{familyData.slug}</span>
-            </div>
-          </div>
-        )}
-
-        {familyMessage && (
-          <div className={cn(
-            "mt-4 p-3 rounded-md text-sm",
-            familyMessage.startsWith('Error') 
-              ? "bg-red-50 text-red-600 account-manager-error-message" 
-              : "bg-green-50 text-green-600 account-manager-success-message"
-          )}>
-            <div className="flex items-center gap-2">
-              {familyMessage.startsWith('Error') ? (
-                <AlertTriangle className="h-4 w-4" />
-              ) : (
-                <CheckCircle className="h-4 w-4" />
-              )}
-              {familyMessage}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Data Download Section */}
-      <div className={cn(styles.sectionBorder, "account-manager-section-border")}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className={cn(styles.sectionTitle, "account-manager-section-title")}>
-            Download Your Data
-          </h3>
-        </div>
-        
-        <div className={styles.formGroup}>
-          <p className="text-sm text-gray-600 mb-4 account-manager-info-text">
-            Download a complete copy of your family's data including all activities, contacts, and settings.
-          </p>
-          <Button
-            onClick={handleDataDownload}
-            disabled={downloadingData}
-          >
-            {downloadingData ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Preparing Download...
-              </>
-            ) : (
-              <>
-                <Download className="h-4 w-4 mr-2" />
-                Download Data
-              </>
             )}
-          </Button>
+          </div>
+
+          {editingFamily ? (
+            <div className={cn(styles.formGroup, "account-manager-form-group")}>
+              <div className={cn(styles.formField, "account-manager-form-field")}>
+                <Label htmlFor="familyName">Family Name</Label>
+                <Input
+                  id="familyName"
+                  value={familyFormData.name}
+                  onChange={(e) => setFamilyFormData(prev => ({ ...prev, name: e.target.value }))}
+                  disabled={savingFamily}
+                />
+              </div>
+              <div className={cn(styles.formField, "account-manager-form-field")}>
+                <Label htmlFor="familySlug">Family URL Slug</Label>
+                <div className="relative">
+                  <Input
+                    id="familySlug"
+                    value={familyFormData.slug}
+                    onChange={(e) => setFamilyFormData(prev => ({ ...prev, slug: e.target.value.toLowerCase() }))}
+                    disabled={savingFamily}
+                    className={slugError ? 'border-red-500' : ''}
+                  />
+                  {checkingSlug && (
+                    <Loader2 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
+                  )}
+                </div>
+                {slugError && (
+                  <div className="flex items-center gap-1 text-red-600 text-sm mt-1 account-manager-validation-error">
+                    <AlertTriangle className="h-3 w-3" />
+                    {slugError}
+                  </div>
+                )}
+                <p className="text-sm text-gray-500 mt-1 account-manager-info-text">
+                  This is your family's unique URL identifier
+                </p>
+              </div>
+              
+              <div className={styles.buttonGroup}>
+                <Button
+                  onClick={handleFamilySave}
+                  disabled={savingFamily || !!slugError || checkingSlug}
+                >
+                  {savingFamily ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingFamily(false);
+                    setFamilyFormData({
+                      name: familyData?.name || '',
+                      slug: familyData?.slug || '',
+                    });
+                    setSlugError('');
+                    setFamilyMessage('');
+                  }}
+                  disabled={savingFamily}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.formGroup}>
+              <div className="flex items-center gap-2 mb-2">
+                <Home className="h-4 w-4 text-gray-500" />
+                <span className="font-medium">{familyData.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link className="h-4 w-4 text-gray-500" />
+                <span className="font-mono">/{familyData.slug}</span>
+              </div>
+            </div>
+          )}
+
+          {familyMessage && (
+            <div className={cn(
+              "mt-4 p-3 rounded-md text-sm",
+              familyMessage.startsWith('Error') 
+                ? "bg-red-50 text-red-600 account-manager-error-message" 
+                : "bg-green-50 text-green-600 account-manager-success-message"
+            )}>
+              <div className="flex items-center gap-2">
+                {familyMessage.startsWith('Error') ? (
+                  <AlertTriangle className="h-4 w-4" />
+                ) : (
+                  <CheckCircle className="h-4 w-4" />
+                )}
+                {familyMessage}
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* Data Download Section - Only show if family data exists */}
+      {familyData && (
+        <div className={cn(styles.sectionBorder, "account-manager-section-border")}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={cn(styles.sectionTitle, "account-manager-section-title")}>
+              Download Your Data
+            </h3>
+          </div>
+          
+          <div className={styles.formGroup}>
+            <p className="text-sm text-gray-600 mb-4 account-manager-info-text">
+              Download a complete copy of your family's data including all activities, contacts, and settings.
+            </p>
+            <Button
+              onClick={handleDataDownload}
+              disabled={downloadingData}
+            >
+              {downloadingData ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Preparing Download...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Data
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Account Closure Section */}
       <div className={cn(styles.sectionBorder, "account-manager-section-border")}>
@@ -1086,7 +1048,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
           <div className={styles.formGroup}>
             <p className="text-sm text-gray-600 mb-4 account-manager-info-text">
               <AlertTriangle className="h-4 w-4 inline mr-1" />
-              Warning: Closing your account will permanently disable access to your family data. 
+              Warning: Closing your account will permanently disable access to your {familyData ? "family" : "account"} data. 
               This action cannot be undone. Please download your data first if you want to keep it.
             </p>
             <Button

@@ -54,9 +54,9 @@ export interface AccountSettingsTabProps {
   accountStatus: AccountStatus;
   
   /**
-   * Family data
+   * Family data (optional - may be null if no family exists)
    */
-  familyData: FamilyData;
+  familyData: FamilyData | null;
   
   /**
    * Function to call when data needs to be refreshed
