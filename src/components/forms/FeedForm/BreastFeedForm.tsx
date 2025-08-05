@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BreastSide } from '@prisma/client';
 import { Button } from '@/src/components/ui/button';
-import { Input } from '@/src/components/ui/input';
 import { Label } from '@/src/components/ui/label';
 import { Play, Pause, Clock } from 'lucide-react';
+import './feed-form.css';
 
 interface BreastFeedFormProps {
   side: BreastSide | '';
@@ -247,7 +247,7 @@ export default function BreastFeedForm({
 
   // Helper function to format display value based on editing state
   const getDisplayValue = (value: number, fieldId: string) => {
-    if (value === 0) return '--';
+    if (value === 0) return '00';
     if (editingField === fieldId) {
       return value.toString(); // Show raw value during editing
     }
@@ -257,7 +257,7 @@ export default function BreastFeedForm({
   // When editing, show only the relevant side
   if (isEditing) {
     return (
-      <div>
+      <div className="feed-form-container">
         <Label className="form-label">Duration - {side === 'LEFT' ? 'Left' : 'Right'} Side</Label>
         <div className="flex flex-col items-center space-y-4 py-4">
           <div className="flex items-center text-2xl font-medium tracking-wider">
@@ -266,14 +266,14 @@ export default function BreastFeedForm({
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={leftHours === 0 ? '--' : leftHours.toString().padStart(2, '0')}
+                  value={leftHours === 0 ? '00' : leftHours.toString().padStart(2, '0')}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     if (numValue <= 23) setLeftHours(numValue);
                   }}
                   onFocus={(e) => {
-                    if (e.target.value === '--') e.target.value = '';
+                    if (e.target.value === '00') e.target.value = '';
                     e.target.select();
                   }}
                   onBlur={(e) => {
@@ -281,22 +281,22 @@ export default function BreastFeedForm({
                     saveLeftDuration();
                   }}
                   onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
-                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1 overflow-visible"
+                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1 overflow-visible timer-input"
                   disabled={loading || isTimerRunning}
                   placeholder=""
                 />
-                <span>:</span>
+                <span className="timer-separator">:</span>
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={leftMinutes === 0 ? '--' : leftMinutes.toString().padStart(2, '0')}
+                  value={leftMinutes === 0 ? '00' : leftMinutes.toString().padStart(2, '0')}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     if (numValue <= 59) setLeftMinutes(numValue);
                   }}
                   onFocus={(e) => {
-                    if (e.target.value === '--') e.target.value = '';
+                    if (e.target.value === '00') e.target.value = '';
                     e.target.select();
                   }}
                   onBlur={(e) => {
@@ -304,22 +304,22 @@ export default function BreastFeedForm({
                     saveLeftDuration();
                   }}
                   onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
-                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1 overflow-visible"
+                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1 overflow-visible timer-input"
                   disabled={loading || isTimerRunning}
                   placeholder=""
                 />
-                <span>:</span>
+                <span className="timer-separator">:</span>
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={leftSeconds === 0 ? '--' : leftSeconds.toString().padStart(2, '0')}
+                  value={leftSeconds === 0 ? '00' : leftSeconds.toString().padStart(2, '0')}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     if (numValue <= 59) setLeftSeconds(numValue);
                   }}
                   onFocus={(e) => {
-                    if (e.target.value === '--') e.target.value = '';
+                    if (e.target.value === '00') e.target.value = '';
                     e.target.select();
                   }}
                   onBlur={(e) => {
@@ -327,7 +327,7 @@ export default function BreastFeedForm({
                     saveLeftDuration();
                   }}
                   onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
-                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1 timer-value timer-input"
                   disabled={loading || isTimerRunning}
                   placeholder=""
                 />
@@ -337,14 +337,14 @@ export default function BreastFeedForm({
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={rightHours === 0 ? '--' : rightHours.toString().padStart(2, '0')}
+                  value={rightHours === 0 ? '00' : rightHours.toString().padStart(2, '0')}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     if (numValue <= 23) setRightHours(numValue);
                   }}
                   onFocus={(e) => {
-                    if (e.target.value === '--') e.target.value = '';
+                    if (e.target.value === '00') e.target.value = '';
                     e.target.select();
                   }}
                   onBlur={(e) => {
@@ -352,22 +352,22 @@ export default function BreastFeedForm({
                     saveRightDuration();
                   }}
                   onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
-                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1 timer-input"
                   disabled={loading || isTimerRunning}
                   placeholder=""
                 />
-                <span>:</span>
+                <span className="timer-separator">:</span>
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={rightMinutes === 0 ? '--' : rightMinutes.toString().padStart(2, '0')}
+                  value={rightMinutes === 0 ? '00' : rightMinutes.toString().padStart(2, '0')}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     if (numValue <= 59) setRightMinutes(numValue);
                   }}
                   onFocus={(e) => {
-                    if (e.target.value === '--') e.target.value = '';
+                    if (e.target.value === '00') e.target.value = '';
                     e.target.select();
                   }}
                   onBlur={(e) => {
@@ -379,18 +379,18 @@ export default function BreastFeedForm({
                   disabled={loading || isTimerRunning}
                   placeholder=""
                 />
-                <span>:</span>
+                <span className="timer-separator">:</span>
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={rightSeconds === 0 ? '--' : rightSeconds.toString().padStart(2, '0')}
+                  value={rightSeconds === 0 ? '00' : rightSeconds.toString().padStart(2, '0')}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     if (numValue <= 59) setRightSeconds(numValue);
                   }}
                   onFocus={(e) => {
-                    if (e.target.value === '--') e.target.value = '';
+                    if (e.target.value === '00') e.target.value = '';
                     e.target.select();
                   }}
                   onBlur={(e) => {
@@ -408,7 +408,7 @@ export default function BreastFeedForm({
           <div className="flex justify-center">
             <Button 
               type="button" 
-              variant="outline" 
+              variant={isTimerRunning && ((side === 'LEFT' && activeBreast === 'LEFT') || (side === 'RIGHT' && activeBreast === 'RIGHT')) ? 'timerActive' : 'outline'}
               size="sm"
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
@@ -436,12 +436,16 @@ export default function BreastFeedForm({
 
   // When creating new entries, show both sides
   return (
-    <div>
+    <div className="feed-form-container">
       <Label className="form-label">Duration</Label>
-      <div className="flex justify-center gap-4 py-2">
+      <div className="flex justify-center gap-2 py-4">
         {/* Left Side */}
-        <div className="flex flex-col items-center space-y-4 flex-1 max-w-xs">
-          <Label className="text-lg font-semibold text-gray-700">Left Side</Label>
+        <div className={`flex flex-col items-center space-y-4 p-1 flex-1 max-w-xs rounded-lg transition-all duration-300 ${
+          isTimerRunning && activeBreast === 'LEFT' 
+            ? 'bg-green-50 border-2 border-green-200 shadow-md timer-active-side' 
+            : 'bg-transparent'
+        }`}>
+          <Label className="text-lg font-semibold text-gray-700 timer-label">Left Side</Label>
           <div className="flex items-center text-2xl font-medium tracking-wider">
             <input
               type="text"
@@ -454,7 +458,7 @@ export default function BreastFeedForm({
               }}
               onFocus={(e) => {
                 setEditingField('leftHours');
-                if (e.target.value === '--') e.target.value = '';
+                if (e.target.value === '00') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
@@ -479,7 +483,7 @@ export default function BreastFeedForm({
               }}
               onFocus={(e) => {
                 setEditingField('leftMinutes');
-                if (e.target.value === '--') e.target.value = '';
+                if (e.target.value === '00') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
@@ -504,7 +508,7 @@ export default function BreastFeedForm({
               }}
               onFocus={(e) => {
                 setEditingField('leftSeconds');
-                if (e.target.value === '--') e.target.value = '';
+                if (e.target.value === '00') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
@@ -521,7 +525,7 @@ export default function BreastFeedForm({
           <div className="flex justify-center w-full">
             <Button 
               type="button" 
-              variant="outline" 
+              variant={isTimerRunning && activeBreast === 'LEFT' ? 'timerActive' : 'outline'}
               size="sm"
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
@@ -548,8 +552,12 @@ export default function BreastFeedForm({
         </div>
 
         {/* Right Side */}
-        <div className="flex flex-col items-center space-y-4 flex-1 max-w-xs">
-          <Label className="text-lg font-semibold text-gray-700">Right Side</Label>
+        <div className={`flex flex-col items-center space-y-4 flex-1 max-w-xs p-1 rounded-lg transition-all duration-300 ${
+          isTimerRunning && activeBreast === 'RIGHT' 
+            ? 'bg-green-50 border-2 border-green-200 shadow-md timer-active-side' 
+            : 'bg-transparent'
+        }`}>
+          <Label className="text-lg font-semibold text-gray-700 timer-label">Right Side</Label>
           <div className="flex items-center text-2xl font-medium tracking-wider">
             <input
               type="text"
@@ -562,7 +570,7 @@ export default function BreastFeedForm({
               }}
               onFocus={(e) => {
                 setEditingField('rightHours');
-                if (e.target.value === '--') e.target.value = '';
+                if (e.target.value === '00') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
@@ -587,7 +595,7 @@ export default function BreastFeedForm({
               }}
               onFocus={(e) => {
                 setEditingField('rightMinutes');
-                if (e.target.value === '--') e.target.value = '';
+                if (e.target.value === '00') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
@@ -612,7 +620,7 @@ export default function BreastFeedForm({
               }}
               onFocus={(e) => {
                 setEditingField('rightSeconds');
-                if (e.target.value === '--') e.target.value = '';
+                if (e.target.value === '00') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
@@ -629,7 +637,7 @@ export default function BreastFeedForm({
           <div className="flex justify-center w-full">
             <Button 
               type="button" 
-              variant="outline" 
+              variant={isTimerRunning && activeBreast === 'RIGHT' ? 'timerActive' : 'outline'}
               size="sm"
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
