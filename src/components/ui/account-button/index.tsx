@@ -33,6 +33,7 @@ interface AccountButtonProps {
   variant?: 'button' | 'link';
   initialMode?: 'login' | 'register';
   hideWhenLoggedIn?: boolean;
+  onAccountManagerOpen?: () => void;
 }
 
 export function AccountButton({ 
@@ -41,12 +42,12 @@ export function AccountButton({
   showIcon = true,
   variant = 'button',
   initialMode = 'register',
-  hideWhenLoggedIn = false
+  hideWhenLoggedIn = false,
+  onAccountManagerOpen
 }: AccountButtonProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
   const [showAccountModal, setShowAccountModal] = useState(false);
-  const [showResendModal, setShowResendModal] = useState(false);
 
   // Check authentication status on component mount and when localStorage changes
   useEffect(() => {
@@ -290,10 +291,12 @@ export function AccountButton({
             </>
           )}
           
-          {/* Account page (placeholder) */}
-          <DropdownMenuItem disabled>
+          {/* Account Settings */}
+          <DropdownMenuItem onClick={() => {
+            onAccountManagerOpen?.();
+          }}>
             <Settings className="w-4 h-4 mr-2" />
-            Account Settings (Coming Soon)
+            Account Settings
           </DropdownMenuItem>
           
           {/* Family dashboard link for verified users with family */}

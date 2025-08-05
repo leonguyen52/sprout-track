@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 import { AccountButton } from '@/src/components/ui/account-button';
 import { MobileMenu } from '@/src/components/ui/mobile-menu';
 import AccountModal from '@/src/components/modals/AccountModal';
+import AccountManager from '@/src/components/account-manager';
 import { useTheme } from '@/src/context/theme';
 import { Github, Users, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
 import PrivacyPolicyModal from '@/src/components/modals/privacy-policy';
@@ -32,6 +33,9 @@ const ComingSoon = () => {
   // Privacy Policy and Terms of Use modal state
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showTermsOfUse, setShowTermsOfUse] = useState(false);
+  
+  // Account Manager state
+  const [showAccountManager, setShowAccountManager] = useState(false);
   
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -201,7 +205,8 @@ const ComingSoon = () => {
                 label="Sign In" 
                 showIcon={false} 
                 initialMode="login"
-                className="saas-account-btn" 
+                className="saas-account-btn"
+                onAccountManagerOpen={() => setShowAccountManager(true)}
               />
               <ThemeToggle variant="light" className="saas-theme-toggle" />
             </MobileMenu>
@@ -677,6 +682,12 @@ const ComingSoon = () => {
       <TermsOfUseModal 
         open={showTermsOfUse} 
         onClose={() => setShowTermsOfUse(false)} 
+      />
+
+      {/* Account Manager - This component is controlled by the page state */}
+      <AccountManager
+        isOpen={showAccountManager}
+        onClose={() => setShowAccountManager(false)}
       />
     </div>
   );
