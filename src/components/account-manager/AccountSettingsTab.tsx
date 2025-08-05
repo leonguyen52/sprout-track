@@ -16,7 +16,8 @@ import {
   Save, 
   X, 
   Loader2,
-  CheckCircle
+  CheckCircle,
+  Key
 } from 'lucide-react';
 
 /**
@@ -32,6 +33,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
   // Edit states
   const [editingAccount, setEditingAccount] = useState(false);
   const [editingFamily, setEditingFamily] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   
   // Form data states
   const [accountFormData, setAccountFormData] = useState({
@@ -43,6 +45,37 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
   const [familyFormData, setFamilyFormData] = useState({
     name: familyData.name,
     slug: familyData.slug,
+  });
+
+  // Password change form data
+  const [passwordFormData, setPasswordFormData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  // Password change states
+  const [passwordStep, setPasswordStep] = useState<'confirm' | 'change'>('confirm');
+  const [changingPasswordLoading, setChangingPasswordLoading] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState('');
+
+  // Account closure states
+  const [confirmingClosure, setConfirmingClosure] = useState(false);
+  const [closurePasswordLoading, setClosurePasswordLoading] = useState(false);
+  const [closurePasswordMessage, setClosurePasswordMessage] = useState('');
+  const [closurePasswordData, setClosurePasswordData] = useState({
+    password: '',
+  });
+  const [accountClosed, setAccountClosed] = useState(false);
+  const [logoutCountdown, setLogoutCountdown] = useState(5);
+
+  // Password validation state for real-time feedback
+  const [passwordValidation, setPasswordValidation] = useState({
+    length: false,
+    lowercase: false,
+    uppercase: false,
+    number: false,
+    special: false,
   });
   
   // Loading and error states
@@ -267,6 +300,221 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
     }
   };
 
+  // Real-time password validation for visual feedback
+  const updatePasswordValidation = (password: string) => {
+    setPasswordValidation({
+      length: password.length >= 8,
+      lowercase: /[a-z]/.test(password),
+      uppercase: /[A-Z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password),
+    });
+  };
+
+  // Handle password change step 1: confirm current password
+  const handlePasswordConfirm = async () => {
+    if (!passwordFormData.currentPassword) {
+      setPasswordMessage('Please enter your current password');
+      return;
+    }
+
+    setChangingPasswordLoading(true);
+    setPasswordMessage('');
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/accounts/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          currentPassword: passwordFormData.currentPassword,
+          newPassword: passwordFormData.currentPassword, // Dummy new password for validation
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.status === 400 && data.error === 'New password must be different from current password') {
+        // This means current password is correct, proceed to step 2
+        setPasswordStep('change');
+        setPasswordMessage('');
+      } else if (response.status === 400 && data.error === 'Current password is incorrect') {
+        setPasswordMessage('Current password is incorrect');
+      } else if (!data.success) {
+        setPasswordMessage(`Error: ${data.error || 'Failed to verify password'}`);
+      }
+    } catch (error) {
+      console.error('Error verifying password:', error);
+      setPasswordMessage('Error: Failed to verify password');
+    } finally {
+      setChangingPasswordLoading(false);
+    }
+  };
+
+  // Handle password change step 2: set new password
+  const handlePasswordChange = async () => {
+    // Validate new password
+    if (!passwordFormData.newPassword) {
+      setPasswordMessage('Please enter a new password');
+      return;
+    }
+
+    if (!passwordValidation.length || !passwordValidation.lowercase || !passwordValidation.uppercase || 
+        !passwordValidation.number || !passwordValidation.special) {
+      setPasswordMessage('New password does not meet the requirements');
+      return;
+    }
+
+    if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
+      setPasswordMessage('Passwords do not match');
+      return;
+    }
+
+    if (passwordFormData.currentPassword === passwordFormData.newPassword) {
+      setPasswordMessage('New password must be different from current password');
+      return;
+    }
+
+    setChangingPasswordLoading(true);
+    setPasswordMessage('');
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/accounts/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          currentPassword: passwordFormData.currentPassword,
+          newPassword: passwordFormData.newPassword,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setPasswordMessage('Password changed successfully');
+        setChangingPassword(false);
+        setPasswordStep('confirm');
+        setPasswordFormData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+        setPasswordValidation({
+          length: false,
+          lowercase: false,
+          uppercase: false,
+          number: false,
+          special: false,
+        });
+        
+        // Clear message after 3 seconds
+        setTimeout(() => setPasswordMessage(''), 3000);
+      } else {
+        setPasswordMessage(`Error: ${data.error || 'Failed to change password'}`);
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      setPasswordMessage('Error: Failed to change password');
+    } finally {
+      setChangingPasswordLoading(false);
+    }
+  };
+
+  // Handle cancel password change
+  const handlePasswordCancel = () => {
+    setChangingPassword(false);
+    setPasswordStep('confirm');
+    setPasswordFormData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
+    setPasswordValidation({
+      length: false,
+      lowercase: false,
+      uppercase: false,
+      number: false,
+      special: false,
+    });
+    setPasswordMessage('');
+  };
+
+  // Handle closure password confirmation and account closure in one step
+  const handleClosurePasswordConfirm = async () => {
+    if (!closurePasswordData.password) {
+      setClosurePasswordMessage('Please enter your password to confirm account closure');
+      return;
+    }
+
+    setClosurePasswordLoading(true);
+    setClosingAccount(true);
+    setClosurePasswordMessage('');
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/accounts/close', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          password: closurePasswordData.password,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Set account as closed and start countdown
+        setAccountClosed(true);
+        setClosurePasswordLoading(false);
+        setClosingAccount(false);
+        
+        // Start countdown timer
+        const countdownInterval = setInterval(() => {
+          setLogoutCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(countdownInterval);
+              // Clear authentication and redirect
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('accountUser');
+              localStorage.removeItem('unlockTime');
+              localStorage.removeItem('caretakerId');
+              
+              window.location.href = '/';
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        setClosurePasswordMessage(`Error: ${data.error || 'Failed to close account'}`);
+        setClosurePasswordLoading(false);
+        setClosingAccount(false);
+      }
+    } catch (error) {
+      console.error('Error closing account:', error);
+      setClosurePasswordMessage('Error: Failed to close account');
+      setClosurePasswordLoading(false);
+      setClosingAccount(false);
+    }
+  };
+
+  // Handle cancel closure
+  const handleClosureCancel = () => {
+    setConfirmingClosure(false);
+    setClosurePasswordData({ password: '' });
+    setClosurePasswordMessage('');
+  };
+
   // Handle slug input change with debounced validation
   React.useEffect(() => {
     if (familyFormData.slug && familyFormData.slug !== familyData.slug) {
@@ -286,18 +534,20 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
           <h3 className={cn(styles.sectionTitle, "account-manager-section-title")}>
             Account Information
           </h3>
-          {!editingAccount && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setEditingAccount(true);
-                setAccountMessage('');
-              }}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
+          {!editingAccount && !changingPassword && (
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditingAccount(true);
+                  setAccountMessage('');
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            </div>
           )}
         </div>
 
@@ -369,36 +619,199 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
               </Button>
             </div>
           </div>
+        ) : changingPassword ? (
+          <div className={cn(styles.formGroup, "account-manager-form-group")}>
+            {passwordStep === 'confirm' ? (
+              <>
+                <h4 className="text-lg font-medium mb-3">Confirm Current Password</h4>
+                <p className="text-sm text-gray-600 mb-4">
+                  Please enter your current password to confirm you want to change it.
+                </p>
+                <div className={cn(styles.formField, "account-manager-form-field")}>
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    value={passwordFormData.currentPassword}
+                    onChange={(e) => setPasswordFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                    disabled={changingPasswordLoading}
+                    placeholder="Enter your current password"
+                  />
+                </div>
+                
+                <div className={styles.buttonGroup}>
+                  <Button
+                    onClick={handlePasswordConfirm}
+                    disabled={changingPasswordLoading || !passwordFormData.currentPassword}
+                  >
+                    {changingPasswordLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      <>
+                        <Key className="h-4 w-4 mr-2" />
+                        Continue
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handlePasswordCancel}
+                    disabled={changingPasswordLoading}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h4 className="text-lg font-medium mb-3">Set New Password</h4>
+                <p className="text-sm text-gray-600 mb-4">
+                  Enter your new password. It must meet all the requirements below.
+                </p>
+                
+                <div className={cn(styles.formField, "account-manager-form-field")}>
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={passwordFormData.newPassword}
+                    onChange={(e) => {
+                      const newPassword = e.target.value;
+                      setPasswordFormData(prev => ({ ...prev, newPassword }));
+                      updatePasswordValidation(newPassword);
+                    }}
+                    disabled={changingPasswordLoading}
+                    placeholder="Enter new password"
+                  />
+                </div>
+
+                <div className={cn(styles.formField, "account-manager-form-field")}>
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={passwordFormData.confirmPassword}
+                    onChange={(e) => setPasswordFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    disabled={changingPasswordLoading}
+                    placeholder="Confirm new password"
+                  />
+                </div>
+
+                {/* Password Requirements */}
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs font-medium text-gray-700 mb-2">Password Requirements:</p>
+                  <div className="grid grid-cols-1 gap-1 text-xs">
+                    <div className={`flex items-center gap-2 ${passwordValidation.length ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.length ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300'}`}>
+                        {passwordValidation.length && '✓'}
+                      </span>
+                      At least 8 characters
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordValidation.lowercase ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.lowercase ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300'}`}>
+                        {passwordValidation.lowercase && '✓'}
+                      </span>
+                      One lowercase letter (a-z)
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordValidation.uppercase ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.uppercase ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300'}`}>
+                        {passwordValidation.uppercase && '✓'}
+                      </span>
+                      One uppercase letter (A-Z)
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordValidation.number ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.number ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300'}`}>
+                        {passwordValidation.number && '✓'}
+                      </span>
+                      One number (0-9)
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordValidation.special ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${passwordValidation.special ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300'}`}>
+                        {passwordValidation.special && '✓'}
+                      </span>
+                      One special character (!@#$%^&*)
+                    </div>
+                  </div>
+                </div>
+                
+                <div className={styles.buttonGroup}>
+                  <Button
+                    onClick={handlePasswordChange}
+                    disabled={changingPasswordLoading || !passwordFormData.newPassword || !passwordFormData.confirmPassword}
+                  >
+                    {changingPasswordLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Changing Password...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Change Password
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handlePasswordCancel}
+                    disabled={changingPasswordLoading}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
         ) : (
           <div className={styles.formGroup}>
-            <div className="flex items-center gap-2 mb-2">
-              <User className="h-4 w-4 text-gray-500" />
-              <span className="font-medium">{accountStatus.firstName} {accountStatus.lastName}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-gray-500" />
-              <span>{accountStatus.email}</span>
-              {!accountStatus.verified && (
-                <span className="text-amber-600 text-sm">(Unverified)</span>
-              )}
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-gray-500" />
+                  <span className="font-medium">{accountStatus.firstName} {accountStatus.lastName}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-gray-500" />
+                  <span>{accountStatus.email}</span>
+                  {!accountStatus.verified && (
+                    <span className="text-amber-600 text-sm">(Unverified)</span>
+                  )}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setChangingPassword(true);
+                  setPasswordMessage('');
+                }}
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Reset Password
+              </Button>
             </div>
           </div>
         )}
 
-        {accountMessage && (
+        {(accountMessage || passwordMessage) && (
           <div className={cn(
             "mt-4 p-3 rounded-md text-sm",
-            accountMessage.startsWith('Error') 
+            (accountMessage && accountMessage.startsWith('Error')) || (passwordMessage && passwordMessage.startsWith('Error'))
               ? "bg-red-50 text-red-600 account-manager-error-message" 
               : "bg-green-50 text-green-600 account-manager-success-message"
           )}>
             <div className="flex items-center gap-2">
-              {accountMessage.startsWith('Error') ? (
+              {((accountMessage && accountMessage.startsWith('Error')) || (passwordMessage && passwordMessage.startsWith('Error'))) ? (
                 <AlertTriangle className="h-4 w-4" />
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
-              {accountMessage}
+              {passwordMessage || accountMessage}
             </div>
           </div>
         )}
@@ -529,59 +942,162 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
       </div>
 
       {/* Data Download Section */}
-      <div className={cn(styles.downloadSection, "account-manager-download-section")}>
-        <h3 className={cn(styles.sectionTitle, "account-manager-section-title")}>
-          Download Your Data
-        </h3>
-        <p className="text-sm text-gray-600 mb-4 account-manager-info-text">
-          Download a complete copy of your family's data including all activities, contacts, and settings.
-        </p>
-        <Button
-          onClick={handleDataDownload}
-          disabled={downloadingData}
-          className={styles.downloadButton}
-        >
-          {downloadingData ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Preparing Download...
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4 mr-2" />
-              Download Data
-            </>
-          )}
-        </Button>
+      <div className={cn(styles.sectionBorder, "account-manager-section-border")}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className={cn(styles.sectionTitle, "account-manager-section-title")}>
+            Download Your Data
+          </h3>
+        </div>
+        
+        <div className={styles.formGroup}>
+          <p className="text-sm text-gray-600 mb-4 account-manager-info-text">
+            Download a complete copy of your family's data including all activities, contacts, and settings.
+          </p>
+          <Button
+            onClick={handleDataDownload}
+            disabled={downloadingData}
+          >
+            {downloadingData ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Preparing Download...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Download Data
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Account Closure Section */}
-      <div className={cn(styles.closureSection, "account-manager-closure-section")}>
-        <h3 className={cn(styles.sectionTitle, "account-manager-section-title text-red-700")}>
-          Close Account
-        </h3>
-        <p className={cn(styles.closureWarning, "account-manager-closure-warning")}>
-          <AlertTriangle className="h-4 w-4 inline mr-1" />
-          Warning: Closing your account will permanently disable access to your family data. 
-          This action cannot be undone. Please download your data first if you want to keep it.
-        </p>
-        <Button
-          onClick={handleAccountClosure}
-          disabled={closingAccount}
-          className={styles.closureButton}
-        >
-          {closingAccount ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Closing Account...
-            </>
-          ) : (
-            <>
+      <div className={cn(styles.sectionBorder, "account-manager-section-border")}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className={cn(styles.sectionTitle, "account-manager-section-title text-red-700")}>
+            Close Account
+          </h3>
+        </div>
+
+        {accountClosed ? (
+          <div className={cn(styles.formGroup, "account-manager-form-group")}>
+            <div className="text-center py-8">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-8 h-8 text-white" />
+                </div>
+              </div>
+              <h4 className="text-xl font-semibold text-gray-800 mb-2">
+                Account Closed Successfully
+              </h4>
+              <p className="text-gray-600 mb-4">
+                Your account has been closed and a confirmation email has been sent.
+              </p>
+              
+              <div className="bg-red-50 rounded-lg p-6 mb-4 max-w-md mx-auto">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="text-4xl font-bold text-red-600">
+                    {logoutCountdown}
+                  </div>
+                </div>
+                <p className="text-red-700 font-medium mb-3">
+                  Logging out in {logoutCountdown} second{logoutCountdown !== 1 ? 's' : ''}...
+                </p>
+                <div className="w-full bg-red-200 rounded-full h-3">
+                  <div 
+                    className="bg-red-600 h-3 rounded-full transition-all duration-1000 ease-linear"
+                    style={{ width: `${((5 - logoutCountdown) / 5) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-500">
+                <p>Thank you for using Sprout Track.</p>
+                <p>You will be redirected to the home page automatically.</p>
+              </div>
+            </div>
+          </div>
+        ) : confirmingClosure ? (
+          <div className={cn(styles.formGroup, "account-manager-form-group")}>
+            <h4 className="text-lg font-medium mb-3 text-red-700">Confirm Account Closure</h4>
+            <p className="text-sm text-gray-600 mb-4">
+              Please enter your password to confirm you want to permanently close your account.
+            </p>
+            <div className={cn(styles.formField, "account-manager-form-field")}>
+              <Label htmlFor="closurePassword">Password</Label>
+              <Input
+                id="closurePassword"
+                type="password"
+                value={closurePasswordData.password}
+                onChange={(e) => setClosurePasswordData(prev => ({ ...prev, password: e.target.value }))}
+                disabled={closurePasswordLoading || closingAccount}
+                placeholder="Enter your password"
+              />
+            </div>
+            
+            <div className={styles.buttonGroup}>
+              <Button
+                onClick={handleClosurePasswordConfirm}
+                disabled={closurePasswordLoading || closingAccount || !closurePasswordData.password}
+                variant="destructive"
+              >
+                {closurePasswordLoading || closingAccount ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {closingAccount ? 'Closing Account...' : 'Verifying...'}
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Close Account
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleClosureCancel}
+                disabled={closurePasswordLoading || closingAccount}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            </div>
+
+            {closurePasswordMessage && (
+              <div className={cn(
+                "mt-4 p-3 rounded-md text-sm",
+                closurePasswordMessage.startsWith('Error') || closurePasswordMessage.includes('incorrect')
+                  ? "bg-red-50 text-red-600 account-manager-error-message" 
+                  : "bg-green-50 text-green-600 account-manager-success-message"
+              )}>
+                <div className="flex items-center gap-2">
+                  {closurePasswordMessage.startsWith('Error') || closurePasswordMessage.includes('incorrect') ? (
+                    <AlertTriangle className="h-4 w-4" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4" />
+                  )}
+                  {closurePasswordMessage}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className={styles.formGroup}>
+            <p className="text-sm text-gray-600 mb-4 account-manager-info-text">
+              <AlertTriangle className="h-4 w-4 inline mr-1" />
+              Warning: Closing your account will permanently disable access to your family data. 
+              This action cannot be undone. Please download your data first if you want to keep it.
+            </p>
+            <Button
+              onClick={() => setConfirmingClosure(true)}
+              variant="destructive"
+            >
               <AlertTriangle className="h-4 w-4 mr-2" />
               Close Account
-            </>
-          )}
-        </Button>
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

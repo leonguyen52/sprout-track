@@ -104,13 +104,26 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
       }
     });
 
-    // Check if account exists and is verified
+    // Check if account exists
     if (!account) {
       recordFailedAttempt(ip);
       return NextResponse.json<ApiResponse<AccountLoginResponse>>(
         {
           success: false,
           error: 'Invalid email or password',
+        },
+        { status: 401 }
+      );
+    }
+
+    // Check if account is closed (using verified: false as indicator since we don't have a closed field in the current schema)
+    // In a real implementation, you'd want a dedicated 'closed' or 'active' field
+    if (!account.verified) {
+      recordFailedAttempt(ip);
+      return NextResponse.json<ApiResponse<AccountLoginResponse>>(
+        {
+          success: false,
+          error: 'This account has been closed or is not verified',
         },
         { status: 401 }
       );
