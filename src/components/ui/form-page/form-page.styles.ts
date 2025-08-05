@@ -8,7 +8,7 @@ import { cva } from "class-variance-authority";
  */
 export const formPageStyles = {
   // Main container
-  container: "fixed inset-y-0 right-0 z-[9999] flex flex-col bg-white/95 backdrop-blur-sm transform transition-transform duration-300 ease-in-out w-full sm:max-w-lg md:max-w-xl border-l border-slate-200 overflow-hidden",
+  container: "fixed inset-y-0 right-0 z-[99] flex flex-col bg-white/95 backdrop-blur-sm transform transition-transform duration-300 ease-in-out w-full sm:max-w-lg md:max-w-xl border-l border-slate-200 overflow-hidden",
   
   // Container when open
   containerOpen: "translate-x-0",
@@ -17,7 +17,7 @@ export const formPageStyles = {
   containerClosed: "translate-x-full",
   
   // Overlay background
-  overlay: "fixed inset-0 bg-black/30 z-[9998] transition-opacity duration-300",
+  overlay: "fixed inset-0 bg-black/30 z-[98] transition-opacity duration-300",
   
   // Overlay when open
   overlayOpen: "opacity-100",
