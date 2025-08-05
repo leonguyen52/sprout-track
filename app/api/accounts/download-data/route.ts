@@ -210,15 +210,15 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     };
 
     // Create the data export
-    const dataExport = createDataExport(exportData, family.slug);
+    const dataExport = await createDataExport(exportData, family.slug);
     
-    // Create response with text file
-    return new NextResponse(dataExport.content, {
+    // Create response with zip file
+    return new NextResponse(dataExport.buffer, {
       status: 200,
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
+        'Content-Type': 'application/zip',
         'Content-Disposition': `attachment; filename="${dataExport.filename}"`,
-        'Content-Length': dataExport.content.length.toString(),
+        'Content-Length': dataExport.buffer.length.toString(),
       },
     });
 

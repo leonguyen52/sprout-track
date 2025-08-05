@@ -2,8 +2,10 @@
  * CSV Export Utility
  * 
  * Provides functions to convert data to CSV format and create downloadable files
- * Based on native JavaScript/TypeScript without external dependencies
+ * Uses JSZip to create proper zip archives with separate CSV files
  */
+
+import JSZip from 'jszip';
 
 /**
  * Convert a 2D array into a CSV string
@@ -88,12 +90,12 @@ export function sanitizeForCsv(value: any): string {
 }
 
 /**
- * Create a comprehensive data export with multiple CSV files
+ * Create a comprehensive data export with multiple CSV files bundled in a zip
  * @param exportData Object containing different data types to export
  * @param familySlug Family slug for filename
- * @returns Object with combined content and metadata
+ * @returns Promise that resolves to zip buffer and metadata
  */
-export function createDataExport(exportData: {
+export async function createDataExport(exportData: {
   familyInfo: any;
   babies?: any[];
   caretakers?: any[];
@@ -113,14 +115,15 @@ export function createDataExport(exportData: {
   calendarEvents?: any[];
   settings?: any;
 }, familySlug: string) {
-  const exportFiles: { filename: string; content: string; size: number }[] = [];
+  const zip = new JSZip();
+  const exportFiles: { filename: string; size: number }[] = [];
   
   // Add family info as JSON
   if (exportData.familyInfo) {
     const content = JSON.stringify(exportData.familyInfo, null, 2);
+    zip.file('family-info.json', content);
     exportFiles.push({
       filename: 'family-info.json',
-      content,
       size: content.length
     });
   }
@@ -149,9 +152,9 @@ export function createDataExport(exportData: {
     const data = exportData[key as keyof typeof exportData] as any[];
     if (data && data.length > 0) {
       const csvContent = objectArrayToCsv(data);
+      zip.file(filename, csvContent);
       exportFiles.push({
         filename,
-        content: csvContent,
         size: csvContent.length
       });
     }
@@ -160,34 +163,35 @@ export function createDataExport(exportData: {
   // Add settings as JSON if available
   if (exportData.settings) {
     const content = JSON.stringify(exportData.settings, null, 2);
+    zip.file('settings.json', content);
     exportFiles.push({
       filename: 'settings.json',
-      content,
       size: content.length
     });
   }
   
-  // Create a simple text-based "archive" with file separators
-  const separator = '\n' + '='.repeat(80) + '\n';
-  const archiveContent = exportFiles.map(file => 
-    `FILE: ${file.filename}\n${separator}${file.content}${separator}`
-  ).join('\n\n');
-  
-  // Add a manifest at the beginning
+  // Create a manifest file
   const manifest = {
     exportDate: new Date().toISOString(),
     familySlug,
     totalFiles: exportFiles.length,
     totalSize: exportFiles.reduce((sum, file) => sum + file.size, 0),
-    files: exportFiles.map(f => ({ filename: f.filename, size: f.size }))
+    files: exportFiles
   };
   
   const manifestContent = JSON.stringify(manifest, null, 2);
-  const finalContent = `EXPORT MANIFEST\n${separator}${manifestContent}${separator}\n\n${archiveContent}`;
+  zip.file('manifest.json', manifestContent);
+  
+  // Generate the zip file as a buffer
+  const zipBuffer = await zip.generateAsync({ 
+    type: 'nodebuffer',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 6 }
+  });
   
   return {
-    content: finalContent,
-    filename: `${familySlug}-data-export-${new Date().toISOString().split('T')[0]}.txt`,
+    buffer: zipBuffer,
+    filename: `${familySlug}-data-export-${new Date().toISOString().split('T')[0]}.zip`,
     manifest,
     files: exportFiles
   };
