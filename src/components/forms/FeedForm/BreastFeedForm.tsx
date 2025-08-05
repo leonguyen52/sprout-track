@@ -252,14 +252,15 @@ export default function BreastFeedForm({
               <>
                 <input
                   type="text"
-                  value={leftHours === 0 ? '-' : leftHours.toString()}
+                  inputMode="numeric"
+                  value={leftHours === 0 ? '--' : leftHours.toString()}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     if (numValue <= 23) setLeftHours(numValue);
                   }}
                   onFocus={(e) => {
-                    if (e.target.value === '-') e.target.value = '';
+                    if (e.target.value === '--') e.target.value = '';
                     e.target.select();
                   }}
                   onBlur={(e) => {
@@ -269,19 +270,20 @@ export default function BreastFeedForm({
                   onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
                   className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1 overflow-visible"
                   disabled={loading || isTimerRunning}
-                  placeholder="-"
+                  placeholder=""
                 />
-                <span className="mx-1">:</span>
+                <span>:</span>
                 <input
                   type="text"
-                  value={leftMinutes === 0 ? '-' : leftMinutes.toString()}
+                  inputMode="numeric"
+                  value={leftMinutes === 0 ? '--' : leftMinutes.toString()}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     if (numValue <= 59) setLeftMinutes(numValue);
                   }}
                   onFocus={(e) => {
-                    if (e.target.value === '-') e.target.value = '';
+                    if (e.target.value === '--') e.target.value = '';
                     e.target.select();
                   }}
                   onBlur={(e) => {
@@ -291,19 +293,20 @@ export default function BreastFeedForm({
                   onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
                   className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1 overflow-visible"
                   disabled={loading || isTimerRunning}
-                  placeholder="-"
+                  placeholder=""
                 />
-                <span className="mx-1">:</span>
+                <span>:</span>
                 <input
                   type="text"
-                  value={leftSeconds === 0 ? '-' : leftSeconds.toString()}
+                  inputMode="numeric"
+                  value={leftSeconds === 0 ? '--' : leftSeconds.toString()}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     if (numValue <= 59) setLeftSeconds(numValue);
                   }}
                   onFocus={(e) => {
-                    if (e.target.value === '-') e.target.value = '';
+                    if (e.target.value === '--') e.target.value = '';
                     e.target.select();
                   }}
                   onBlur={(e) => {
@@ -311,23 +314,24 @@ export default function BreastFeedForm({
                     saveLeftDuration();
                   }}
                   onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
-                  className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
                   disabled={loading || isTimerRunning}
-                  placeholder="-"
+                  placeholder=""
                 />
               </>
             ) : (
               <>
                 <input
                   type="text"
-                  value={rightHours === 0 ? '-' : rightHours.toString()}
+                  inputMode="numeric"
+                  value={rightHours === 0 ? '--' : rightHours.toString()}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     if (numValue <= 23) setRightHours(numValue);
                   }}
                   onFocus={(e) => {
-                    if (e.target.value === '-') e.target.value = '';
+                    if (e.target.value === '--') e.target.value = '';
                     e.target.select();
                   }}
                   onBlur={(e) => {
@@ -335,21 +339,22 @@ export default function BreastFeedForm({
                     saveRightDuration();
                   }}
                   onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
-                  className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
                   disabled={loading || isTimerRunning}
-                  placeholder="-"
+                  placeholder=""
                 />
-                <span className="mx-1">:</span>
+                <span>:</span>
                 <input
                   type="text"
-                  value={rightMinutes === 0 ? '-' : rightMinutes.toString()}
+                  inputMode="numeric"
+                  value={rightMinutes === 0 ? '--' : rightMinutes.toString()}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     if (numValue <= 59) setRightMinutes(numValue);
                   }}
                   onFocus={(e) => {
-                    if (e.target.value === '-') e.target.value = '';
+                    if (e.target.value === '--') e.target.value = '';
                     e.target.select();
                   }}
                   onBlur={(e) => {
@@ -357,21 +362,22 @@ export default function BreastFeedForm({
                     saveRightDuration();
                   }}
                   onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
-                  className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
                   disabled={loading || isTimerRunning}
-                  placeholder="-"
+                  placeholder=""
                 />
-                <span className="mx-1">:</span>
+                <span>:</span>
                 <input
                   type="text"
-                  value={rightSeconds === 0 ? '-' : rightSeconds.toString()}
+                  inputMode="numeric"
+                  value={rightSeconds === 0 ? '--' : rightSeconds.toString()}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     if (numValue <= 59) setRightSeconds(numValue);
                   }}
                   onFocus={(e) => {
-                    if (e.target.value === '-') e.target.value = '';
+                    if (e.target.value === '--') e.target.value = '';
                     e.target.select();
                   }}
                   onBlur={(e) => {
@@ -379,9 +385,9 @@ export default function BreastFeedForm({
                     saveRightDuration();
                   }}
                   onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
-                  className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
                   disabled={loading || isTimerRunning}
-                  placeholder="-"
+                  placeholder=""
                 />
               </>
             )}
@@ -419,21 +425,22 @@ export default function BreastFeedForm({
   return (
     <div>
       <Label className="form-label">Duration</Label>
-      <div className="flex justify-center gap-8 py-2">
+      <div className="flex justify-center gap-4 py-2">
         {/* Left Side */}
         <div className="flex flex-col items-center space-y-4 flex-1 max-w-xs">
           <Label className="text-lg font-semibold text-gray-700">Left Side</Label>
           <div className="flex items-center text-2xl font-medium tracking-wider">
             <input
               type="text"
-              value={leftHours === 0 ? '-' : leftHours.toString()}
+              inputMode="numeric"
+              value={leftHours === 0 ? '--' : leftHours.toString()}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                 const numValue = value === '' ? 0 : parseInt(value, 10);
                 if (numValue <= 23) setLeftHours(numValue);
               }}
               onFocus={(e) => {
-                if (e.target.value === '-') e.target.value = '';
+                if (e.target.value === '--') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
@@ -441,21 +448,22 @@ export default function BreastFeedForm({
                 saveLeftDuration();
               }}
               onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
-              className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+              className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
               disabled={loading || isTimerRunning}
-              placeholder="-"
+              placeholder=""
             />
-            <span className="mx-1">:</span>
+            <span>:</span>
             <input
               type="text"
-              value={leftMinutes === 0 ? '-' : leftMinutes.toString()}
+              inputMode="numeric"
+              value={leftMinutes === 0 ? '--' : leftMinutes.toString()}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                 const numValue = value === '' ? 0 : parseInt(value, 10);
                 if (numValue <= 59) setLeftMinutes(numValue);
               }}
               onFocus={(e) => {
-                if (e.target.value === '-') e.target.value = '';
+                if (e.target.value === '--') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
@@ -463,21 +471,22 @@ export default function BreastFeedForm({
                 saveLeftDuration();
               }}
               onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
-              className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+              className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
               disabled={loading || isTimerRunning}
-              placeholder="-"
+              placeholder=""
             />
-            <span className="mx-1">:</span>
+            <span>:</span>
             <input
               type="text"
-              value={leftSeconds === 0 ? '-' : leftSeconds.toString()}
+              inputMode="numeric"
+              value={leftSeconds === 0 ? '--' : leftSeconds.toString()}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                 const numValue = value === '' ? 0 : parseInt(value, 10);
                 if (numValue <= 59) setLeftSeconds(numValue);
               }}
               onFocus={(e) => {
-                if (e.target.value === '-') e.target.value = '';
+                if (e.target.value === '--') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
@@ -485,9 +494,9 @@ export default function BreastFeedForm({
                 saveLeftDuration();
               }}
               onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
-              className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+              className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
               disabled={loading || isTimerRunning}
-              placeholder="-"
+              placeholder=""
             />
           </div>
           <div className="flex justify-center w-full">
@@ -525,14 +534,15 @@ export default function BreastFeedForm({
           <div className="flex items-center text-2xl font-medium tracking-wider">
             <input
               type="text"
-              value={rightHours === 0 ? '-' : rightHours.toString()}
+              inputMode="numeric"
+              value={rightHours === 0 ? '--' : rightHours.toString()}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                 const numValue = value === '' ? 0 : parseInt(value, 10);
                 if (numValue <= 23) setRightHours(numValue);
               }}
               onFocus={(e) => {
-                if (e.target.value === '-') e.target.value = '';
+                if (e.target.value === '--') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
@@ -540,21 +550,22 @@ export default function BreastFeedForm({
                 saveRightDuration();
               }}
               onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
-              className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+              className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
               disabled={loading || isTimerRunning}
-              placeholder="-"
+              placeholder=""
             />
-            <span className="mx-1">:</span>
+            <span>:</span>
             <input
               type="text"
-              value={rightMinutes === 0 ? '-' : rightMinutes.toString()}
+              inputMode="numeric"
+              value={rightMinutes === 0 ? '--' : rightMinutes.toString()}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                 const numValue = value === '' ? 0 : parseInt(value, 10);
                 if (numValue <= 59) setRightMinutes(numValue);
               }}
               onFocus={(e) => {
-                if (e.target.value === '-') e.target.value = '';
+                if (e.target.value === '--') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
@@ -562,21 +573,22 @@ export default function BreastFeedForm({
                 saveRightDuration();
               }}
               onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
-              className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+              className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
               disabled={loading || isTimerRunning}
-              placeholder="-"
+              placeholder=""
             />
-            <span className="mx-1">:</span>
+            <span>:</span>
             <input
               type="text"
-              value={rightSeconds === 0 ? '-' : rightSeconds.toString()}
+              inputMode="numeric"
+              value={rightSeconds === 0 ? '--' : rightSeconds.toString()}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                 const numValue = value === '' ? 0 : parseInt(value, 10);
                 if (numValue <= 59) setRightSeconds(numValue);
               }}
               onFocus={(e) => {
-                if (e.target.value === '-') e.target.value = '';
+                if (e.target.value === '--') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
@@ -584,9 +596,9 @@ export default function BreastFeedForm({
                 saveRightDuration();
               }}
               onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
-              className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+              className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
               disabled={loading || isTimerRunning}
-              placeholder="-"
+              placeholder=""
             />
           </div>
           <div className="flex justify-center w-full">
