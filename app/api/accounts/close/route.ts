@@ -74,19 +74,18 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<C
       );
     }
 
-    // Close the account by setting it as inactive and clearing sensitive data
+    // Close the account by setting the closed flag and timestamp
     // We don't actually delete the record to maintain data integrity
     await prisma.account.update({
       where: { id: account.id },
       data: {
-        // Mark as closed/inactive using existing fields
-        verified: false,
-        // Clear sensitive tokens
+        // Mark as closed using the proper schema fields
+        closed: true,
+        closedAt: new Date(),
+        // Clear sensitive tokens for security
         verificationToken: null,
         passwordResetToken: null,
         passwordResetExpires: null,
-        // We could add a note in firstName or lastName to indicate closure
-        // but for now we'll just use verified: false
       }
     });
 

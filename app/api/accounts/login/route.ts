@@ -116,14 +116,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
       );
     }
 
-    // Check if account is closed (using verified: false as indicator since we don't have a closed field in the current schema)
-    // In a real implementation, you'd want a dedicated 'closed' or 'active' field
-    if (!account.verified) {
+    // Check if account is closed using the proper closed field
+    if (account.closed) {
       recordFailedAttempt(ip);
       return NextResponse.json<ApiResponse<AccountLoginResponse>>(
         {
           success: false,
-          error: 'This account has been closed or is not verified',
+          error: 'This account has been closed',
         },
         { status: 401 }
       );
