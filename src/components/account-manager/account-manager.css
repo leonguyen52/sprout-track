@@ -1,0 +1,113 @@
+/* Dark mode overrides for AccountManager component */
+
+/* Loading and error states */
+html.dark .account-manager-loading-text {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .account-manager-error-text {
+  color: #ef4444 !important; /* red-500 */
+}
+
+/* Section styling */
+html.dark .account-manager-section-title {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .account-manager-section-border {
+  background-color: #1f2937 !important; /* gray-800 */
+  border-color: #374151 !important; /* gray-700 */
+}
+
+/* Card styling */
+html.dark .account-manager-card {
+  background-color: #1f2937 !important; /* gray-800 */
+  border-color: #374151 !important; /* gray-700 */
+}
+
+html.dark .account-manager-card:hover {
+  background-color: #374151 !important; /* gray-700 */
+}
+
+html.dark .account-manager-card-title {
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .account-manager-card-subtitle {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .account-manager-card-content {
+  color: #d1d5db !important; /* gray-300 */
+}
+
+/* Badge styling for dark mode */
+html.dark .account-manager-badge-active {
+  background-color: rgba(34, 197, 94, 0.2) !important; /* green with opacity */
+  color: #4ade80 !important; /* green-400 */
+}
+
+html.dark .account-manager-badge-inactive {
+  background-color: rgba(239, 68, 68, 0.2) !important; /* red with opacity */
+  color: #f87171 !important; /* red-400 */
+}
+
+html.dark .account-manager-badge-role {
+  background-color: rgba(59, 130, 246, 0.2) !important; /* blue with opacity */
+  color: #60a5fa !important; /* blue-400 */
+}
+
+/* Empty state */
+html.dark .account-manager-empty-state {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* Download section */
+html.dark .account-manager-download-section {
+  border-color: #374151 !important; /* gray-700 */
+}
+
+/* Account closure section */
+html.dark .account-manager-closure-section {
+  background-color: rgba(239, 68, 68, 0.1) !important; /* red with low opacity */
+  border-color: #dc2626 !important; /* red-600 */
+}
+
+html.dark .account-manager-closure-warning {
+  color: #f87171 !important; /* red-400 */
+}
+
+/* Form field styling */
+html.dark .account-manager-form-field label {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* Edit mode styling */
+html.dark .account-manager-edit-container {
+  background-color: #1f2937 !important; /* gray-800 */
+  border-color: #374151 !important; /* gray-700 */
+}
+
+/* Success/error messages */
+html.dark .account-manager-success-message {
+  color: #4ade80 !important; /* green-400 */
+}
+
+html.dark .account-manager-error-message {
+  color: #f87171 !important; /* red-400 */
+}
+
+/* Info text */
+html.dark .account-manager-info-text {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* Validation error styling */
+html.dark .account-manager-validation-error {
+  color: #f87171 !important; /* red-400 */
+}
+
+/* Loading spinner in dark mode */
+html.dark .account-manager-loading-container .animate-spin {
+  color: #5eead4 !important; /* teal-300 */
+}

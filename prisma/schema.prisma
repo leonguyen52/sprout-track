@@ -107,6 +107,8 @@ model Account {
   passwordResetToken String? @unique
   passwordResetExpires DateTime?
   betaparticipant Boolean @default(false) // Beta participant flag (0 or 1)
+  closed        Boolean  @default(false) // Account closure flag
+  closedAt      DateTime? // When the account was closed
   
   // Future OAuth fields (ready for Phase 2)
   provider      String?  // 'email', 'google', 'apple', 'github'
