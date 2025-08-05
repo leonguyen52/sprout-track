@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/src/lib/utils';
-import { formPageStyles } from './form-page.styles';
+import { formPageStyles, tabStyles } from './form-page.styles';
 import { useTheme } from '@/src/context/theme';
 import './form-page.css';
 import { 
   FormPageProps, 
   FormPageHeaderProps, 
   FormPageContentProps, 
-  FormPageFooterProps 
+  FormPageFooterProps,
+  FormPageTab
 } from './form-page.types';
 
 /**
@@ -72,10 +73,83 @@ export function FormPageFooter({
 }
 
 /**
+ * FormPageTabs component
+ * 
+ * Tab navigation component for form pages
+ */
+export function FormPageTabs({
+  tabs,
+  activeTab,
+  onTabChange,
+  className
+}: {
+  tabs: FormPageTab[];
+  activeTab: string;
+  onTabChange: (tabId: string) => void;
+  className?: string;
+}) {
+  const { theme } = useTheme();
+  
+  return (
+    <div className={cn(tabStyles.tabContainer, className, "form-page-tab-container")}>
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.id;
+        const IconComponent = tab.icon;
+        
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={cn(
+              tabStyles.tabButton,
+              "form-page-tab-button relative", // Added relative for badge positioning
+              isActive && tabStyles.tabButtonActive,
+              isActive && "form-page-tab-button-active"
+            )}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            aria-controls={`tabpanel-${tab.id}`}
+          >
+            {/* Icon */}
+            {IconComponent && (
+              <IconComponent className={cn(tabStyles.tabIcon, "form-page-tab-icon")} />
+            )}
+            {tab.imageSrc && (
+              <img
+                src={tab.imageSrc}
+                alt={tab.imageAlt || tab.label}
+                className={cn(tabStyles.tabImage, "form-page-tab-image")}
+              />
+            )}
+            
+            {/* Label */}
+            <span>{tab.label}</span>
+            
+            {/* Notification Badge */}
+            {tab.notificationCount && tab.notificationCount > 0 && (
+              <span 
+                className={cn(tabStyles.notificationBadge, "form-page-tab-notification-badge")}
+                aria-label={`${tab.notificationCount} notifications`}
+              >
+                {tab.notificationCount > 99 ? '99+' : tab.notificationCount}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
  * FormPage component
  * 
  * A full-screen form page that slides in from the right side of the screen.
  * It contains a header, scrollable content area, and a footer for action buttons.
+ * 
+ * Can be used with or without tabs. When tabs are provided, it will render
+ * a tabbed interface. Otherwise, it renders the children directly.
  * 
  * On mobile, the form content is centered, while on larger screens (>600px),
  * the form content is left-aligned.
@@ -86,11 +160,37 @@ export function FormPage({
   title,
   description,
   children,
+  tabs,
+  activeTab,
+  onTabChange,
+  defaultActiveTab,
   className,
 }: FormPageProps) {
   const { theme } = useTheme();
+  
   // State to track if we're in a browser environment
   const [mounted, setMounted] = useState(false);
+  
+  // Internal state for uncontrolled tab mode
+  const [internalActiveTab, setInternalActiveTab] = useState<string>(() => {
+    if (tabs && tabs.length > 0) {
+      return defaultActiveTab || tabs[0].id;
+    }
+    return '';
+  });
+  
+  // Determine if we're in controlled or uncontrolled mode
+  const isControlled = activeTab !== undefined && onTabChange !== undefined;
+  const currentActiveTab = isControlled ? activeTab : internalActiveTab;
+  
+  // Handle tab change
+  const handleTabChange = (tabId: string) => {
+    if (isControlled && onTabChange) {
+      onTabChange(tabId);
+    } else {
+      setInternalActiveTab(tabId);
+    }
+  };
 
   // Set mounted state to true after component mounts
   useEffect(() => {
@@ -120,6 +220,9 @@ export function FormPage({
       document.body.style.overflow = '';
     };
   }, [isOpen, onClose]);
+
+  // Find the active tab content
+  const activeTabContent = tabs?.find(tab => tab.id === currentActiveTab)?.content;
 
   // Content to be rendered
   const content = (
@@ -155,8 +258,39 @@ export function FormPage({
           onClose={onClose} 
         />
         
-        {/* Removed the relative positioning wrapper that was causing issues */}
-        {children}
+        {/* Tab navigation (if tabs are provided) */}
+        {tabs && tabs.length > 0 && (
+          <div className="px-4 pt-2">
+            <FormPageTabs
+              tabs={tabs}
+              activeTab={currentActiveTab}
+              onTabChange={handleTabChange}
+            />
+          </div>
+        )}
+        
+        {/* Content area */}
+        <div className={cn(formPageStyles.content, "form-page-content")}>
+          {tabs && tabs.length > 0 ? (
+            // Render active tab content with proper padding
+            <div
+              role="tabpanel"
+              id={`tabpanel-${currentActiveTab}`}
+              aria-labelledby={`tab-${currentActiveTab}`}
+              className="p-2 pb-20" // Add padding and bottom space for footer
+            >
+              {activeTabContent}
+            </div>
+          ) : (
+            // Render children directly when no tabs
+            <div className={formPageStyles.formContent}>
+              {children}
+            </div>
+          )}
+        </div>
+        
+        {/* Always render children when tabs are provided (for footer) */}
+        {tabs && tabs.length > 0 && children}
       </div>
     </>
   );

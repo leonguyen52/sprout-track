@@ -38,3 +38,59 @@ html.dark .form-page-footer {
 html.dark .form-label {
   color: #9ca3af !important; /* gray-400 - lighter color for form labels */
 }
+
+/* Tab navigation styling for dark mode */
+html.dark .form-page-tab-container {
+  border-color: #374151 !important; /* gray-700 */
+}
+
+html.dark .form-page-tab-button {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+html.dark .form-page-tab-button:hover {
+  color: #e5e7eb !important; /* gray-200 */
+  background-color: #374151 !important; /* gray-700 */
+}
+
+html.dark .form-page-tab-button:focus {
+  border-bottom-color: #5eead4 !important; /* teal-300 */
+}
+
+html.dark .form-page-tab-button-active {
+  color: #5eead4 !important; /* teal-300 */
+  background-color: rgba(13, 148, 136, 0.2) !important; /* teal-600 with opacity */
+  border-color: #5eead4 !important; /* teal-300 */
+}
+
+html.dark .form-page-tab-button-active:hover {
+  color: #7dd3fc !important; /* sky-300 */
+  background-color: rgba(13, 148, 136, 0.3) !important; /* teal-600 with more opacity */
+}
+
+/* Hide scrollbars for tab container while maintaining functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Improve touch scrolling on mobile devices */
+.-webkit-overflow-scrolling-touch {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure tab container has proper touch behavior */
+.form-page-tab-container {
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+}
+
+/* Notification badge styling for dark mode */
+html.dark .form-page-tab-notification-badge {
+  background-color: #dc2626 !important; /* red-600 for better contrast in dark mode */
+  color: #ffffff !important;
+}

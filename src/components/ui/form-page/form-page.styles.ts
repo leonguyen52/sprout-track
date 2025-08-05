@@ -67,3 +67,29 @@ export const formPageTriggerVariants = cva(
     },
   }
 );
+
+/**
+ * Tab navigation styles
+ */
+export const tabStyles = {
+  // Tab container
+  tabContainer: "flex flex-row border-b border-gray-200 mb-6 overflow-x-auto scrollbar-hide -webkit-overflow-scrolling-touch",
+  
+  // Individual tab button
+  tabButton: "flex items-center gap-2 py-3 px-4 mx-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-0 rounded-t-lg border-b-2 border-transparent whitespace-nowrap focus:border-b-teal-500",
+  
+  // Active tab button
+  tabButtonActive: "text-teal-700 bg-teal-50 border-b-teal-500 hover:text-teal-800 hover:bg-teal-100",
+  
+  // Tab icon
+  tabIcon: "h-4 w-4 flex-shrink-0",
+  
+  // Tab image icon
+  tabImage: "h-4 w-4 flex-shrink-0 object-contain",
+  
+  // Tab content container
+  tabContent: "flex-1",
+  
+  // Notification badge
+  notificationBadge: "absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[1.25rem]",
+};
