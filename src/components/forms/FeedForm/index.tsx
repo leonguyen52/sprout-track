@@ -69,6 +69,7 @@ export default function FeedForm({
   });
   const [loading, setLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [validationError, setValidationError] = useState<string>('');
   const [defaultSettings, setDefaultSettings] = useState({
     defaultBottleUnit: 'OZ',
     defaultSolidsUnit: 'TBSP',
@@ -342,21 +343,36 @@ export default function FeedForm({
     e.preventDefault();
     if (!babyId) return;
 
+    // Clear any previous validation errors
+    setValidationError('');
+
     // Validate required fields
     if (!formData.type) {
-      console.error('Required fields missing: type');
+      setValidationError('Please select a feeding type');
       return;
     }
     
     // Validate date time
     if (!selectedDateTime || isNaN(selectedDateTime.getTime())) {
-      console.error('Required fields missing: valid date time');
+      setValidationError('Please select a valid date and time');
       return;
     }
 
     // For breast feeding, at least one side must have a duration
     if (formData.type === 'BREAST' && formData.leftDuration === 0 && formData.rightDuration === 0) {
-      console.error('At least one breast must have a duration');
+      setValidationError('Please enter a duration for at least one breast side');
+      return;
+    }
+
+    // For bottle feeding, validate amount
+    if (formData.type === 'BOTTLE' && (!formData.amount || parseFloat(formData.amount) <= 0)) {
+      setValidationError('Please enter a valid amount for bottle feeding');
+      return;
+    }
+
+    // For solids feeding, validate amount
+    if (formData.type === 'SOLIDS' && (!formData.amount || parseFloat(formData.amount) <= 0)) {
+      setValidationError('Please enter a valid amount for solids feeding');
       return;
     }
     
@@ -555,6 +571,39 @@ export default function FeedForm({
     ].join(':');
   };
   
+  // Enhanced close handler that resets form state
+  const handleClose = () => {
+    // Stop any running timer
+    if (isTimerRunning) {
+      stopTimer();
+    }
+    
+    // Clear validation errors
+    setValidationError('');
+    
+    // Reset form data to initial state
+    const resetDateTime = new Date(initialTime);
+    setSelectedDateTime(resetDateTime);
+    setFormData({
+      time: initialTime,
+      type: '' as FeedType | '',
+      amount: '',
+      unit: defaultSettings.defaultBottleUnit,
+      side: '' as BreastSide | '',
+      food: '',
+      feedDuration: 0,
+      leftDuration: 0,
+      rightDuration: 0,
+      activeBreast: ''
+    });
+    
+    // Reset initialization flag
+    setIsInitialized(false);
+    
+    // Call the original onClose
+    onClose();
+  };
+
   // Clean up timer on unmount
   useEffect(() => {
     return () => {
@@ -567,13 +616,20 @@ export default function FeedForm({
   return (
     <FormPage
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title={activity ? 'Edit Feeding' : 'Log Feeding'}
       description={activity ? 'Update what and when your baby ate' : 'Record what and when your baby ate'}
     >
         <FormPageContent className="overflow-y-auto">
           <form onSubmit={handleSubmit} className="h-full flex flex-col">
           <div className="space-y-4 pb-20">
+            {/* Validation Error Display */}
+            {validationError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+                {validationError}
+              </div>
+            )}
+
             {/* Time Selection - Full width on all screens */}
             <div>
               <label className="form-label">Time</label>
@@ -712,7 +768,7 @@ export default function FeedForm({
             <Button
               type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={loading}
             >
               Cancel

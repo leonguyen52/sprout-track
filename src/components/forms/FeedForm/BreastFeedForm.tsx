@@ -17,6 +17,7 @@ interface BreastFeedFormProps {
   onTimerStop: () => void;
   onDurationChange: (breast: 'LEFT' | 'RIGHT', seconds: number) => void;
   isEditing?: boolean; // New prop to indicate if we're editing an existing record
+  validationError?: string; // Optional validation error message
 }
 
 // Extract hours, minutes, seconds from total seconds
@@ -54,6 +55,9 @@ export default function BreastFeedForm({
 }: BreastFeedFormProps) {
   const [isEditingLeft, setIsEditingLeft] = useState(false);
   const [isEditingRight, setIsEditingRight] = useState(false);
+  
+  // Track which specific input field is being edited
+  const [editingField, setEditingField] = useState<string | null>(null);
   
   // Timer start times for calculating elapsed duration
   const [leftStartTime, setLeftStartTime] = useState<number | null>(null);
@@ -241,6 +245,15 @@ export default function BreastFeedForm({
     }
   };
 
+  // Helper function to format display value based on editing state
+  const getDisplayValue = (value: number, fieldId: string) => {
+    if (value === 0) return '--';
+    if (editingField === fieldId) {
+      return value.toString(); // Show raw value during editing
+    }
+    return value.toString().padStart(2, '0'); // Show formatted value when not editing
+  };
+
   // When editing, show only the relevant side
   if (isEditing) {
     return (
@@ -253,7 +266,7 @@ export default function BreastFeedForm({
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={leftHours === 0 ? '--' : leftHours.toString()}
+                  value={leftHours === 0 ? '--' : leftHours.toString().padStart(2, '0')}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
@@ -276,7 +289,7 @@ export default function BreastFeedForm({
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={leftMinutes === 0 ? '--' : leftMinutes.toString()}
+                  value={leftMinutes === 0 ? '--' : leftMinutes.toString().padStart(2, '0')}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
@@ -299,7 +312,7 @@ export default function BreastFeedForm({
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={leftSeconds === 0 ? '--' : leftSeconds.toString()}
+                  value={leftSeconds === 0 ? '--' : leftSeconds.toString().padStart(2, '0')}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
@@ -324,7 +337,7 @@ export default function BreastFeedForm({
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={rightHours === 0 ? '--' : rightHours.toString()}
+                  value={rightHours === 0 ? '--' : rightHours.toString().padStart(2, '0')}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
@@ -347,7 +360,7 @@ export default function BreastFeedForm({
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={rightMinutes === 0 ? '--' : rightMinutes.toString()}
+                  value={rightMinutes === 0 ? '--' : rightMinutes.toString().padStart(2, '0')}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
@@ -370,7 +383,7 @@ export default function BreastFeedForm({
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={rightSeconds === 0 ? '--' : rightSeconds.toString()}
+                  value={rightSeconds === 0 ? '--' : rightSeconds.toString().padStart(2, '0')}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                     const numValue = value === '' ? 0 : parseInt(value, 10);
@@ -433,17 +446,19 @@ export default function BreastFeedForm({
             <input
               type="text"
               inputMode="numeric"
-              value={leftHours === 0 ? '--' : leftHours.toString()}
+              value={getDisplayValue(leftHours, 'leftHours')}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                 const numValue = value === '' ? 0 : parseInt(value, 10);
                 if (numValue <= 23) setLeftHours(numValue);
               }}
               onFocus={(e) => {
+                setEditingField('leftHours');
                 if (e.target.value === '--') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
+                setEditingField(null);
                 if (e.target.value === '') setLeftHours(0);
                 saveLeftDuration();
               }}
@@ -456,17 +471,19 @@ export default function BreastFeedForm({
             <input
               type="text"
               inputMode="numeric"
-              value={leftMinutes === 0 ? '--' : leftMinutes.toString()}
+              value={getDisplayValue(leftMinutes, 'leftMinutes')}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                 const numValue = value === '' ? 0 : parseInt(value, 10);
                 if (numValue <= 59) setLeftMinutes(numValue);
               }}
               onFocus={(e) => {
+                setEditingField('leftMinutes');
                 if (e.target.value === '--') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
+                setEditingField(null);
                 if (e.target.value === '') setLeftMinutes(0);
                 saveLeftDuration();
               }}
@@ -479,17 +496,19 @@ export default function BreastFeedForm({
             <input
               type="text"
               inputMode="numeric"
-              value={leftSeconds === 0 ? '--' : leftSeconds.toString()}
+              value={getDisplayValue(leftSeconds, 'leftSeconds')}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                 const numValue = value === '' ? 0 : parseInt(value, 10);
                 if (numValue <= 59) setLeftSeconds(numValue);
               }}
               onFocus={(e) => {
+                setEditingField('leftSeconds');
                 if (e.target.value === '--') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
+                setEditingField(null);
                 if (e.target.value === '') setLeftSeconds(0);
                 saveLeftDuration();
               }}
@@ -535,17 +554,19 @@ export default function BreastFeedForm({
             <input
               type="text"
               inputMode="numeric"
-              value={rightHours === 0 ? '--' : rightHours.toString()}
+              value={getDisplayValue(rightHours, 'rightHours')}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                 const numValue = value === '' ? 0 : parseInt(value, 10);
                 if (numValue <= 23) setRightHours(numValue);
               }}
               onFocus={(e) => {
+                setEditingField('rightHours');
                 if (e.target.value === '--') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
+                setEditingField(null);
                 if (e.target.value === '') setRightHours(0);
                 saveRightDuration();
               }}
@@ -558,17 +579,19 @@ export default function BreastFeedForm({
             <input
               type="text"
               inputMode="numeric"
-              value={rightMinutes === 0 ? '--' : rightMinutes.toString()}
+              value={getDisplayValue(rightMinutes, 'rightMinutes')}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                 const numValue = value === '' ? 0 : parseInt(value, 10);
                 if (numValue <= 59) setRightMinutes(numValue);
               }}
               onFocus={(e) => {
+                setEditingField('rightMinutes');
                 if (e.target.value === '--') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
+                setEditingField(null);
                 if (e.target.value === '') setRightMinutes(0);
                 saveRightDuration();
               }}
@@ -581,17 +604,19 @@ export default function BreastFeedForm({
             <input
               type="text"
               inputMode="numeric"
-              value={rightSeconds === 0 ? '--' : rightSeconds.toString()}
+              value={getDisplayValue(rightSeconds, 'rightSeconds')}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                 const numValue = value === '' ? 0 : parseInt(value, 10);
                 if (numValue <= 59) setRightSeconds(numValue);
               }}
               onFocus={(e) => {
+                setEditingField('rightSeconds');
                 if (e.target.value === '--') e.target.value = '';
                 e.target.select();
               }}
               onBlur={(e) => {
+                setEditingField(null);
                 if (e.target.value === '') setRightSeconds(0);
                 saveRightDuration();
               }}
