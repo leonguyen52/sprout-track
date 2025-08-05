@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BreastSide } from '@prisma/client';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
+import { Label } from '@/src/components/ui/label';
 import { Play, Pause, Clock } from 'lucide-react';
 
 interface BreastFeedFormProps {
@@ -239,244 +240,379 @@ export default function BreastFeedForm({
       setter(Math.min(Math.max(0, numValue), max));
     }
   };
-  
+
+  // When editing, show only the relevant side
+  if (isEditing) {
+    return (
+      <div>
+        <Label className="form-label">Duration - {side === 'LEFT' ? 'Left' : 'Right'} Side</Label>
+        <div className="flex flex-col items-center space-y-4 py-4">
+          <div className="flex items-center text-2xl font-medium tracking-wider">
+            {side === 'LEFT' ? (
+              <>
+                <input
+                  type="text"
+                  value={leftHours === 0 ? '-' : leftHours.toString()}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                    const numValue = value === '' ? 0 : parseInt(value, 10);
+                    if (numValue <= 23) setLeftHours(numValue);
+                  }}
+                  onFocus={(e) => {
+                    if (e.target.value === '-') e.target.value = '';
+                    e.target.select();
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === '') setLeftHours(0);
+                    saveLeftDuration();
+                  }}
+                  onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
+                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1 overflow-visible"
+                  disabled={loading || isTimerRunning}
+                  placeholder="-"
+                />
+                <span className="mx-1">:</span>
+                <input
+                  type="text"
+                  value={leftMinutes === 0 ? '-' : leftMinutes.toString()}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                    const numValue = value === '' ? 0 : parseInt(value, 10);
+                    if (numValue <= 59) setLeftMinutes(numValue);
+                  }}
+                  onFocus={(e) => {
+                    if (e.target.value === '-') e.target.value = '';
+                    e.target.select();
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === '') setLeftMinutes(0);
+                    saveLeftDuration();
+                  }}
+                  onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
+                  className="w-12 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1 overflow-visible"
+                  disabled={loading || isTimerRunning}
+                  placeholder="-"
+                />
+                <span className="mx-1">:</span>
+                <input
+                  type="text"
+                  value={leftSeconds === 0 ? '-' : leftSeconds.toString()}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                    const numValue = value === '' ? 0 : parseInt(value, 10);
+                    if (numValue <= 59) setLeftSeconds(numValue);
+                  }}
+                  onFocus={(e) => {
+                    if (e.target.value === '-') e.target.value = '';
+                    e.target.select();
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === '') setLeftSeconds(0);
+                    saveLeftDuration();
+                  }}
+                  onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
+                  className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+                  disabled={loading || isTimerRunning}
+                  placeholder="-"
+                />
+              </>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={rightHours === 0 ? '-' : rightHours.toString()}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                    const numValue = value === '' ? 0 : parseInt(value, 10);
+                    if (numValue <= 23) setRightHours(numValue);
+                  }}
+                  onFocus={(e) => {
+                    if (e.target.value === '-') e.target.value = '';
+                    e.target.select();
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === '') setRightHours(0);
+                    saveRightDuration();
+                  }}
+                  onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
+                  className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+                  disabled={loading || isTimerRunning}
+                  placeholder="-"
+                />
+                <span className="mx-1">:</span>
+                <input
+                  type="text"
+                  value={rightMinutes === 0 ? '-' : rightMinutes.toString()}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                    const numValue = value === '' ? 0 : parseInt(value, 10);
+                    if (numValue <= 59) setRightMinutes(numValue);
+                  }}
+                  onFocus={(e) => {
+                    if (e.target.value === '-') e.target.value = '';
+                    e.target.select();
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === '') setRightMinutes(0);
+                    saveRightDuration();
+                  }}
+                  onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
+                  className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+                  disabled={loading || isTimerRunning}
+                  placeholder="-"
+                />
+                <span className="mx-1">:</span>
+                <input
+                  type="text"
+                  value={rightSeconds === 0 ? '-' : rightSeconds.toString()}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                    const numValue = value === '' ? 0 : parseInt(value, 10);
+                    if (numValue <= 59) setRightSeconds(numValue);
+                  }}
+                  onFocus={(e) => {
+                    if (e.target.value === '-') e.target.value = '';
+                    e.target.select();
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === '') setRightSeconds(0);
+                    saveRightDuration();
+                  }}
+                  onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
+                  className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+                  disabled={loading || isTimerRunning}
+                  placeholder="-"
+                />
+              </>
+            )}
+          </div>
+          <div className="flex justify-center">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={(e: React.MouseEvent) => {
+                e.preventDefault();
+                if (isTimerRunning && ((side === 'LEFT' && activeBreast === 'LEFT') || (side === 'RIGHT' && activeBreast === 'RIGHT'))) {
+                  handleTimerStop();
+                } else {
+                  handleTimerStop(); // Stop any existing timer
+                  setIsEditingLeft(false); // Exit edit mode if active
+                  setIsEditingRight(false); // Exit edit mode if active
+                  handleTimerStart(side as 'LEFT' | 'RIGHT');
+                }
+              }}
+              disabled={loading || isEditingLeft || isEditingRight}
+            >
+              {isTimerRunning && ((side === 'LEFT' && activeBreast === 'LEFT') || (side === 'RIGHT' && activeBreast === 'RIGHT')) ? 
+                <Pause className="h-4 w-4 mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+              {isTimerRunning && ((side === 'LEFT' && activeBreast === 'LEFT') || (side === 'RIGHT' && activeBreast === 'RIGHT')) ? 
+                'Pause' : 'Start'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // When creating new entries, show both sides
   return (
-    <>
-      <div>
-        <label className="form-label">Side</label>
-        <div className="flex justify-between items-center gap-3 mt-2">
-          <Button
-            type="button"
-            onClick={() => {
-              const newSide = side === 'LEFT' ? '' : 'LEFT';
-              onSideChange(newSide as BreastSide | '');
-            }}
-            disabled={loading}
-            variant={side === 'LEFT' ? 'default' : 'outline'}
-            className="w-full"
-          >
-            Left
-          </Button>
-          
-          <Button
-            type="button"
-            onClick={() => {
-              const newSide = side === 'RIGHT' ? '' : 'RIGHT';
-              onSideChange(newSide as BreastSide | '');
-            }}
-            disabled={loading}
-            variant={side === 'RIGHT' ? 'default' : 'outline'}
-            className="w-full"
-          >
-            Right
-          </Button>
+    <div>
+      <Label className="form-label">Duration</Label>
+      <div className="flex justify-center gap-8 py-2">
+        {/* Left Side */}
+        <div className="flex flex-col items-center space-y-4 flex-1 max-w-xs">
+          <Label className="text-lg font-semibold text-gray-700">Left Side</Label>
+          <div className="flex items-center text-2xl font-medium tracking-wider">
+            <input
+              type="text"
+              value={leftHours === 0 ? '-' : leftHours.toString()}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                const numValue = value === '' ? 0 : parseInt(value, 10);
+                if (numValue <= 23) setLeftHours(numValue);
+              }}
+              onFocus={(e) => {
+                if (e.target.value === '-') e.target.value = '';
+                e.target.select();
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '') setLeftHours(0);
+                saveLeftDuration();
+              }}
+              onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
+              className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+              disabled={loading || isTimerRunning}
+              placeholder="-"
+            />
+            <span className="mx-1">:</span>
+            <input
+              type="text"
+              value={leftMinutes === 0 ? '-' : leftMinutes.toString()}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                const numValue = value === '' ? 0 : parseInt(value, 10);
+                if (numValue <= 59) setLeftMinutes(numValue);
+              }}
+              onFocus={(e) => {
+                if (e.target.value === '-') e.target.value = '';
+                e.target.select();
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '') setLeftMinutes(0);
+                saveLeftDuration();
+              }}
+              onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
+              className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+              disabled={loading || isTimerRunning}
+              placeholder="-"
+            />
+            <span className="mx-1">:</span>
+            <input
+              type="text"
+              value={leftSeconds === 0 ? '-' : leftSeconds.toString()}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                const numValue = value === '' ? 0 : parseInt(value, 10);
+                if (numValue <= 59) setLeftSeconds(numValue);
+              }}
+              onFocus={(e) => {
+                if (e.target.value === '-') e.target.value = '';
+                e.target.select();
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '') setLeftSeconds(0);
+                saveLeftDuration();
+              }}
+              onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
+              className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+              disabled={loading || isTimerRunning}
+              placeholder="-"
+            />
+          </div>
+          <div className="flex justify-center w-full">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={(e: React.MouseEvent) => {
+                e.preventDefault();
+                if (isTimerRunning && activeBreast === 'LEFT') {
+                  handleTimerStop();
+                } else {
+                  handleTimerStop(); // Stop any existing timer
+                  setIsEditingLeft(false); // Exit edit mode if active
+                  handleTimerStart('LEFT');
+                }
+              }}
+              disabled={loading || isEditingLeft}
+              className="w-full"
+            >
+              {isTimerRunning && activeBreast === 'LEFT' ? <Pause className="h-4 w-4 mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+              {isTimerRunning && activeBreast === 'LEFT' ? 'Pause' : 'Start'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Vertical Divider */}
+        <div className="flex items-center justify-center">
+          <div className="h-32 border-l border-gray-200"></div>
+        </div>
+
+        {/* Right Side */}
+        <div className="flex flex-col items-center space-y-4 flex-1 max-w-xs">
+          <Label className="text-lg font-semibold text-gray-700">Right Side</Label>
+          <div className="flex items-center text-2xl font-medium tracking-wider">
+            <input
+              type="text"
+              value={rightHours === 0 ? '-' : rightHours.toString()}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                const numValue = value === '' ? 0 : parseInt(value, 10);
+                if (numValue <= 23) setRightHours(numValue);
+              }}
+              onFocus={(e) => {
+                if (e.target.value === '-') e.target.value = '';
+                e.target.select();
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '') setRightHours(0);
+                saveRightDuration();
+              }}
+              onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
+              className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+              disabled={loading || isTimerRunning}
+              placeholder="-"
+            />
+            <span className="mx-1">:</span>
+            <input
+              type="text"
+              value={rightMinutes === 0 ? '-' : rightMinutes.toString()}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                const numValue = value === '' ? 0 : parseInt(value, 10);
+                if (numValue <= 59) setRightMinutes(numValue);
+              }}
+              onFocus={(e) => {
+                if (e.target.value === '-') e.target.value = '';
+                e.target.select();
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '') setRightMinutes(0);
+                saveRightDuration();
+              }}
+              onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
+              className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+              disabled={loading || isTimerRunning}
+              placeholder="-"
+            />
+            <span className="mx-1">:</span>
+            <input
+              type="text"
+              value={rightSeconds === 0 ? '-' : rightSeconds.toString()}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                const numValue = value === '' ? 0 : parseInt(value, 10);
+                if (numValue <= 59) setRightSeconds(numValue);
+              }}
+              onFocus={(e) => {
+                if (e.target.value === '-') e.target.value = '';
+                e.target.select();
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '') setRightSeconds(0);
+                saveRightDuration();
+              }}
+              onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
+              className="w-8 text-center bg-transparent border-none outline-none text-2xl font-medium cursor-pointer hover:bg-gray-50 rounded px-1"
+              disabled={loading || isTimerRunning}
+              placeholder="-"
+            />
+          </div>
+          <div className="flex justify-center w-full">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={(e: React.MouseEvent) => {
+                e.preventDefault();
+                if (isTimerRunning && activeBreast === 'RIGHT') {
+                  handleTimerStop();
+                } else {
+                  handleTimerStop(); // Stop any existing timer
+                  setIsEditingRight(false); // Exit edit mode if active
+                  handleTimerStart('RIGHT');
+                }
+              }}
+              disabled={loading || isEditingRight}
+              className="w-full"
+            >
+              {isTimerRunning && activeBreast === 'RIGHT' ? <Pause className="h-4 w-4 mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+              {isTimerRunning && activeBreast === 'RIGHT' ? 'Pause' : 'Start'}
+            </Button>
+          </div>
         </div>
       </div>
-      
-      <div>
-        <label className="form-label">Duration</label>
-        <div className="flex flex-col space-y-4">
-          {/* Left Breast Timer */}
-          {side === 'LEFT' && (
-            <div className="flex flex-col items-center space-y-4 py-4">
-              <div className="flex items-center space-x-3">
-                <span className="font-medium text-lg"></span>
-                {isEditingLeft ? (
-                  <div className="flex items-center space-x-1">
-                    <Input
-                      type="number"
-                      value={leftHours}
-                      onChange={(e) => handleTimeInputChange(e.target.value, setLeftHours, 23)}
-                      onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
-                      className="w-20 text-center"
-                      min="0"
-                      max="23"
-                      disabled={loading}
-                    />
-                    <span className="text-lg">:</span>
-                    <Input
-                      type="number"
-                      value={leftMinutes}
-                      onChange={(e) => handleTimeInputChange(e.target.value, setLeftMinutes, 59)}
-                      onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
-                      className="w-20 text-center"
-                      min="0"
-                      max="59"
-                      disabled={loading}
-                    />
-                    <span className="text-lg">:</span>
-                    <Input
-                      type="number"
-                      value={leftSeconds}
-                      onChange={(e) => handleTimeInputChange(e.target.value, setLeftSeconds, 59)}
-                      onKeyDown={(e) => handleKeyDown(e, saveLeftDuration)}
-                      className="w-20 text-center"
-                      min="0"
-                      max="59"
-                      disabled={loading}
-                    />
-                  </div>
-                ) : (
-                  <div className="text-2xl font-medium tracking-wider">
-                    {formatTime(displayLeftDuration)}
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-center space-x-3">
-                {isEditingLeft ? (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      saveLeftDuration();
-                    }}
-                    disabled={loading}
-                  >
-                    Save
-                  </Button>
-                ) : (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (isTimerRunning) handleTimerStop();
-                      setIsEditingLeft(true);
-                    }}
-                    disabled={loading}
-                  >
-                    <Clock className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                )}
-                
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={(e: React.MouseEvent) => {
-                    e.preventDefault();
-                    if (isTimerRunning && activeBreast === 'LEFT') {
-                      handleTimerStop();
-                    } else {
-                      handleTimerStop(); // Stop any existing timer
-                      setIsEditingLeft(false); // Exit edit mode if active
-                      handleTimerStart('LEFT');
-                    }
-                  }}
-                  disabled={loading || isEditingLeft}
-                >
-                  {isTimerRunning && activeBreast === 'LEFT' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                  {isTimerRunning && activeBreast === 'LEFT' ? 'Pause' : 'Start'}
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          {/* Right Breast Timer */}
-          {side === 'RIGHT' && (
-            <div className="flex flex-col items-center space-y-4 py-4">
-              <div className="flex items-center space-x-3">
-                <span className="font-medium text-lg"></span>
-                {isEditingRight ? (
-                  <div className="flex items-center space-x-1">
-                    <Input
-                      type="number"
-                      value={rightHours}
-                      onChange={(e) => handleTimeInputChange(e.target.value, setRightHours, 23)}
-                      onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
-                      className="w-20 text-center"
-                      min="0"
-                      max="23"
-                      disabled={loading}
-                    />
-                    <span className="text-lg">:</span>
-                    <Input
-                      type="number"
-                      value={rightMinutes}
-                      onChange={(e) => handleTimeInputChange(e.target.value, setRightMinutes, 59)}
-                      onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
-                      className="w-20 text-center"
-                      min="0"
-                      max="59"
-                      disabled={loading}
-                    />
-                    <span className="text-lg">:</span>
-                    <Input
-                      type="number"
-                      value={rightSeconds}
-                      onChange={(e) => handleTimeInputChange(e.target.value, setRightSeconds, 59)}
-                      onKeyDown={(e) => handleKeyDown(e, saveRightDuration)}
-                      className="w-20 text-center"
-                      min="0"
-                      max="59"
-                      disabled={loading}
-                    />
-                  </div>
-                ) : (
-                  <div className="text-2xl font-medium tracking-wider">
-                    {formatTime(displayRightDuration)}
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-center space-x-3">
-                {isEditingRight ? (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      saveRightDuration();
-                    }}
-                    disabled={loading}
-                  >
-                    Save
-                  </Button>
-                ) : (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (isTimerRunning) handleTimerStop();
-                      setIsEditingRight(true);
-                    }}
-                    disabled={loading}
-                  >
-                    <Clock className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                )}
-                
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={(e: React.MouseEvent) => {
-                    e.preventDefault();
-                    if (isTimerRunning && activeBreast === 'RIGHT') {
-                      handleTimerStop();
-                    } else {
-                      handleTimerStop(); // Stop any existing timer
-                      setIsEditingRight(false); // Exit edit mode if active
-                      handleTimerStart('RIGHT');
-                    }
-                  }}
-                  disabled={loading || isEditingRight}
-                >
-                  {isTimerRunning && activeBreast === 'RIGHT' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                  {isTimerRunning && activeBreast === 'RIGHT' ? 'Pause' : 'Start'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
+    </div>
   );
 }
