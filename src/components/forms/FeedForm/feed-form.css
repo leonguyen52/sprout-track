@@ -2,87 +2,87 @@
 
 /* Make type text lighter in dark mode */
 html.dark .feed-type-button {
-  color: #e5e7eb !important; /* gray-200 */
+  color: #e5e7eb ; /* gray-200 */
 }
 
 /* Make background transparent in dark mode when not selected */
 html.dark .feed-type-button:not(.feed-type-selected) {
-  background-color: transparent !important;
+  background-color: transparent ;
 }
 
 /* Hover state for feed type buttons in dark mode */
 html.dark .feed-type-button:not(.feed-type-selected):hover {
-  background-color: rgba(55, 65, 81, 0.5) !important; /* gray-700 with opacity */
+  background-color: rgba(55, 65, 81, 0.5) ; /* gray-700 with opacity */
 }
 
 /* Selected state for feed type buttons in dark mode */
 html.dark .feed-type-selected {
-  background-color: rgba(59, 130, 246, 0.2) !important; /* blue-500 with opacity */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  background-color: rgba(59, 130, 246, 0.2) ; /* blue-500 with opacity */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) ;
 }
 
 /* Dark mode styles for timer active side highlighting - more subtle and transparent */
 html.dark .timer-active-side {
-  background-color: rgba(255, 255, 255, 0.05) !important; /* Very subtle white overlay */
-  border-color: rgba(255, 255, 255, 0.1) !important; /* Subtle white border */
+  background-color: rgba(255, 255, 255, 0.05) ; /* Very subtle white overlay */
+  border-color: rgba(255, 255, 255, 0.1) ; /* Subtle white border */
 }
 
 /* Dark mode styles for timer inputs - scoped to feed form only */
 html.dark .feed-form-container input[type="text"][inputMode="numeric"] {
-  color: #f3f4f6 !important; /* gray-100 - lighter to match the app */
-  background-color: transparent !important;
+  color: #f3f4f6 ; /* gray-100 - lighter to match the app */
+  background-color: transparent ;
 }
 
 html.dark .feed-form-container input[type="text"][inputMode="numeric"]:hover {
-  background-color: rgba(55, 65, 81, 0.3) !important; /* More subtle gray-700 with lower opacity */
-  color: #f3f4f6 !important; /* Maintain light text on hover */
+  background-color: rgba(55, 65, 81, 0.3) ; /* More subtle gray-700 with lower opacity */
+  color: #f3f4f6 ; /* Maintain light text on hover */
 }
 
 html.dark .feed-form-container input[type="text"][inputMode="numeric"]:focus {
-  background-color: rgba(55, 65, 81, 0.5) !important;
-  color: #f3f4f6 !important;
+  background-color: rgba(55, 65, 81, 0.5) ;
+  color: #f3f4f6 ;
 }
 
 /* Additional specific selectors for timer inputs within feed form */
 html.dark .feed-form-container input.timer-input {
-  color: #f3f4f6 !important; /* gray-100 - lighter to match the app */
-  background-color: transparent !important;
+  color: #f3f4f6 ; /* gray-100 - lighter to match the app */
+  background-color: transparent ;
 }
 
 html.dark .feed-form-container input.timer-input:hover {
-  background-color: rgba(55, 65, 81, 0.3) !important; /* More subtle gray-700 with lower opacity */
-  color: #f3f4f6 !important; /* Maintain light text on hover */
+  background-color: rgba(55, 65, 81, 0.3) ; /* More subtle gray-700 with lower opacity */
+  color: #f3f4f6 ; /* Maintain light text on hover */
 }
 
 html.dark .feed-form-container input.timer-input:focus {
-  background-color: rgba(55, 65, 81, 0.5) !important;
-  color: #f3f4f6 !important;
+  background-color: rgba(55, 65, 81, 0.5) ;
+  color: #f3f4f6 ;
 }
 
 /* Dark mode styles for timer labels - scoped to feed form, but exclude form-label */
 html.dark .feed-form-container .timer-label:not(.form-label) {
-  color: #f3f4f6 !important; /* gray-100 - lighter to match the app */
+  color: #f3f4f6 ; /* gray-100 - lighter to match the app */
 }
 
 /* Dark mode styles for timer separators - scoped to feed form */
 html.dark .feed-form-container .timer-separator {
-  color: #f3f4f6 !important; /* gray-100 - lighter to match the app */
+  color: #f3f4f6 ; /* gray-100 - lighter to match the app */
 }
 
 /* Override conflicting hover states within feed form only */
 html.dark .feed-form-container .hover\:bg-gray-50:hover {
-  background-color: rgba(55, 65, 81, 0.3) !important;
+  background-color: rgba(55, 65, 81, 0.3) ;
 }
 
 /* Override Tailwind text color classes within feed form only */
 html.dark .feed-form-container .text-2xl {
-  color: #f3f4f6 !important;
+  color: #f3f4f6 ;
 }
 
 html.dark .feed-form-container .font-medium {
-  color: #f3f4f6 !important;
+  color: #f3f4f6 ;
 }
 
 html.dark .feed-form-container .tracking-wider {
-  color: #f3f4f6 !important;
+  color: #f3f4f6 ;
 }

@@ -408,7 +408,7 @@ export default function BreastFeedForm({
           <div className="flex justify-center">
             <Button 
               type="button" 
-              variant={isTimerRunning && ((side === 'LEFT' && activeBreast === 'LEFT') || (side === 'RIGHT' && activeBreast === 'RIGHT')) ? 'timerActive' : 'outline'}
+              variant={isTimerRunning && ((side === 'LEFT' && activeBreast === 'LEFT') || (side === 'RIGHT' && activeBreast === 'RIGHT')) ? 'default' : 'outline'}
               size="sm"
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
@@ -525,7 +525,7 @@ export default function BreastFeedForm({
           <div className="flex justify-center w-full">
             <Button 
               type="button" 
-              variant={isTimerRunning && activeBreast === 'LEFT' ? 'timerActive' : 'outline'}
+              variant={isTimerRunning && activeBreast === 'LEFT' ? 'default' : 'outline'}
               size="sm"
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
@@ -637,7 +637,7 @@ export default function BreastFeedForm({
           <div className="flex justify-center w-full">
             <Button 
               type="button" 
-              variant={isTimerRunning && activeBreast === 'RIGHT' ? 'timerActive' : 'outline'}
+              variant={isTimerRunning && activeBreast === 'RIGHT' ? 'default' : 'outline'}
               size="sm"
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
