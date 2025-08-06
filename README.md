@@ -175,9 +175,12 @@ npm run start
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-### Default Security PIN
+### Default Security PIN and Family-Manager Password
 
 The default security PIN after setup is: **111222**
+
+Default [/family-manager](/family-manager) password is: **admin**
+Note: The family manager settings page is where you can set domain, whether to use https://, email settings, and download the database.  **It's recommended you download the database before each upgrade.**
 
 ## Initial Application Setup
 
