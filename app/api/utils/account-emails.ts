@@ -171,3 +171,46 @@ The Sprout Track Team`,
 
   return result;
 }
+
+export async function sendAccountClosureEmail(email: string, firstName: string) {
+  const domainUrl = await getDomainUrl();
+  
+  const result = await sendEmail({
+    to: email,
+    from: process.env.ACCOUNTS_EMAIL || 'accounts@sprout-track.com',
+    subject: 'Sprout Track - Account Closed',
+    text: `Hi ${firstName},
+
+Your Sprout Track account has been successfully closed as requested.
+
+Your account and associated family data have been deactivated and are no longer accessible. This action cannot be undone.
+
+If you closed your account by mistake or would like to reactivate it, please contact our support team as soon as possible.
+
+Thank you for using Sprout Track. We're sorry to see you go!
+
+Best regards,
+The Sprout Track Team`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #dc2626;">Account Closed</h2>
+        <p>Hi ${firstName},</p>
+        <p>Your Sprout Track account has been successfully closed as requested.</p>
+        
+        <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+          <p style="margin: 0; color: #dc2626; font-weight: 600;">
+            Your account and associated family data have been deactivated and are no longer accessible. This action cannot be undone.
+          </p>
+        </div>
+        
+        <p>If you closed your account by mistake or would like to reactivate it, please contact our support team as soon as possible.</p>
+        
+        <p>Thank you for using Sprout Track. We're sorry to see you go!</p>
+        
+        <p>Best regards,<br>The Sprout Track Team</p>
+      </div>
+    `
+  });
+
+  return result;
+}

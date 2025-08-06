@@ -46,53 +46,15 @@ const FamilySetupStage: React.FC<FamilySetupStageProps> = ({
       return;
     }
 
-    // Basic slug validation
-    const slugPattern = /^[a-z0-9-]+$/;
-    if (!slugPattern.test(slug)) {
-      setSlugError('Slug can only contain lowercase letters, numbers, and hyphens');
-      return;
-    }
-
-    if (slug.length < 3) {
-      setSlugError('Slug must be at least 3 characters long');
-      return;
-    }
-
-    if (slug.length > 50) {
-      setSlugError('Slug must be less than 50 characters');
-      return;
-    }
-
-    // Check for reserved URLs used by the main app
-    const reservedUrls = [
-      'account',
-      'api',
-      'coming-soon',
-      'family-manager',
-      'family-select',
-      'setup',
-      'sphome',
-      'login',
-      'auth',
-      'context',
-      'globals',
-      'layout',
-      'metadata',
-      'page',
-      'template'
-    ];
-
-    if (reservedUrls.includes(slug.toLowerCase())) {
-      setSlugError('This URL is reserved by the system and cannot be used');
-      return;
-    }
-
     setCheckingSlug(true);
     try {
       const response = await fetch(`/api/family/by-slug/${encodeURIComponent(slug)}`);
       const data = await response.json();
       
-      if (data.success && data.data) {
+      if (response.status === 400) {
+        // Validation error (format or reserved word)
+        setSlugError(data.error || 'Invalid slug format');
+      } else if (data.success && data.data) {
         setSlugError('This URL is already taken');
       } else {
         setSlugError('');

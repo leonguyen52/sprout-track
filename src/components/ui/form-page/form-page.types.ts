@@ -1,4 +1,45 @@
 import { ReactNode } from 'react';
+import { LucideIcon } from 'lucide-react';
+
+/**
+ * Tab definition for FormPage tabs
+ */
+export interface FormPageTab {
+  /**
+   * Unique identifier for the tab
+   */
+  id: string;
+  
+  /**
+   * Label text for the tab
+   */
+  label: string;
+  
+  /**
+   * Optional Lucide icon for the tab
+   */
+  icon?: LucideIcon;
+  
+  /**
+   * Optional image source for custom icon
+   */
+  imageSrc?: string;
+  
+  /**
+   * Optional alt text for image icon
+   */
+  imageAlt?: string;
+  
+  /**
+   * Optional notification count to display as a badge
+   */
+  notificationCount?: number;
+  
+  /**
+   * Content to display when this tab is active
+   */
+  content: ReactNode;
+}
 
 /**
  * Props for the FormPage component
@@ -25,9 +66,29 @@ export interface FormPageProps {
   description?: string;
   
   /**
-   * Content of the form page
+   * Content of the form page (used when tabs are not provided)
    */
-  children: ReactNode;
+  children?: ReactNode;
+  
+  /**
+   * Optional tabs configuration for tabbed form views
+   */
+  tabs?: FormPageTab[];
+  
+  /**
+   * Active tab ID (controlled mode)
+   */
+  activeTab?: string;
+  
+  /**
+   * Callback when tab changes (controlled mode)
+   */
+  onTabChange?: (tabId: string) => void;
+  
+  /**
+   * Default active tab ID (uncontrolled mode)
+   */
+  defaultActiveTab?: string;
   
   /**
    * Additional CSS classes to apply to the form page

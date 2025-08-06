@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/src/components/ui/button';
-import { Input } from '@/src/components/ui/input';
 import { Badge } from '@/src/components/ui/badge';
 import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 import { AccountButton } from '@/src/components/ui/account-button';
 import { MobileMenu } from '@/src/components/ui/mobile-menu';
 import AccountModal from '@/src/components/modals/AccountModal';
+import AccountManager from '@/src/components/account-manager';
 import { useTheme } from '@/src/context/theme';
 import { Github, Users, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
 import PrivacyPolicyModal from '@/src/components/modals/privacy-policy';
@@ -32,6 +32,9 @@ const ComingSoon = () => {
   // Privacy Policy and Terms of Use modal state
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showTermsOfUse, setShowTermsOfUse] = useState(false);
+  
+  // Account Manager state
+  const [showAccountManager, setShowAccountManager] = useState(false);
   
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -201,7 +204,8 @@ const ComingSoon = () => {
                 label="Sign In" 
                 showIcon={false} 
                 initialMode="login"
-                className="saas-account-btn" 
+                className="saas-account-btn"
+                onAccountManagerOpen={() => setShowAccountManager(true)}
               />
               <ThemeToggle variant="light" className="saas-theme-toggle" />
             </MobileMenu>
@@ -276,7 +280,7 @@ const ComingSoon = () => {
         <div className="saas-cta-content">
           <h2 className="saas-cta-title">Don't take our word for it - try it yourself!</h2>
           <p className="saas-cta-description">
-            Experience Sprout Track with our live demo environment. The demo refreshes every 1 hour with fresh sample data.
+            Experience Sprout Track with our live demo environment based on realistic data.
           </p>
           <div className="saas-cta-actions">
             <div className="max-w-md mx-auto space-y-4">
@@ -677,6 +681,12 @@ const ComingSoon = () => {
       <TermsOfUseModal 
         open={showTermsOfUse} 
         onClose={() => setShowTermsOfUse(false)} 
+      />
+
+      {/* Account Manager - This component is controlled by the page state */}
+      <AccountManager
+        isOpen={showAccountManager}
+        onClose={() => setShowAccountManager(false)}
       />
     </div>
   );

@@ -104,13 +104,25 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<A
       }
     });
 
-    // Check if account exists and is verified
+    // Check if account exists
     if (!account) {
       recordFailedAttempt(ip);
       return NextResponse.json<ApiResponse<AccountLoginResponse>>(
         {
           success: false,
           error: 'Invalid email or password',
+        },
+        { status: 401 }
+      );
+    }
+
+    // Check if account is closed using the proper closed field
+    if (account.closed) {
+      recordFailedAttempt(ip);
+      return NextResponse.json<ApiResponse<AccountLoginResponse>>(
+        {
+          success: false,
+          error: 'This account has been closed',
         },
         { status: 401 }
       );

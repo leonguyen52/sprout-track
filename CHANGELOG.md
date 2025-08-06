@@ -1,5 +1,23 @@
 # Sprout Track Changelog
 
+## v0.94.8 - Live Beta Edition, Bugfixes, Enhancements
+
+### Changes
+
+#### Account Management
+- In the account-button we added the ability to manage accounts.  Users can now do the following:
+  - Manage the account (name, email address, password), family settings (name and slug), download their family data, and delete their account
+  - Manage babies, caretakers, and contacts
+- Added flair for beta users because you are special and we care about you
+
+#### Bugfixes and Enhancements
+- Cleaned up the breast feed forms to have new side by side timers
+- Timers are directly editable now without pressing the "edit" button
+- Timers now have more visual indication that the timer is running for a specific side
+- Cleaned up the breast feed edit forms to represent the side you are editing for (right versus left)
+- Fixed a bug where timers "pause" when leaving the browser tab or the phone is locked
+- Overhauled URL slug validation to create system reserved list
+
 ## v0.94.0 - Live Beta Edition
 
 ### Changes

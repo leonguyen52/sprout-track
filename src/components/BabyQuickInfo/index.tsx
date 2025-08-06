@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Baby } from '@prisma/client';
-import FormPage, { FormPageContent, FormPageFooter } from '@/src/components/ui/form-page';
+import FormPage, { FormPageFooter } from '@/src/components/ui/form-page';
+import { FormPageTab } from '@/src/components/ui/form-page/form-page.types';
 import { Button } from '@/src/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Bell, Users, BarChart3 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { styles } from './baby-quick-info.styles';
 import { Tab, BabyQuickInfoProps } from './baby-quick-info.types';
@@ -35,7 +36,6 @@ const BabyQuickInfo: React.FC<BabyQuickInfoProps> = ({
   selectedBaby,
   calculateAge
 }) => {
-  const [activeTab, setActiveTab] = useState<Tab>('notifications');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -108,111 +108,135 @@ const BabyQuickInfo: React.FC<BabyQuickInfoProps> = ({
       setIsLoading(false);
     }
   };
+
+  // Create tabs configuration
+  const tabs: FormPageTab[] = [
+    {
+      id: 'notifications',
+      label: 'Notifications',
+      icon: Bell,
+      content: (
+        <>
+          {/* Loading state */}
+          {isLoading && (
+            <div className={cn(styles.loadingContainer, "baby-quick-info-loading-container")}>
+              <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+              <p className={cn("mt-2 text-gray-600", "baby-quick-info-loading-text")}>Loading...</p>
+            </div>
+          )}
+          
+          {/* Error state */}
+          {error && (
+            <div className={cn(styles.errorContainer, "baby-quick-info-error-container")}>
+              <p className={cn("text-red-500", "baby-quick-info-error-text")}>{error}</p>
+              <Button 
+                variant="outline" 
+                onClick={fetchData} 
+                className="mt-2"
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+          
+          {/* Tab content */}
+          {!isLoading && !error && selectedBaby && (
+            <NotificationsTab
+              lastActivities={lastActivities}
+              upcomingEvents={upcomingEvents}
+              selectedBaby={selectedBaby}
+            />
+          )}
+        </>
+      )
+    },
+    {
+      id: 'contacts',
+      label: 'Contacts',
+      icon: Users,
+      content: (
+        <>
+          {/* Loading state */}
+          {isLoading && (
+            <div className={cn(styles.loadingContainer, "baby-quick-info-loading-container")}>
+              <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+              <p className={cn("mt-2 text-gray-600", "baby-quick-info-loading-text")}>Loading...</p>
+            </div>
+          )}
+          
+          {/* Error state */}
+          {error && (
+            <div className={cn(styles.errorContainer, "baby-quick-info-error-container")}>
+              <p className={cn("text-red-500", "baby-quick-info-error-text")}>{error}</p>
+              <Button 
+                variant="outline" 
+                onClick={fetchData} 
+                className="mt-2"
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+          
+          {/* Tab content */}
+          {!isLoading && !error && selectedBaby && (
+            <ContactsTab
+              contacts={contacts}
+              selectedBaby={selectedBaby}
+            />
+          )}
+        </>
+      )
+    },
+    {
+      id: 'stats',
+      label: 'Quick Stats',
+      icon: BarChart3,
+      content: (
+        <>
+          {/* Loading state */}
+          {isLoading && (
+            <div className={cn(styles.loadingContainer, "baby-quick-info-loading-container")}>
+              <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+              <p className={cn("mt-2 text-gray-600", "baby-quick-info-loading-text")}>Loading...</p>
+            </div>
+          )}
+          
+          {/* Error state */}
+          {error && (
+            <div className={cn(styles.errorContainer, "baby-quick-info-error-container")}>
+              <p className={cn("text-red-500", "baby-quick-info-error-text")}>{error}</p>
+              <Button 
+                variant="outline" 
+                onClick={fetchData} 
+                className="mt-2"
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+          
+          {/* Tab content */}
+          {!isLoading && !error && selectedBaby && (
+            <StatsTab
+              activities={activities}
+              selectedBaby={selectedBaby}
+              calculateAge={calculateAge}
+            />
+          )}
+        </>
+      )
+    }
+  ];
   
   return (
     <FormPage
       isOpen={isOpen}
       onClose={onClose}
       title={selectedBaby ? `${selectedBaby.firstName}'s Information` : 'Baby Information'}
+      tabs={tabs}
+      defaultActiveTab="notifications"
     >
-      <FormPageContent>
-        {/* Tab navigation - always horizontal but left-aligned on larger screens */}
-        <div className={cn(styles.tabContainer, "baby-quick-info-tab-container")}>
-          <Button
-            variant="ghost"
-            onClick={() => setActiveTab('notifications')}
-            className={cn(
-              styles.tabButton, 
-              "baby-quick-info-tab-button",
-              activeTab === 'notifications' && styles.tabButtonActive,
-              activeTab === 'notifications' && "baby-quick-info-tab-button-active"
-            )}
-          >
-            Notifications
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setActiveTab('contacts')}
-            className={cn(
-              styles.tabButton, 
-              "baby-quick-info-tab-button",
-              activeTab === 'contacts' && styles.tabButtonActive,
-              activeTab === 'contacts' && "baby-quick-info-tab-button-active"
-            )}
-          >
-            Contacts
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setActiveTab('stats')}
-            className={cn(
-              styles.tabButton, 
-              "baby-quick-info-tab-button",
-              activeTab === 'stats' && styles.tabButtonActive,
-              activeTab === 'stats' && "baby-quick-info-tab-button-active"
-            )}
-          >
-            Quick Stats
-          </Button>
-        </div>
-        
-        <div className="flex-1">
-          
-          {/* Content area */}
-          <div className="flex-1">
-            {/* Loading state */}
-            {isLoading && (
-              <div className={cn(styles.loadingContainer, "baby-quick-info-loading-container")}>
-                <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-                <p className={cn("mt-2 text-gray-600", "baby-quick-info-loading-text")}>Loading...</p>
-              </div>
-            )}
-            
-            {/* Error state */}
-            {error && (
-              <div className={cn(styles.errorContainer, "baby-quick-info-error-container")}>
-                <p className={cn("text-red-500", "baby-quick-info-error-text")}>{error}</p>
-                <Button 
-                  variant="outline" 
-                  onClick={fetchData} 
-                  className="mt-2"
-                >
-                  Retry
-                </Button>
-              </div>
-            )}
-            
-            {/* Tab content */}
-            {!isLoading && !error && selectedBaby && (
-              <div className={cn(styles.tabContent, "baby-quick-info-tab-content")}>
-                {activeTab === 'notifications' && (
-                  <NotificationsTab
-                    lastActivities={lastActivities}
-                    upcomingEvents={upcomingEvents}
-                    selectedBaby={selectedBaby}
-                  />
-                )}
-                
-                {activeTab === 'contacts' && (
-                  <ContactsTab
-                    contacts={contacts}
-                    selectedBaby={selectedBaby}
-                  />
-                )}
-                
-                {activeTab === 'stats' && (
-                  <StatsTab
-                    activities={activities}
-                    selectedBaby={selectedBaby}
-                    calculateAge={calculateAge}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </FormPageContent>
-      
       <FormPageFooter>
         <div className={cn(styles.footerContainer, "baby-quick-info-footer-container")}>
           <Button onClick={onClose} variant="outline">

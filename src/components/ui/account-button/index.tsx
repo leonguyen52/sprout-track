@@ -23,6 +23,7 @@ interface AccountStatus {
   hasFamily: boolean;
   familySlug?: string;
   familyName?: string;
+  betaparticipant: boolean;
 }
 
 interface AccountButtonProps {
@@ -32,6 +33,7 @@ interface AccountButtonProps {
   variant?: 'button' | 'link';
   initialMode?: 'login' | 'register';
   hideWhenLoggedIn?: boolean;
+  onAccountManagerOpen?: () => void;
 }
 
 export function AccountButton({ 
@@ -40,12 +42,12 @@ export function AccountButton({
   showIcon = true,
   variant = 'button',
   initialMode = 'register',
-  hideWhenLoggedIn = false
+  hideWhenLoggedIn = false,
+  onAccountManagerOpen
 }: AccountButtonProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
   const [showAccountModal, setShowAccountModal] = useState(false);
-  const [showResendModal, setShowResendModal] = useState(false);
 
   // Check authentication status on component mount and when localStorage changes
   useEffect(() => {
@@ -88,7 +90,8 @@ export function AccountButton({
                 verified: true, // Assume verified if cached
                 hasFamily: !!user.familySlug,
                 familySlug: user.familySlug,
-                familyName: undefined
+                familyName: undefined,
+                betaparticipant: false // Default to false for cached data
               });
               setIsLoggedIn(true);
             } catch (parseError) {
@@ -233,10 +236,22 @@ export function AccountButton({
         <DropdownMenuContent align="end" className="w-64">
           <DropdownMenuLabel>
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{accountStatus.firstName}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium leading-none">{accountStatus.firstName}</p>
+                {accountStatus.betaparticipant && (
+                  <div className="beta-badge">
+                    <span className="beta-badge-text">✨ Beta User</span>
+                  </div>
+                )}
+              </div>
               <p className="text-xs leading-none text-muted-foreground">
                 {accountStatus.email}
               </p>
+              {accountStatus.betaparticipant && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium italic">
+                  Thank you for being a beta user! 🙏
+                </p>
+              )}
               {!accountStatus.verified && (
                 <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                   ⚠️ Email verification required
@@ -276,10 +291,12 @@ export function AccountButton({
             </>
           )}
           
-          {/* Account page (placeholder) */}
-          <DropdownMenuItem disabled>
+          {/* Account Settings */}
+          <DropdownMenuItem onClick={() => {
+            onAccountManagerOpen?.();
+          }}>
             <Settings className="w-4 h-4 mr-2" />
-            Account Settings (Coming Soon)
+            Account Settings
           </DropdownMenuItem>
           
           {/* Family dashboard link for verified users with family */}

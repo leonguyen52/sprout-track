@@ -57,24 +57,24 @@ export default function CaretakerForm({
 
   // Reset form when form opens/closes or caretaker changes
   useEffect(() => {
-    if (caretaker && isOpen) {
+    if (caretaker && isOpen && !isSubmitting) {
       setFormData({
         loginId: caretaker.loginId || '',
         name: caretaker.name,
         type: caretaker.type || '',
         role: caretaker.role || 'USER',
         inactive: (caretaker as any).inactive || false,
-        securityPin: caretaker.securityPin,
+        securityPin: caretaker.securityPin || '',
       });
-      setConfirmPin(caretaker.securityPin);
+      setConfirmPin(caretaker.securityPin || '');
       setIsFirstCaretaker(false);
-    } else if (!isOpen) {
+    } else if (!isOpen && !isSubmitting) {
       setFormData(defaultFormData);
       setConfirmPin('');
       setError('');
       setLoginIdError('');
     }
-  }, [caretaker, isOpen]);
+  }, [caretaker?.id, isOpen, isSubmitting]); // Use caretaker.id instead of full caretaker object to prevent unnecessary resets
 
   // Validate login ID for duplicates
   useEffect(() => {

@@ -11,6 +11,7 @@ interface AccountStatusResponse {
   hasFamily: boolean;
   familySlug?: string;
   familyName?: string;
+  betaparticipant: boolean;
 }
 
 async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<AccountStatusResponse>>> {
@@ -72,7 +73,8 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Accou
         verified: account.verified,
         hasFamily: !!account.family,
         familySlug: account.family?.slug,
-        familyName: account.family?.name
+        familyName: account.family?.name,
+        betaparticipant: account.betaparticipant
       }
     });
 

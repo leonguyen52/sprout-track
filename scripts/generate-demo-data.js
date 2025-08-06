@@ -397,12 +397,19 @@ async function createDemoBabies(family, sourceBabies) {
     const gender = sourceBaby.gender || 'FEMALE';
     const firstName = gender === 'MALE' ? randomChoice(maleFirstNames) : randomChoice(femaleFirstNames);
     
+    // Generate random birthDate for baby to be 4-5 months old
+    const now = new Date();
+    const minDaysAgo = 120; // 4 months (approximately)
+    const maxDaysAgo = 150; // 5 months (approximately)
+    const randomDaysAgo = randomInt(minDaysAgo, maxDaysAgo);
+    const birthDate = new Date(now.getTime() - (randomDaysAgo * 24 * 60 * 60 * 1000));
+    
     const demoBaby = await prisma.baby.create({
       data: {
         id: randomUUID(),
         firstName: firstName,
         lastName: demoLastName,
-        birthDate: sourceBaby.birthDate,
+        birthDate: birthDate,
         gender: gender,
         inactive: false,
         familyId: family.id,
