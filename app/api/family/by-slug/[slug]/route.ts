@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/prisma/db';
 import { ApiResponse } from '@/app/api/utils/auth';
+import { validateSlug } from '@/app/api/utils/slug-validation';
 import { Family } from '@prisma/client';
 
 // This endpoint doesn't require authentication as it's used for the initial family selection
@@ -15,6 +16,16 @@ export async function GET(
       return NextResponse.json({
         success: false,
         error: 'Family slug is required',
+      }, { status: 400 });
+    }
+    
+    // Validate the slug format and check for reserved words
+    const validation = validateSlug(slug);
+    if (!validation.isValid) {
+      return NextResponse.json({
+        success: false,
+        error: validation.error,
+        data: null,
       }, { status: 400 });
     }
     

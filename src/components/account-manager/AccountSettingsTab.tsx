@@ -99,23 +99,6 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
       return;
     }
 
-    // Basic slug validation
-    const slugPattern = /^[a-z0-9-]+$/;
-    if (!slugPattern.test(slug)) {
-      setSlugError('Slug can only contain lowercase letters, numbers, and hyphens');
-      return;
-    }
-
-    if (slug.length < 3) {
-      setSlugError('Slug must be at least 3 characters long');
-      return;
-    }
-
-    if (slug.length > 50) {
-      setSlugError('Slug must be less than 50 characters');
-      return;
-    }
-
     setCheckingSlug(true);
     try {
       const authToken = localStorage.getItem('authToken');
@@ -126,7 +109,10 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
       });
       const data = await response.json();
       
-      if (data.success && data.data && data.data.id !== familyData.id) {
+      if (response.status === 400) {
+        // Validation error (format or reserved word)
+        setSlugError(data.error || 'Invalid slug format');
+      } else if (data.success && data.data && data.data.id !== familyData.id) {
         setSlugError('This slug is already taken');
       } else {
         setSlugError('');
@@ -822,12 +808,27 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                     <Loader2 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
                   )}
                 </div>
-                {slugError && (
-                  <div className="flex items-center gap-1 text-red-600 text-sm mt-1 account-manager-validation-error">
-                    <AlertTriangle className="h-3 w-3" />
-                    {slugError}
-                  </div>
-                )}
+                {/* Validation feedback */}
+                <div className="min-h-[20px] mt-1">
+                  {checkingSlug && (
+                    <div className="flex items-center gap-1 text-blue-600 text-sm">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Checking availability...
+                    </div>
+                  )}
+                  {slugError && (
+                    <div className="flex items-center gap-1 text-red-600 text-sm account-manager-validation-error">
+                      <AlertTriangle className="h-3 w-3" />
+                      {slugError}
+                    </div>
+                  )}
+                  {!checkingSlug && !slugError && familyFormData.slug && familyFormData.slug !== familyData?.slug && (
+                    <div className="flex items-center gap-1 text-green-600 text-sm">
+                      <span className="h-3 w-3 rounded-full bg-green-600"></span>
+                      URL is available
+                    </div>
+                  )}
+                </div>
                 <p className="text-sm text-gray-500 mt-1 account-manager-info-text">
                   This is your family's unique URL identifier
                 </p>
