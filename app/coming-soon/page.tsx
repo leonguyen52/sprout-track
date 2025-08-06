@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/src/components/ui/button';
-import { Input } from '@/src/components/ui/input';
 import { Badge } from '@/src/components/ui/badge';
 import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 import { AccountButton } from '@/src/components/ui/account-button';
