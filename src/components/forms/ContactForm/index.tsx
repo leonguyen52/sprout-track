@@ -52,7 +52,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
   
   // Update form data when contact changes or when form opens/closes
   useEffect(() => {
-    if (contact) {
+    if (contact && isOpen && !isLoading) {
       // Convert from Contact type to ContactFormData type
       setFormData({
         id: contact.id,
@@ -61,7 +61,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
         phone: contact.phone || undefined, // Convert null to undefined
         email: contact.email || undefined, // Convert null to undefined
       });
-    } else {
+    } else if (!isOpen && !isLoading) {
       // Reset form data for new contact
       setFormData({
         name: '',
@@ -71,8 +71,10 @@ const ContactForm: React.FC<ContactFormProps> = ({
       });
     }
     // Also reset errors when form data changes
-    setErrors({});
-  }, [contact, isOpen]);
+    if (!isLoading) {
+      setErrors({});
+    }
+  }, [contact?.id, isOpen, isLoading]); // Use contact.id instead of full contact object to prevent unnecessary resets
   
   // Form validation errors
   const [errors, setErrors] = useState<ContactFormErrors>({});
@@ -222,9 +224,8 @@ const ContactForm: React.FC<ContactFormProps> = ({
         throw new Error(errorData.error || 'Failed to delete contact');
       }
       
-      const result = await response.json();
-      
-      if (result.success) {
+      // Handle 204 No Content response (successful deletion)
+      if (response.status === 204) {
         // Call the onDelete callback
         onDelete(contact.id);
         
@@ -239,7 +240,26 @@ const ContactForm: React.FC<ContactFormProps> = ({
         // Close the form
         onClose();
       } else {
-        throw new Error(result.error || 'Failed to delete contact');
+        // Handle other success responses with JSON body
+        const result = await response.json();
+        
+        if (result.success) {
+          // Call the onDelete callback
+          onDelete(contact.id);
+          
+          // Reset form data to defaults
+          setFormData({
+            name: '',
+            role: '',
+            phone: undefined,
+            email: undefined,
+          });
+          
+          // Close the form
+          onClose();
+        } else {
+          throw new Error(result.error || 'Failed to delete contact');
+        }
       }
     } catch (error) {
       console.error('Error deleting contact:', error);

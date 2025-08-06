@@ -53,7 +53,7 @@ export default function BabyForm({
 
   // Reset form when form opens/closes or baby changes
   useEffect(() => {
-    if (baby && isOpen) {
+    if (baby && isOpen && !isSubmitting) {
       const birthDate = baby.birthDate instanceof Date 
         ? baby.birthDate
         : new Date(baby.birthDate as string);
@@ -67,10 +67,10 @@ export default function BabyForm({
         feedWarningTime: baby.feedWarningTime || '03:00',
         diaperWarningTime: baby.diaperWarningTime || '02:00',
       });
-    } else if (!isOpen) {
+    } else if (!isOpen && !isSubmitting) {
       setFormData(defaultFormData);
     }
-  }, [baby, isOpen]);
+  }, [baby?.id, isOpen, isSubmitting]); // Use baby.id instead of full baby object to prevent unnecessary resets
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

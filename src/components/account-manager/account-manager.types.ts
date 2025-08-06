@@ -104,6 +104,7 @@ export interface CaretakerData {
   type?: string;
   role: string;
   inactive: boolean;
+  securityPin?: string;
 }
 
 /**

@@ -152,7 +152,10 @@ const FamilyPeopleTab: React.FC<FamilyPeopleTabProps> = ({
   const handleBabyFormClose = () => {
     setShowBabyForm(false);
     setSelectedBaby(null);
-    fetchFamilyPeople(); // Refresh data
+    // Only refresh data if the form was actually used for editing/creating
+    if (isEditingBaby || selectedBaby) {
+      fetchFamilyPeople();
+    }
   };
 
   // Handle caretaker form actions
@@ -171,7 +174,10 @@ const FamilyPeopleTab: React.FC<FamilyPeopleTabProps> = ({
   const handleCaretakerFormClose = () => {
     setShowCaretakerForm(false);
     setSelectedCaretaker(null);
-    fetchFamilyPeople(); // Refresh data
+    // Only refresh data if the form was actually used for editing/creating
+    if (isEditingCaretaker || selectedCaretaker) {
+      fetchFamilyPeople();
+    }
   };
 
   // Handle contact form actions
@@ -190,7 +196,10 @@ const FamilyPeopleTab: React.FC<FamilyPeopleTabProps> = ({
   const handleContactFormClose = () => {
     setShowContactForm(false);
     setSelectedContact(null);
-    fetchFamilyPeople(); // Refresh data
+    // Only refresh data if the form was actually used for editing/creating
+    if (isEditingContact || selectedContact) {
+      fetchFamilyPeople();
+    }
   };
 
   const handleContactSave = () => {
@@ -498,7 +507,7 @@ const FamilyPeopleTab: React.FC<FamilyPeopleTabProps> = ({
           updatedAt: new Date(),
           deletedAt: null,
           familyId: familyData.id,
-          securityPin: '',
+          securityPin: selectedCaretaker.securityPin || '',
           accountId: null
         } : null}
         onCaretakerChange={handleCaretakerFormClose}
