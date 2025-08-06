@@ -6,10 +6,10 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
  * Deployment configuration interface
  */
 interface DeploymentConfig {
-  deploymentMode: 'saas' | 'selfhosted';
-  enableAccounts: boolean;
-  allowAccountRegistration: boolean;
-  betaEnabled: boolean;
+  deploymentMode: 'saas' | 'selfhosted' | null;
+  enableAccounts: boolean | null;
+  allowAccountRegistration: boolean | null;
+  betaEnabled: boolean | null;
 }
 
 /**
@@ -100,10 +100,10 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
       
       if (result.success && result.data) {
         const deploymentConfig: DeploymentConfig = {
-          deploymentMode: result.data.deploymentMode || 'selfhosted',
+          deploymentMode: result.data.deploymentMode || null,
           enableAccounts: result.data.enableAccounts || false,
           allowAccountRegistration: result.data.allowAccountRegistration || false,
-          betaEnabled: result.data.betaEnabled || false,
+          betaEnabled: result.data.betaEnabled !== undefined ? result.data.betaEnabled : null,
         };
         
         setConfig(deploymentConfig);
@@ -118,10 +118,10 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
       
       // Fallback to default configuration
       const fallbackConfig: DeploymentConfig = {
-        deploymentMode: 'selfhosted',
+        deploymentMode: null,
         enableAccounts: false,
         allowAccountRegistration: false,
-        betaEnabled: false,
+        betaEnabled: null,
       };
       
       setConfig(fallbackConfig);
@@ -178,7 +178,7 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
   const isSelfHosted = config?.deploymentMode === 'selfhosted';
   const accountsEnabled = config?.enableAccounts || false;
   const registrationAllowed = config?.allowAccountRegistration || false;
-  const betaEnabled = config?.betaEnabled || false;
+  const betaEnabled = config?.betaEnabled === true;
 
   return (
     <DeploymentContext.Provider value={{

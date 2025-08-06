@@ -1,4 +1,5 @@
 import { ThemeProvider } from '@/src/context/theme';
+import { DeploymentProvider } from '@/app/context/deployment';
 
 export default function AuthLayout({
   children,
@@ -7,7 +8,9 @@ export default function AuthLayout({
 }) {
   return (
     <ThemeProvider>
-      {children}
+      <DeploymentProvider>
+        {children}
+      </DeploymentProvider>
     </ThemeProvider>
   );
 }
