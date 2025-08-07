@@ -1,6 +1,6 @@
 # Sprout Track Changelog
 
-## v0.94.11
+## v0.94.11 - Feedback Additions and Family Manager Enhancements\Refactor
 
 ### Changes
 
