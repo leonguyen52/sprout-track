@@ -1,5 +1,16 @@
 # Sprout Track Changelog
 
+## v0.94.11 - Feedback Additions and Family Manager Enhancements\Refactor
+
+### Changes
+
+#### Account Management
+- Added the ability for accounts and users to provide feedback when the app is in saas mode
+- Added account and feedback management into the family-manager screen
+- Refactored family-manager page to use deployment context and componentize tabs
+
+---
+
 ## v0.94.8 - Live Beta Edition, Bugfixes, Enhancements
 
 ### Changes
@@ -17,6 +28,8 @@
 - Cleaned up the breast feed edit forms to represent the side you are editing for (right versus left)
 - Fixed a bug where timers "pause" when leaving the browser tab or the phone is locked
 - Overhauled URL slug validation to create system reserved list
+
+---
 
 ## v0.94.0 - Live Beta Edition
 

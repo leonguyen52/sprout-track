@@ -330,3 +330,30 @@ export interface BetaSubscriberResponse {
 export interface BetaSubscriberUpdate {
   isOptedIn?: boolean;
 }
+
+// Feedback types
+export interface FeedbackResponse {
+  id: string;
+  subject: string;
+  message: string;
+  submittedAt: string;
+  viewed: boolean;
+  submitterName: string | null;
+  submitterEmail: string | null;
+  familyId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface FeedbackCreate {
+  subject: string;
+  message: string;
+  familyId?: string | null;
+  submitterName?: string;
+  submitterEmail?: string | null;
+}
+
+export interface FeedbackUpdate {
+  viewed?: boolean;
+}
