@@ -5,7 +5,6 @@ import { Button } from '@/src/components/ui/button';
 import { Badge } from '@/src/components/ui/badge';
 import { ThemeToggle } from '@/src/components/ui/theme-toggle';
 import { AccountButton } from '@/src/components/ui/account-button';
-import { MobileMenu } from '@/src/components/ui/mobile-menu';
 import AccountModal from '@/src/components/modals/AccountModal';
 import AccountManager from '@/src/components/account-manager';
 import { useTheme } from '@/src/context/theme';
@@ -191,10 +190,10 @@ const ComingSoon = () => {
               />
               <span className="saas-logo-text">Sprout Track</span>
             </div>
-            <MobileMenu>
+            <div className="flex items-center gap-2">
               <AccountButton 
                 label="Sign Up" 
-                showIcon={false} 
+                showIcon={false}
                 variant="link"
                 initialMode="register"
                 onOpenAccountModal={(mode) => {
@@ -202,7 +201,6 @@ const ComingSoon = () => {
                   setShowAccountModal(true);
                 }}
                 hideWhenLoggedIn={true}
-                className="saas-account-btn-signup" 
               />
               <AccountButton 
                 label="Sign In" 
@@ -216,7 +214,7 @@ const ComingSoon = () => {
                 onAccountManagerOpen={() => setShowAccountManager(true)}
               />
               <ThemeToggle variant="light" className="saas-theme-toggle" />
-            </MobileMenu>
+            </div>
           </div>
         </nav>
       </header>
