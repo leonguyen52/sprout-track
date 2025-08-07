@@ -132,6 +132,9 @@ model Account {
   caretaker     Caretaker? @relation(fields: [caretakerId], references: [id])
   caretakerId   String?    @unique
   
+  // Relations
+  feedback      Feedback[]
+  
   @@index([email])
   @@index([verified])
   @@index([verificationToken])
@@ -171,6 +174,7 @@ model Family {
   calendarEvents   CalendarEvent[]
   familyMembers    FamilyMember[]
   familySetups     FamilySetup[]
+  feedback         Feedback[]
 }
 
 // New model for family membership
@@ -258,6 +262,7 @@ model Caretaker {
   events       CaretakerEvent[] // New relationship for calendar events
   familyMembers FamilyMember[]
   familySetups  FamilySetup[]
+  feedback     Feedback[]
   
   @@index([deletedAt])
   @@index([familyId])
@@ -924,4 +929,37 @@ model DemoTracker {
   
   @@index([generatedAt])
   @@index([lastAccessedAt])
+}
+
+// Feedback model for user feedback and support requests
+model Feedback {
+  id          String    @id @default(uuid())
+  subject     String
+  message     String
+  submittedAt DateTime  @default(now())
+  viewed      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  
+  // Relations to capture submitter information
+  family      Family?   @relation(fields: [familyId], references: [id])
+  familyId    String?   // Family context for the feedback
+  
+  account     Account?  @relation(fields: [accountId], references: [id])
+  accountId   String?   // Account that submitted the feedback (for email)
+  
+  caretaker   Caretaker? @relation(fields: [caretakerId], references: [id])
+  caretakerId String?   // Caretaker that submitted the feedback (for name)
+  
+  // Denormalized fields for easier querying (populated from relations)
+  submitterName  String? // Name from caretaker or account
+  submitterEmail String? // Email from account
+  
+  @@index([submittedAt])
+  @@index([viewed])
+  @@index([familyId])
+  @@index([accountId])
+  @@index([caretakerId])
+  @@index([deletedAt])
 }
