@@ -197,6 +197,10 @@ const ComingSoon = () => {
                 showIcon={false} 
                 variant="link"
                 initialMode="register"
+                onOpenAccountModal={(mode) => {
+                  setAccountModalMode(mode);
+                  setShowAccountModal(true);
+                }}
                 hideWhenLoggedIn={true}
                 className="saas-account-btn-signup" 
               />
@@ -204,6 +208,10 @@ const ComingSoon = () => {
                 label="Sign In" 
                 showIcon={false} 
                 initialMode="login"
+                onOpenAccountModal={(mode) => {
+                  setAccountModalMode(mode);
+                  setShowAccountModal(true);
+                }}
                 className="saas-account-btn"
                 onAccountManagerOpen={() => setShowAccountManager(true)}
               />

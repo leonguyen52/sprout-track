@@ -35,6 +35,7 @@ interface AccountButtonProps {
   initialMode?: 'login' | 'register';
   hideWhenLoggedIn?: boolean;
   onAccountManagerOpen?: () => void;
+  onOpenAccountModal?: (mode: 'login' | 'register') => void;
 }
 
 export function AccountButton({ 
@@ -44,7 +45,8 @@ export function AccountButton({
   variant = 'button',
   initialMode = 'register',
   hideWhenLoggedIn = false,
-  onAccountManagerOpen
+  onAccountManagerOpen,
+  onOpenAccountModal
 }: AccountButtonProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
@@ -345,17 +347,25 @@ export function AccountButton({
         variant={buttonVariant}
         size="sm" 
         className={`${buttonClass} ${className}`}
-        onClick={() => setShowAccountModal(true)}
+        onClick={() => {
+          if (onOpenAccountModal) {
+            onOpenAccountModal(initialMode);
+          } else {
+            setShowAccountModal(true);
+          }
+        }}
       >
         {showIcon && <User className="w-4 h-4 mr-2" />}
         {displayLabel}
       </Button>
       
-      <AccountModal 
-        open={showAccountModal} 
-        onClose={() => setShowAccountModal(false)}
-        initialMode={initialMode}
-      />
+      {!onOpenAccountModal && (
+        <AccountModal 
+          open={showAccountModal} 
+          onClose={() => setShowAccountModal(false)}
+          initialMode={initialMode}
+        />
+      )}
     </>
   );
 }
