@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { User, LogOut, Home, AlertCircle, Settings, Users, Mail } from 'lucide-react';
+import { User, LogOut, Home, AlertCircle, Settings, Users, Mail, MessageSquare } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import {
   DropdownMenu,
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/src/components/ui/dropdown-menu';
 import AccountModal from '@/src/components/modals/AccountModal';
+import FeedbackForm from '@/src/components/forms/FeedbackForm';
 import './account-button.css';
 
 interface AccountStatus {
@@ -48,6 +49,7 @@ export function AccountButton({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   // Check authentication status on component mount and when localStorage changes
   useEffect(() => {
@@ -299,6 +301,12 @@ export function AccountButton({
             Account Settings
           </DropdownMenuItem>
           
+          {/* Feedback option */}
+          <DropdownMenuItem onClick={() => setShowFeedback(true)}>
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Send Feedback
+          </DropdownMenuItem>
+          
           {/* Family dashboard link for verified users with family */}
           {accountStatus.verified && accountStatus.hasFamily && (
             <>
@@ -316,6 +324,13 @@ export function AccountButton({
             Log out
           </DropdownMenuItem>
         </DropdownMenuContent>
+        
+        {/* Feedback Form */}
+        <FeedbackForm
+          isOpen={showFeedback}
+          onClose={() => setShowFeedback(false)}
+          onSuccess={() => setShowFeedback(false)}
+        />
       </DropdownMenu>
     );
   }

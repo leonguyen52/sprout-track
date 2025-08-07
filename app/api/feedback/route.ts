@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
 import { withAuthContext, ApiResponse } from '../utils/auth';
 import { FeedbackCreate, FeedbackResponse } from '../types';
+import { sendFeedbackConfirmationEmail } from '../utils/account-emails';
 
 /**
  * POST /api/feedback
@@ -86,6 +87,21 @@ async function handlePost(req: NextRequest, authContext: any): Promise<NextRespo
         viewed: false,
       },
     });
+
+    // Send confirmation email if user has an email address
+    if (finalSubmitterEmail && accountId) {
+      try {
+        await sendFeedbackConfirmationEmail(
+          finalSubmitterEmail,
+          finalSubmitterName,
+          trimmedSubject
+        );
+        console.log('Feedback confirmation email sent to:', finalSubmitterEmail);
+      } catch (emailError) {
+        console.error('Error sending feedback confirmation email:', emailError);
+        // Don't fail the feedback submission if email fails
+      }
+    }
 
     const response: FeedbackResponse = {
       id: feedback.id,

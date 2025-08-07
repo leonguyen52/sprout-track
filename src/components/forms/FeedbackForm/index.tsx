@@ -9,7 +9,6 @@ import {
   FormPageContent, 
   FormPageFooter 
 } from '@/src/components/ui/form-page';
-import { useFamily } from '@/src/context/family';
 import { useTheme } from '@/src/context/theme';
 import './feedback-form.css';
 
@@ -24,7 +23,6 @@ export default function FeedbackForm({
   onClose,
   onSuccess,
 }: FeedbackFormProps) {
-  const { family } = useFamily();
   const { theme } = useTheme();
   const [formData, setFormData] = useState({
     subject: '',
@@ -35,6 +33,8 @@ export default function FeedbackForm({
     name: '',
     email: '',
   });
+  const [family, setFamily] = useState<{ id: string; name: string } | null>(null);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   // Get submitter information from authentication context
   useEffect(() => {
@@ -60,6 +60,31 @@ export default function FeedbackForm({
             name: decodedPayload.name || 'User',
             email: '', // Caretakers don't have email in the token
           });
+        }
+
+        // Try to get family information if available
+        if (decodedPayload.familyId && decodedPayload.familySlug) {
+          // We have family info in the token, try to get family name
+          try {
+            const familyResponse = await fetch(`/api/family/by-slug/${decodedPayload.familySlug}`, {
+              headers: {
+                'Authorization': `Bearer ${authToken}`
+              }
+            });
+            
+            if (familyResponse.ok) {
+              const familyData = await familyResponse.json();
+              if (familyData.success && familyData.data) {
+                setFamily({
+                  id: familyData.data.id,
+                  name: familyData.data.name
+                });
+              }
+            }
+          } catch (familyError) {
+            console.log('Could not fetch family info:', familyError);
+            // Not a critical error, continue without family info
+          }
         }
       } catch (error) {
         console.error('Error parsing auth token:', error);
@@ -124,12 +149,14 @@ export default function FeedbackForm({
       const data = await response.json();
       
       if (data.success) {
-        // Close the form and trigger the success callback
-        onClose();
-        if (onSuccess) onSuccess();
+        // Show success toast
+        setShowSuccessToast(true);
         
-        // Show success message
-        alert('Thank you for your feedback! We appreciate your input.');
+        // Auto-close after 3 seconds
+        setTimeout(() => {
+          onClose();
+          if (onSuccess) onSuccess();
+        }, 3000);
       } else {
         console.error('Error submitting feedback:', data.error);
         alert(`Error: ${data.error || 'Failed to submit feedback'}`);
@@ -150,6 +177,28 @@ export default function FeedbackForm({
       description="Help us improve by sharing your thoughts and suggestions"
     >
       <FormPageContent>
+        {/* Success Toast */}
+        {showSuccessToast && (
+          <div className="mb-4 p-4 rounded-lg feedback-success-toast">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 feedback-success-toast-icon" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium feedback-success-toast-title">
+                  Thank you for your feedback!
+                </p>
+                <p className="text-sm mt-1 feedback-success-toast-message">
+                  We appreciate your input and will review your message.
+                  {submitterInfo.email && ' A confirmation email has been sent to you.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             {/* Submitter Info Display */}

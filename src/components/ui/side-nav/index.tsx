@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ChangelogModal from '@/src/components/modals/changelog';
-import { X, Settings, LogOut } from 'lucide-react';
+import FeedbackForm from '@/src/components/forms/FeedbackForm';
+import { X, Settings, LogOut, MessageSquare } from 'lucide-react';
 import ThemeToggle from '@/src/components/ui/theme-toggle';
 import Image from 'next/image';
 import { useTheme } from '@/src/context/theme';
@@ -118,6 +119,7 @@ export const SideNav: React.FC<SideNavProps> = ({
   const { isSaasMode } = useDeployment();
   const [isSystemDarkMode, setIsSystemDarkMode] = useState<boolean>(false);
   const [showChangelog, setShowChangelog] = useState<boolean>(false);
+  const [showFeedback, setShowFeedback] = useState<boolean>(false);
   
   // Check if system is in dark mode
   useEffect(() => {
@@ -266,6 +268,20 @@ export const SideNav: React.FC<SideNavProps> = ({
           >
             v{packageInfo.version}
           </span>
+          
+          {/* Feedback link - only shown in SaaS mode */}
+          {isSaasMode && (
+            <div className="mt-2">
+              <button
+                className="flex items-center justify-center w-full text-xs text-gray-500 hover:text-emerald-600 transition-colors cursor-pointer"
+                onClick={() => setShowFeedback(true)}
+                aria-label="Provide feedback about the app"
+              >
+                <MessageSquare className="h-3 w-3 mr-1" />
+                Send Feedback
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Changelog Modal */}
@@ -274,6 +290,21 @@ export const SideNav: React.FC<SideNavProps> = ({
           onClose={() => setShowChangelog(false)} 
           version={packageInfo.version}
         />
+
+        {/* Feedback Form - only shown in SaaS mode */}
+        {isSaasMode && (
+          <FeedbackForm
+            isOpen={showFeedback}
+            onClose={() => setShowFeedback(false)}
+            onSuccess={() => {
+              setShowFeedback(false);
+              // Optionally close the side nav after successful feedback submission
+              if (!nonModal) {
+                onClose();
+              }
+            }}
+          />
+        )}
 
         {/* Footer with Theme Toggle, Settings and Logout */}
         <div className={cn(sideNavStyles.footer, "side-nav-footer")}>

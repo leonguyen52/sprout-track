@@ -172,6 +172,53 @@ The Sprout Track Team`,
   return result;
 }
 
+export async function sendFeedbackConfirmationEmail(email: string, firstName: string, subject: string) {
+  const domainUrl = await getDomainUrl();
+  
+  const result = await sendEmail({
+    to: email,
+    from: process.env.ACCOUNTS_EMAIL || 'feedback@sprout-track.com',
+    subject: 'Sprout Track - Feedback Received',
+    text: `Hi ${firstName},
+
+Thank you for your feedback! We've received your message about "${subject}" and appreciate you taking the time to help us improve Sprout Track.
+
+Our team will review your feedback and may reach out if we need any additional information.
+
+Your input helps us make Sprout Track better for all families.
+
+Best regards,
+The Sprout Track Team`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #059669;">Thank You for Your Feedback!</h2>
+        <p>Hi ${firstName},</p>
+        <p>Thank you for your feedback! We've received your message about <strong>"${subject}"</strong> and appreciate you taking the time to help us improve Sprout Track.</p>
+        
+        <div style="background-color: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
+          <p style="margin: 0; color: #059669; font-weight: 600;">
+            Your feedback is important to us and helps make Sprout Track better for all families.
+          </p>
+        </div>
+        
+        <p>Our team will review your feedback and may reach out if we need any additional information.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${domainUrl}" 
+             style="background-color: #059669; color: white; padding: 12px 24px; 
+                    text-decoration: none; border-radius: 6px; display: inline-block;">
+            Continue Using Sprout Track
+          </a>
+        </div>
+        
+        <p>Best regards,<br>The Sprout Track Team</p>
+      </div>
+    `
+  });
+
+  return result;
+}
+
 export async function sendAccountClosureEmail(email: string, firstName: string) {
   const domainUrl = await getDomainUrl();
   

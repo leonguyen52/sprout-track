@@ -77,3 +77,39 @@ html.dark .feedback-form-help-text {
 .feedback-form-help-text {
   color: #64748b; /* slate-500 */
 }
+
+/* Success toast styling */
+.feedback-success-toast {
+  background-color: #ecfdf5; /* emerald-50 */
+  border-color: #a7f3d0; /* emerald-200 */
+}
+
+.feedback-success-toast-icon {
+  color: #6ee7b7; /* emerald-300 */
+}
+
+.feedback-success-toast-title {
+  color: #065f46; /* emerald-800 */
+}
+
+.feedback-success-toast-message {
+  color: #047857; /* emerald-700 */
+}
+
+/* Dark mode success toast styling */
+html.dark .feedback-success-toast {
+  background-color: #064e3b !important; /* emerald-900 */
+  border-color: #065f46 !important; /* emerald-800 */
+}
+
+html.dark .feedback-success-toast-icon {
+  color: #6ee7b7 !important; /* emerald-300 */
+}
+
+html.dark .feedback-success-toast-title {
+  color: #a7f3d0 !important; /* emerald-200 */
+}
+
+html.dark .feedback-success-toast-message {
+  color: #6ee7b7 !important; /* emerald-300 */
+}
