@@ -43,6 +43,12 @@ import AppConfigForm from '@/src/components/forms/AppConfigForm';
 import { ShareButton } from '@/src/components/ui/share-button';
 import { BetaSubscriberResponse } from '@/app/api/types';
 import { useDeployment } from '@/app/context/deployment';
+import { 
+  FamilyView, 
+  ActiveInviteView, 
+  AccountView, 
+  BetaSubscriberView 
+} from '@/src/components/familymanager';
 
 // Types for our family data
 interface FamilyData {
@@ -693,408 +699,63 @@ export default function FamilyManagerPage() {
           }
         />
 
-        {/* Table */}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {activeTab === 'families' ? (
-                <>
-                  <TableHead>Family Name</TableHead>
-                  <TableHead>Link/Slug</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Members</TableHead>
-                  <TableHead>Babies</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </>
-              ) : activeTab === 'invites' ? (
-                <>
-                  <TableHead>Token</TableHead>
-                  <TableHead>Created By</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Expires</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Family</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </>
-              ) : activeTab === 'accounts' ? (
-                <>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Family</TableHead>
-                  <TableHead>Verified</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </>
-              ) : (
-                <>
-                <TableHead>Email</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Signed Up</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedData.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={activeTab === 'families' ? 8 : activeTab === 'invites' ? 7 : activeTab === 'accounts' ? 7 : 6} className="text-center py-8 text-gray-500">
-                  {searchTerm ? `No ${emptyMessageNoun} found matching your search.` : `No ${emptyMessageNoun} found.`}
-                </TableCell>
-              </TableRow>
-            ) : activeTab === 'families' ? (
-              (paginatedData as FamilyData[]).map((family) => {
-                const isEditing = editingId === family.id;
-                
-                return (
-                  <TableRow key={family.id}>
-                    <TableCell className="font-medium">
-                      {isEditing ? (
-                        <Input
-                          value={editingData.name || ''}
-                          onChange={(e) => setEditingData(prev => ({ ...prev, name: e.target.value }))}
-                          className="min-w-[200px]"
-                        />
-                      ) : (
-                        family.name
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {isEditing ? (
-                        <div className="space-y-1">
-                          <div className="relative">
-                            <Input
-                              value={editingData.slug || ''}
-                              onChange={(e) => setEditingData(prev => ({ ...prev, slug: e.target.value }))}
-                              className={`min-w-[150px] ${slugError ? 'border-red-500' : ''}`}
-                            />
-                            {checkingSlug && (
-                              <Loader2 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
-                            )}
-                          </div>
-                          {slugError && (
-                            <div className="flex items-center gap-1 text-red-600 text-xs">
-                              <AlertCircle className="h-3 w-3" />
-                              {slugError}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        family.slug
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm">{formatDateTime(family.createdAt)}</TableCell>
-                    <TableCell className="text-sm">{formatDateTime(family.updatedAt)}</TableCell>
-                    <TableCell>
-                      {isEditing ? (
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={editingData.isActive !== undefined ? editingData.isActive : family.isActive}
-                            onCheckedChange={(checked) => setEditingData(prev => ({ ...prev, isActive: !!checked }))}
-                          />
-                          <label className="text-sm">Active</label>
-                        </div>
-                      ) : (
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            family.isActive
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {family.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>{family.caretakerCount || 0}</TableCell>
-                    <TableCell>{family.babyCount || 0}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {isEditing ? (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => saveFamily(family)}
-                              disabled={saving || !!slugError || checkingSlug}
-                            >
-                              {saving ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Check className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleCancelEdit}
-                              disabled={saving}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(family)}
-                              title="Edit family"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewCaretakers(family)}
-                              title="View caretakers"
-                            >
-                              <Users className="h-4 w-4" />
-                            </Button>
-                            <ShareButton
-                              familySlug={family.slug}
-                              familyName={family.name}
-                              appConfig={appConfig || undefined}
-                              variant="outline"
-                              size="sm"
-                              showText={false}
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleLogin(family)}
-                              title="Login to family"
-                            >
-                              <LogIn className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            ) : activeTab === 'invites' ? (
-              (paginatedData as FamilySetupInvite[]).map((invite) => (
-                <TableRow key={invite.id}>
-                  <TableCell className="font-mono text-sm">
-                    {invite.token.substring(0, 16)}...
-                  </TableCell>
-                  <TableCell>
-                    {invite.creator ? (
-                      <div>
-                        <div className="font-medium">{invite.creator.name}</div>
-                        <div className="text-xs text-gray-500">ID: {invite.creator.loginId}</div>
-                      </div>
-                    ) : (
-                      'Unknown'
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm">{formatDateTime(invite.createdAt)}</TableCell>
-                  <TableCell className="text-sm">{formatDateTime(invite.expiresAt)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {invite.isUsed ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Used
-                        </span>
-                      ) : invite.isExpired ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          <XCircle className="h-3 w-3 mr-1" />
-                          Expired
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Active
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {invite.family ? (
-                      <div>
-                        <div className="font-medium">{invite.family.name}</div>
-                        <div className="text-xs text-gray-500">/{invite.family.slug}</div>
-                      </div>
-                    ) : (
-                      'Not created yet'
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {!invite.isUsed && (
-                        <>
-                          <ShareButton
-                            familySlug={`setup/${invite.token}`}
-                            familyName="Family Setup Invitation"
-                            appConfig={appConfig || undefined}
-                            urlSuffix=""
-                            variant="outline"
-                            size="sm"
-                            showText={false}
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => deleteInvite(invite.id)}
-                            disabled={deletingInviteId === invite.id}
-                            title="Revoke invite"
-                          >
-                            {deletingInviteId === invite.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : activeTab === 'accounts' ? (
-              (paginatedData as AccountData[]).map((account) => (
-                <TableRow key={account.id}>
-                  <TableCell className="font-medium">{account.email}</TableCell>
-                  <TableCell>
-                    {account.firstName || account.lastName ? 
-                      `${account.firstName || ''} ${account.lastName || ''}`.trim() : 
-                      'N/A'
-                    }
-                  </TableCell>
-                  <TableCell className="text-sm">{formatDateTime(account.createdAt)}</TableCell>
-                  <TableCell>
-                    {account.family ? (
-                      <div>
-                        <div className="font-medium">{account.family.name}</div>
-                        <div className="text-xs text-gray-500">/{account.family.slug}</div>
-                      </div>
-                    ) : (
-                      'No family'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        account.verified
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}
-                    >
-                      {account.verified ? (
-                        <>
-                          <ShieldCheck className="h-3 w-3 mr-1" />
-                          Verified
-                        </>
-                      ) : (
-                        <>
-                          <Shield className="h-3 w-3 mr-1" />
-                          Unverified
-                        </>
-                      )}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        !account.closed
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {!account.closed ? 'Active' : 'Closed'}
-                    </span>
-                    {account.closedAt && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        {formatDateTime(account.closedAt)}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateAccount(account.id, !account.closed)}
-                        disabled={updatingAccountId === account.id}
-                        title={account.closed ? 'Reinstate account' : 'Close account'}
-                      >
-                        {updatingAccountId === account.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : account.closed ? (
-                          <CheckCircle className="h-4 w-4" />
-                        ) : (
-                          <XCircle className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-                (paginatedData as BetaSubscriberResponse[]).map((subscriber) => (
-                    <TableRow key={subscriber.id}>
-                      <TableCell className="font-medium">{subscriber.email}</TableCell>
-                      <TableCell>{subscriber.firstName} {subscriber.lastName}</TableCell>
-                      <TableCell className="text-sm">{formatDateTime(subscriber.createdAt)}</TableCell>
-                      <TableCell>{subscriber.source}</TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            subscriber.isOptedIn
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
-                          {subscriber.isOptedIn ? 'Subscribed' : 'Opted Out'}
-                        </span>
-                        {subscriber.optedOutAt && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {formatDateTime(subscriber.optedOutAt)}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateSubscriber(subscriber.id, !subscriber.isOptedIn)}
-                            disabled={updatingSubscriberId === subscriber.id}
-                            title={subscriber.isOptedIn ? 'Opt-out subscriber' : 'Opt-in subscriber'}
-                          >
-                            {updatingSubscriberId === subscriber.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : subscriber.isOptedIn ? (
-                              <UserX className="h-4 w-4" />
-                            ) : (
-                              <Mail className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => deleteSubscriber(subscriber.id)}
-                            disabled={deletingSubscriberId === subscriber.id}
-                            title="Delete subscriber"
-                          >
-                            {deletingSubscriberId === subscriber.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-            )}
-          </TableBody>
-        </Table>
+        {/* Render appropriate view component based on active tab */}
+        {activeTab === 'families' && (
+          <FamilyView
+            families={families}
+            paginatedData={paginatedData as FamilyData[]}
+            onEdit={handleEdit}
+            onViewCaretakers={handleViewCaretakers}
+            onLogin={handleLogin}
+            onSave={saveFamily}
+            onCancelEdit={handleCancelEdit}
+            editingId={editingId}
+            editingData={editingData}
+            setEditingData={setEditingData}
+            saving={saving}
+            slugError={slugError}
+            checkingSlug={checkingSlug}
+            appConfig={appConfig}
+            formatDateTime={formatDateTime}
+          />
+        )}
+
+        {activeTab === 'invites' && (
+          <ActiveInviteView
+            paginatedData={paginatedData as FamilySetupInvite[]}
+            onDeleteInvite={deleteInvite}
+            deletingInviteId={deletingInviteId}
+            appConfig={appConfig}
+            formatDateTime={formatDateTime}
+          />
+        )}
+
+        {activeTab === 'accounts' && (
+          <AccountView
+            paginatedData={paginatedData as AccountData[]}
+            onUpdateAccount={updateAccount}
+            updatingAccountId={updatingAccountId}
+            formatDateTime={formatDateTime}
+          />
+        )}
+
+        {activeTab === 'beta' && (
+          <BetaSubscriberView
+            paginatedData={paginatedData as BetaSubscriberResponse[]}
+            onUpdateSubscriber={updateSubscriber}
+            onDeleteSubscriber={deleteSubscriber}
+            updatingSubscriberId={updatingSubscriberId}
+            deletingSubscriberId={deletingSubscriberId}
+            formatDateTime={formatDateTime}
+          />
+        )}
+
+        {/* Empty state for when no data matches search */}
+        {paginatedData.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            {searchTerm ? `No ${emptyMessageNoun} found matching your search.` : `No ${emptyMessageNoun} found.`}
+          </div>
+        )}
 
         {/* Pagination and Page Size Controls */}
         {totalItems >= 10 && (
