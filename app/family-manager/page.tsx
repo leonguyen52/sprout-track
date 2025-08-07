@@ -34,12 +34,15 @@ import {
   XCircle,
   Mail,
   UserX,
+  Shield,
+  ShieldCheck,
 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import FamilyForm from '@/src/components/forms/FamilyForm';
 import AppConfigForm from '@/src/components/forms/AppConfigForm';
 import { ShareButton } from '@/src/components/ui/share-button';
 import { BetaSubscriberResponse } from '@/app/api/types';
+import { useDeployment } from '@/app/context/deployment';
 
 // Types for our family data
 interface FamilyData {
@@ -84,11 +87,32 @@ interface FamilySetupInvite {
   } | null;
 }
 
+interface AccountData {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  verified: boolean;
+  betaparticipant: boolean;
+  closed: boolean;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  familyId: string | null;
+  family: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+}
+
 export default function FamilyManagerPage() {
   const router = useRouter();
+  const { isSaasMode } = useDeployment();
   const [families, setFamilies] = useState<FamilyData[]>([]);
   const [invites, setInvites] = useState<FamilySetupInvite[]>([]);
   const [betaSubscribers, setBetaSubscribers] = useState<BetaSubscriberResponse[]>([]);
+  const [accounts, setAccounts] = useState<AccountData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<Partial<FamilyData>>({});
@@ -106,7 +130,7 @@ export default function FamilyManagerPage() {
   const [deletingInviteId, setDeletingInviteId] = useState<string | null>(null);
   const [deletingSubscriberId, setDeletingSubscriberId] = useState<string | null>(null);
   const [updatingSubscriberId, setUpdatingSubscriberId] = useState<string | null>(null);
-  const [deploymentMode, setDeploymentMode] = useState<string | null>(null);
+  const [updatingAccountId, setUpdatingAccountId] = useState<string | null>(null);
 
   // Tab and table state
   const [activeTab, setActiveTab] = useState('families');
@@ -129,9 +153,14 @@ export default function FamilyManagerPage() {
         },
     ];
 
-    if (deploymentMode === 'saas') {
+    if (isSaasMode) {
         return [
             ...baseTabs,
+            {
+              id: 'accounts',
+              label: 'Accounts',
+              count: accounts.length,
+            },
             {
               id: 'beta',
               label: 'Beta Subscribers',
@@ -141,15 +170,16 @@ export default function FamilyManagerPage() {
     }
 
     return baseTabs;
-  }, [families.length, invites, betaSubscribers.length, deploymentMode]);
+  }, [families.length, invites, accounts.length, betaSubscribers.length, isSaasMode]);
 
   // Get current data based on active tab
   const currentData = useMemo(() => {
     if (activeTab === 'families') return families;
     if (activeTab === 'invites') return invites;
+    if (activeTab === 'accounts') return accounts;
     if (activeTab === 'beta') return betaSubscribers;
     return [];
-  }, [activeTab, families, invites, betaSubscribers]);
+  }, [activeTab, families, invites, accounts, betaSubscribers]);
 
   // Filter data based on search term
   const filteredData = useMemo(() => {
@@ -168,6 +198,14 @@ export default function FamilyManagerPage() {
         invite.creator?.name.toLowerCase().includes(search) ||
         invite.family?.name.toLowerCase().includes(search)
       );
+    } else if (activeTab === 'accounts') {
+        return (currentData as AccountData[]).filter(
+          (account) =>
+            account.email.toLowerCase().includes(search) ||
+            account.firstName?.toLowerCase().includes(search) ||
+            account.lastName?.toLowerCase().includes(search) ||
+            account.family?.name.toLowerCase().includes(search)
+        );
     } else if (activeTab === 'beta') {
         return (currentData as BetaSubscriberResponse[]).filter(
           (subscriber) =>
@@ -530,39 +568,85 @@ export default function FamilyManagerPage() {
     });
   };
 
+  // Fetch accounts data
+  const fetchAccounts = async () => {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/accounts/manage', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setAccounts(data.data);
+      } else {
+        console.error('Failed to fetch accounts:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+    }
+  };
+
+  // Update account status (close/reinstate)
+  const updateAccount = async (id: string, closed: boolean) => {
+    try {
+      setUpdatingAccountId(id);
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/accounts/manage', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ id, closed }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        fetchAccounts();
+      } else {
+        console.error('Failed to update account:', data.error);
+        alert('Failed to update account: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error updating account:', error);
+      alert('Error updating account');
+    } finally {
+      setUpdatingAccountId(null);
+    }
+  };
+
   // Initial data fetch
   useEffect(() => {
     const fetchData = async () => {
-        setLoading(true);
-  
-        // Fetch deployment config first
-        const configResponse = await fetch('/api/deployment-config');
-        const configData = await configResponse.json();
-        const mode = (configData.success && configData.data?.deploymentMode) || 'selfhosted';
-        setDeploymentMode(mode);
-  
-        const dataPromises = [
-          fetchFamilies(),
-          fetchInvites(),
-          fetchAppConfig(),
-        ];
-  
-        if (mode === 'saas') {
-          dataPromises.push(fetchBetaSubscribers());
-        }
-        
-        await Promise.all(dataPromises);
-  
-        setLoading(false);
-      };
+      setLoading(true);
+
+      const dataPromises = [
+        fetchFamilies(),
+        fetchInvites(),
+        fetchAppConfig(),
+      ];
+
+      if (isSaasMode) {
+        dataPromises.push(fetchBetaSubscribers());
+        dataPromises.push(fetchAccounts());
+      }
+      
+      await Promise.all(dataPromises);
+
+      setLoading(false);
+    };
     
     fetchData();
-  }, []);
+  }, [isSaasMode]);
 
   const emptyMessageNoun = useMemo(() => {
     switch(activeTab) {
         case 'families': return 'families';
         case 'invites': return 'invites';
+        case 'accounts': return 'accounts';
         case 'beta': return 'data';
         default: return 'data';
     }
@@ -604,6 +688,7 @@ export default function FamilyManagerPage() {
           placeholder={
             activeTab === 'families' ? "Search families by name or slug..." :
             activeTab === 'invites' ? "Search invites by token, creator, or family..." :
+            activeTab === 'accounts' ? "Search accounts by email, name, or family..." :
             "Search subscribers by email or name..."
           }
         />
@@ -633,6 +718,16 @@ export default function FamilyManagerPage() {
                   <TableHead>Family</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </>
+              ) : activeTab === 'accounts' ? (
+                <>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Family</TableHead>
+                  <TableHead>Verified</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </>
               ) : (
                 <>
                 <TableHead>Email</TableHead>
@@ -648,7 +743,7 @@ export default function FamilyManagerPage() {
           <TableBody>
             {paginatedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={activeTab === 'families' ? 8 : activeTab === 'invites' ? 7 : 6} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={activeTab === 'families' ? 8 : activeTab === 'invites' ? 7 : activeTab === 'accounts' ? 7 : 6} className="text-center py-8 text-gray-500">
                   {searchTerm ? `No ${emptyMessageNoun} found matching your search.` : `No ${emptyMessageNoun} found.`}
                 </TableCell>
               </TableRow>
@@ -860,6 +955,83 @@ export default function FamilyManagerPage() {
                           </Button>
                         </>
                       )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : activeTab === 'accounts' ? (
+              (paginatedData as AccountData[]).map((account) => (
+                <TableRow key={account.id}>
+                  <TableCell className="font-medium">{account.email}</TableCell>
+                  <TableCell>
+                    {account.firstName || account.lastName ? 
+                      `${account.firstName || ''} ${account.lastName || ''}`.trim() : 
+                      'N/A'
+                    }
+                  </TableCell>
+                  <TableCell className="text-sm">{formatDateTime(account.createdAt)}</TableCell>
+                  <TableCell>
+                    {account.family ? (
+                      <div>
+                        <div className="font-medium">{account.family.name}</div>
+                        <div className="text-xs text-gray-500">/{account.family.slug}</div>
+                      </div>
+                    ) : (
+                      'No family'
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        account.verified
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}
+                    >
+                      {account.verified ? (
+                        <>
+                          <ShieldCheck className="h-3 w-3 mr-1" />
+                          Verified
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="h-3 w-3 mr-1" />
+                          Unverified
+                        </>
+                      )}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        !account.closed
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {!account.closed ? 'Active' : 'Closed'}
+                    </span>
+                    {account.closedAt && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {formatDateTime(account.closedAt)}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateAccount(account.id, !account.closed)}
+                        disabled={updatingAccountId === account.id}
+                        title={account.closed ? 'Reinstate account' : 'Close account'}
+                      >
+                        {updatingAccountId === account.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : account.closed ? (
+                          <CheckCircle className="h-4 w-4" />
+                        ) : (
+                          <XCircle className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>

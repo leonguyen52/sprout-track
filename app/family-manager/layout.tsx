@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { TimezoneProvider } from '../context/timezone';
 import { ThemeProvider } from '@/src/context/theme';
+import { DeploymentProvider } from '../context/deployment';
 import Image from 'next/image';
 import '../globals.css';
 import './layout.css';
@@ -184,10 +185,12 @@ export default function AppLayout({
   children: React.ReactNode
 }) {
   return (
-    <TimezoneProvider>
-      <ThemeProvider>
-        <AppContent>{children}</AppContent>
-      </ThemeProvider>
-    </TimezoneProvider>
+    <DeploymentProvider>
+      <TimezoneProvider>
+        <ThemeProvider>
+          <AppContent>{children}</AppContent>
+        </ThemeProvider>
+      </TimezoneProvider>
+    </DeploymentProvider>
   );
 }
