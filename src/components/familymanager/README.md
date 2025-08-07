@@ -40,6 +40,20 @@ This directory contains the componentized views for the Family Manager page, bre
   - Delete subscribers
   - Source tracking
 
+### FeedbackView
+- **File**: `FeedbackView.tsx`
+- **Purpose**: Displays and manages user feedback submissions (SaaS mode only)
+- **Features**:
+  - Feedback subject and message display
+  - Submitter information (name and email)
+  - Read/unread status indicators
+  - Mark feedback as read or unread
+  - Message preview with truncation
+  - Visual indicators for unread feedback
+  - **Clickable subjects** - Click on any subject to view full feedback details in a modal
+  - **Modal view** - Full feedback details with read-only form fields
+  - **In-modal actions** - Mark as read/unread directly from the modal
+
 ## Architecture
 
 Each view component follows these patterns:

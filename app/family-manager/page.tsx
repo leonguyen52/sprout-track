@@ -41,13 +41,14 @@ import { useRouter } from 'next/navigation';
 import FamilyForm from '@/src/components/forms/FamilyForm';
 import AppConfigForm from '@/src/components/forms/AppConfigForm';
 import { ShareButton } from '@/src/components/ui/share-button';
-import { BetaSubscriberResponse } from '@/app/api/types';
+import { BetaSubscriberResponse, FeedbackResponse } from '@/app/api/types';
 import { useDeployment } from '@/app/context/deployment';
 import { 
   FamilyView, 
   ActiveInviteView, 
   AccountView, 
-  BetaSubscriberView 
+  BetaSubscriberView,
+  FeedbackView 
 } from '@/src/components/familymanager';
 
 // Types for our family data
@@ -119,6 +120,7 @@ export default function FamilyManagerPage() {
   const [invites, setInvites] = useState<FamilySetupInvite[]>([]);
   const [betaSubscribers, setBetaSubscribers] = useState<BetaSubscriberResponse[]>([]);
   const [accounts, setAccounts] = useState<AccountData[]>([]);
+  const [feedback, setFeedback] = useState<FeedbackResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<Partial<FamilyData>>({});
@@ -137,6 +139,7 @@ export default function FamilyManagerPage() {
   const [deletingSubscriberId, setDeletingSubscriberId] = useState<string | null>(null);
   const [updatingSubscriberId, setUpdatingSubscriberId] = useState<string | null>(null);
   const [updatingAccountId, setUpdatingAccountId] = useState<string | null>(null);
+  const [updatingFeedbackId, setUpdatingFeedbackId] = useState<string | null>(null);
 
   // Tab and table state
   const [activeTab, setActiveTab] = useState('families');
@@ -171,12 +174,17 @@ export default function FamilyManagerPage() {
               id: 'beta',
               label: 'Beta Subscribers',
               count: betaSubscribers.length,
+            },
+            {
+              id: 'feedback',
+              label: 'Feedback',
+              count: feedback.filter(item => !item.viewed).length,
             }
         ];
     }
 
     return baseTabs;
-  }, [families.length, invites, accounts.length, betaSubscribers.length, isSaasMode]);
+  }, [families.length, invites, accounts.length, betaSubscribers.length, feedback, isSaasMode]);
 
   // Get current data based on active tab
   const currentData = useMemo(() => {
@@ -184,8 +192,9 @@ export default function FamilyManagerPage() {
     if (activeTab === 'invites') return invites;
     if (activeTab === 'accounts') return accounts;
     if (activeTab === 'beta') return betaSubscribers;
+    if (activeTab === 'feedback') return feedback;
     return [];
-  }, [activeTab, families, invites, accounts, betaSubscribers]);
+  }, [activeTab, families, invites, accounts, betaSubscribers, feedback]);
 
   // Filter data based on search term
   const filteredData = useMemo(() => {
@@ -218,6 +227,14 @@ export default function FamilyManagerPage() {
             subscriber.email.toLowerCase().includes(search) ||
             subscriber.firstName?.toLowerCase().includes(search) ||
             subscriber.lastName?.toLowerCase().includes(search)
+        );
+    } else if (activeTab === 'feedback') {
+        return (currentData as FeedbackResponse[]).filter(
+          (item) =>
+            item.subject.toLowerCase().includes(search) ||
+            item.message.toLowerCase().includes(search) ||
+            item.submitterName?.toLowerCase().includes(search) ||
+            item.submitterEmail?.toLowerCase().includes(search)
         );
     }
     return [];
@@ -311,6 +328,26 @@ export default function FamilyManagerPage() {
           console.error('Error fetching beta subscribers:', error);
         }
       };
+
+  // Fetch feedback data
+  const fetchFeedback = async () => {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/feedback', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFeedback(data.data);
+      } else {
+        console.error('Failed to fetch feedback:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching feedback:', error);
+    }
+  };
 
   // Check slug uniqueness
   const checkSlugUniqueness = useCallback(async (slug: string, currentFamilyId: string) => {
@@ -624,6 +661,36 @@ export default function FamilyManagerPage() {
     }
   };
 
+  // Update feedback status (mark as read/unread)
+  const updateFeedback = async (id: string, viewed: boolean) => {
+    try {
+      setUpdatingFeedbackId(id);
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/feedback?id=${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ viewed }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        fetchFeedback();
+      } else {
+        console.error('Failed to update feedback:', data.error);
+        alert('Failed to update feedback: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error updating feedback:', error);
+      alert('Error updating feedback');
+    } finally {
+      setUpdatingFeedbackId(null);
+    }
+  };
+
   // Initial data fetch
   useEffect(() => {
     const fetchData = async () => {
@@ -638,6 +705,7 @@ export default function FamilyManagerPage() {
       if (isSaasMode) {
         dataPromises.push(fetchBetaSubscribers());
         dataPromises.push(fetchAccounts());
+        dataPromises.push(fetchFeedback());
       }
       
       await Promise.all(dataPromises);
@@ -654,6 +722,7 @@ export default function FamilyManagerPage() {
         case 'invites': return 'invites';
         case 'accounts': return 'accounts';
         case 'beta': return 'data';
+        case 'feedback': return 'feedback';
         default: return 'data';
     }
   }, [activeTab]);
@@ -695,6 +764,7 @@ export default function FamilyManagerPage() {
             activeTab === 'families' ? "Search families by name or slug..." :
             activeTab === 'invites' ? "Search invites by token, creator, or family..." :
             activeTab === 'accounts' ? "Search accounts by email, name, or family..." :
+            activeTab === 'feedback' ? "Search feedback by subject, message, or submitter..." :
             "Search subscribers by email or name..."
           }
         />
@@ -746,6 +816,15 @@ export default function FamilyManagerPage() {
             onDeleteSubscriber={deleteSubscriber}
             updatingSubscriberId={updatingSubscriberId}
             deletingSubscriberId={deletingSubscriberId}
+            formatDateTime={formatDateTime}
+          />
+        )}
+
+        {activeTab === 'feedback' && (
+          <FeedbackView
+            paginatedData={paginatedData as FeedbackResponse[]}
+            onUpdateFeedback={updateFeedback}
+            updatingFeedbackId={updatingFeedbackId}
             formatDateTime={formatDateTime}
           />
         )}
