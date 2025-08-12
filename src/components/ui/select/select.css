@@ -7,7 +7,13 @@ html.dark .select-trigger {
 
 html.dark .select-trigger:hover {
   background-color: #374151 !important; /* gray-700 */
-  border-color: #5eead4 !important; /* teal-300 */
+  border-color: #6b7280 !important; /* gray-500 */
+}
+
+html.dark .select-trigger:focus {
+  background-color: #1f2937 !important; /* gray-800 */
+  border-color: #10b981 !important; /* emerald-500 */
+  ring-color: rgba(16, 185, 129, 0.2) !important; /* emerald-500 with opacity */
 }
 
 html.dark .select-content {
@@ -21,13 +27,11 @@ html.dark .select-item {
 
 html.dark .select-item:hover {
   background-color: #374151 !important; /* gray-700 */
-  color: #5eead4 !important; /* teal-300 */
 }
 
 /* Make focus state match hover state in dark mode */
 html.dark .select-item:focus {
   background-color: #374151 !important; /* gray-700 - same as hover */
-  color: #5eead4 !important; /* teal-300 - same as hover */
   outline: none !important;
 }
 
@@ -44,5 +48,5 @@ html.dark .select-icon {
 }
 
 html.dark .select-check-icon {
-  color: #5eead4 !important; /* teal-300 */
+  color: #10b981 !important; /* emerald-500 */
 }
