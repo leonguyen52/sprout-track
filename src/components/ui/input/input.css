@@ -15,7 +15,6 @@ html.dark .input-dark:hover {
 }
 
 html.dark .input-dark:focus {
-  border-color: #6366f1 !important; /* indigo-500 */
   background-color: #1f2937 !important; /* gray-800 */
   ring-color: rgba(99, 102, 241, 0.2) !important; /* indigo-500 with opacity */
 }
