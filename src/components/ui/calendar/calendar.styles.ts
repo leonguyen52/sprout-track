@@ -87,11 +87,11 @@ export const calendarMonthSelectVariants = cva(
  * Calendar month/year selector dropdown styles
  */
 export const calendarSelectorDropdownVariants = cva(
-  "absolute top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-2",
+  "absolute top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-9999 overflow-visible p-2",
   {
     variants: {
       type: {
-        month: "left-0 grid grid-cols-3 gap-1 min-w-[240px]",
+        month: "left-[-50px] grid grid-cols-3 gap-1 min-w-[240px] z-9999 overflow-visible",
         year: "right-0 max-h-64 overflow-y-auto min-w-[120px]",
       },
     },
