@@ -479,7 +479,7 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
         word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
       ).join(' ');
       return {
-        type: `${activity.type === 'NAP' ? 'Nap' : 'Night Sleep'}${location ? ` - ${location}` : ''}`,
+        type: activity.type === 'NAP' ? 'Nap' : 'Night Sleep',
         details: `${startTimeFormatted} - ${endTimeFormatted.split(' ').slice(-2).join(' ')}${duration}`
       };
     }
@@ -523,11 +523,11 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
         details = [side, duration].filter(Boolean).join(', ');
       } else if (activity.type === 'BOTTLE') {
         // Use unitAbbr instead of hardcoded 'oz'
-        const unit = (activity as any).unitAbbr || 'oz';
+        const unit = ((activity as any).unitAbbr || 'oz').toLowerCase();
         details = `${activity.amount || 'unknown'} ${unit}`;
       } else if (activity.type === 'SOLIDS') {
         // Use unitAbbr instead of hardcoded 'g'
-        const unit = (activity as any).unitAbbr || 'g';
+        const unit = ((activity as any).unitAbbr || 'g').toLowerCase();
         details = `${activity.amount || 'unknown'} ${unit}`;
         if (activity.food) {
           details += ` of ${activity.food}`;
