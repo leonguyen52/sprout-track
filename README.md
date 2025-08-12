@@ -30,7 +30,7 @@ Try out Sprout Track at our live demo: **[https://www.sprout-track.com/demo](htt
 
 ### Demo Login Information
 
-- ID: '01'
+- ID: `01`
 - PIN: `111111`
 
 ### Quick Docker Deployment
