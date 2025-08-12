@@ -84,15 +84,16 @@ export const calendarMonthSelectVariants = cva(
 )
 
 /**
- * Calendar month/year selector dropdown styles
+ * Legacy dropdown styles - kept for backwards compatibility
+ * These are no longer used in the page-based navigation system
  */
 export const calendarSelectorDropdownVariants = cva(
-  "absolute top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-9999 overflow-visible p-2",
+  "absolute top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-2",
   {
     variants: {
       type: {
-        month: "left-[-50px] grid grid-cols-3 gap-1 min-w-[240px] z-9999 overflow-visible",
-        year: "right-0 max-h-64 overflow-y-auto min-w-[120px]",
+        month: "left-[-50px] grid grid-cols-3 gap-1 min-w-[240px] z-[99999] overflow-visible",
+        year: "right-0 max-h-64 overflow-y-auto min-w-[120px] z-[99999]",
       },
     },
     defaultVariants: {
@@ -102,7 +103,8 @@ export const calendarSelectorDropdownVariants = cva(
 )
 
 /**
- * Calendar selector option styles
+ * Legacy selector option styles - kept for backwards compatibility
+ * These are no longer used in the page-based navigation system
  */
 export const calendarSelectorOptionVariants = cva(
   "text-sm rounded hover:bg-teal-50 hover:text-teal-700 transition-colors cursor-pointer",
@@ -120,6 +122,25 @@ export const calendarSelectorOptionVariants = cva(
     defaultVariants: {
       type: "month",
       selected: false,
+    },
+  }
+)
+
+/**
+ * Page-based selector header styles
+ */
+export const calendarPageHeaderVariants = cva(
+  "flex items-center justify-between p-4 border-b border-gray-200",
+  {
+    variants: {
+      variant: {
+        default: "",
+        compact: "p-3",
+        "date-time-picker": "p-4",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
     },
   }
 )

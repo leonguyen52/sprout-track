@@ -1,10 +1,11 @@
 # Calendar Component
 
-A custom calendar component with styled appearance that follows the project's design system. It's designed to be cross-platform compatible with minimal changes required for React Native. Includes dark mode support.
+A custom calendar component with styled appearance that follows the project's design system. It's designed to be cross-platform compatible with minimal changes required for React Native. Includes dark mode support and page-based navigation.
 
 ## Features
 
 - Month navigation with previous/next buttons
+- **Page-based month and year selection** - No dropdown overlays that can be clipped by containers
 - Date selection with customizable callbacks
 - Date range selection with visual indicators
 - Support for disabled dates
@@ -77,12 +78,39 @@ import { Calendar } from '@/src/components/ui/calendar';
 | `onRangeChange` | `(from: Date \| null, to: Date \| null) => void` | Callback function when a date range is selected |
 | `month` | `Date` | The month to display (defaults to current month) |
 | `className` | `string` | Additional CSS classes |
-| `variant` | `"default" \| "compact"` | Size variant of the calendar |
+| `variant` | `"default" \| "compact" \| "date-time-picker"` | Size variant of the calendar |
 | `minDate` | `Date` | Minimum selectable date |
 | `maxDate` | `Date` | Maximum selectable date |
 | `disabledDates` | `Date[]` | Array of dates to disable |
 | `isDateDisabled` | `(date: Date) => boolean` | Function to determine if a date should be disabled |
 | `initialFocus` | `boolean` | Whether to focus the calendar initially |
+
+## Page-Based Navigation
+
+The calendar uses a page-based navigation system instead of dropdown overlays for month/year selection. This approach prevents issues with:
+
+- Dropdown overlays being clipped by containers with `overflow: hidden`
+- Z-index conflicts with modal dialogs and form pages
+- Complex portal rendering and positioning calculations
+
+### Navigation Pages:
+
+1. **Dates Page (default)**: Shows the standard calendar grid with date selection
+2. **Months Page**: Shows a 3-column grid of month names for selection
+3. **Years Page**: Shows a 3-column grid of years with pagination (12 years per page)
+
+### Navigation Flow:
+
+- Click on the month name → Navigate to months page
+- Click on the year → Navigate to years page  
+- Select a month/year → Automatically returns to dates page
+- "Back to Calendar" button available on both selector pages
+
+### Components:
+
+- `MonthSelectorPage.tsx` - Handles month selection with year navigation
+- `YearSelectorPage.tsx` - Handles year selection with decade pagination
+- Main calendar manages page state and transitions
 
 ## Styling
 
@@ -114,9 +142,11 @@ The Calendar component is built using:
 - Theme context for dark mode support
 
 The component follows a modular structure:
-- `index.tsx` - Main component implementation
+- `index.tsx` - Main component implementation with page-based navigation
+- `MonthSelectorPage.tsx` - Month selection page component
+- `YearSelectorPage.tsx` - Year selection page component  
 - `calendar.styles.ts` - Style definitions using Tailwind classes
-- `calendar.types.ts` - TypeScript type definitions
+- `calendar.types.ts` - TypeScript type definitions and page navigation types
 - `calendar.css` - Additional CSS for dark mode styling
 
 ## Mobile Considerations (React Native)

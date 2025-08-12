@@ -73,3 +73,16 @@ export interface CalendarProps extends VariantProps<typeof calendarVariants> {
    */
   initialFocus?: boolean
 }
+
+/**
+ * Calendar page types for navigation
+ */
+export type CalendarPage = 'dates' | 'months' | 'years';
+
+/**
+ * Internal calendar state
+ */
+export interface CalendarState {
+  currentPage: CalendarPage;
+  displayMonth: Date;
+}
