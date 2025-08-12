@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
-import { useTheme } from '@/src/context/theme';
 import './calendar.css'; // Import the CSS file with dark mode overrides
 
 import {
@@ -11,6 +10,8 @@ import {
   calendarHeaderVariants,
   calendarNavButtonVariants,
   calendarMonthSelectVariants,
+  calendarSelectorDropdownVariants,
+  calendarSelectorOptionVariants,
   calendarDayVariants,
   calendarDayNamesVariants,
   calendarDayNameVariants,
@@ -70,7 +71,6 @@ const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>(
     initialFocus,
     ...props 
   }, ref) => {
-    const { theme } = useTheme();
     // State for the currently displayed month
     const [month, setMonth] = React.useState(() => {
       return monthProp || (selected || rangeFrom || new Date());
@@ -80,6 +80,10 @@ const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>(
     const [rangeSelectionState, setRangeSelectionState] = React.useState<'start' | 'end'>(
       rangeFrom && !rangeTo ? 'end' : 'start'
     );
+    
+    // State for month/year selectors
+    const [showMonthSelector, setShowMonthSelector] = React.useState(false);
+    const [showYearSelector, setShowYearSelector] = React.useState(false);
 
     // Update month when monthProp changes
     React.useEffect(() => {
@@ -202,6 +206,50 @@ const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>(
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
+    // Function to handle month selection
+    const handleMonthSelect = (monthIndex: number) => {
+      const newMonth = new Date(month.getFullYear(), monthIndex, 1);
+      setMonth(newMonth);
+      setShowMonthSelector(false);
+    };
+    
+    // Function to handle year selection
+    const handleYearSelect = (year: number) => {
+      const newMonth = new Date(year, month.getMonth(), 1);
+      setMonth(newMonth);
+      setSelectedYear(year);
+      setShowYearSelector(false);
+    };
+    
+    // Functions for year navigation
+    const handlePrevYear = () => {
+      if (selectedYear > minYear) {
+        setSelectedYear(selectedYear - 1);
+      }
+    };
+    
+    const handleNextYear = () => {
+      if (selectedYear < maxYear) {
+        setSelectedYear(selectedYear + 1);
+      }
+    };
+    
+    // Function to close selectors when clicking outside
+    const handleClickOutside = React.useCallback((event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.month-selector-container') && !target.closest('.year-selector-container')) {
+        setShowMonthSelector(false);
+        setShowYearSelector(false);
+      }
+    }, []);
+    
+    React.useEffect(() => {
+      if (showMonthSelector || showYearSelector) {
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }
+    }, [showMonthSelector, showYearSelector, handleClickOutside]);
+
     // Function to handle date selection
     const handleDateSelect = (date: Date) => {
       if (isDisabled(date)) return;
@@ -304,6 +352,23 @@ const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>(
 
     // Day names for the calendar header
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    // Month names for the month selector
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    
+    // Year selector state and constraints
+    const currentYear = new Date().getFullYear();
+    const minYear = 1975;
+    const maxYear = currentYear;
+    const [selectedYear, setSelectedYear] = React.useState(month.getFullYear());
+    
+    // Update selected year when month changes
+    React.useEffect(() => {
+      setSelectedYear(month.getFullYear());
+    }, [month]);
 
     return (
       <div
@@ -327,7 +392,7 @@ const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>(
         )}
         
         {/* Calendar Header */}
-        <div className={cn(calendarHeaderVariants({ variant }), "calendar-header")}>
+        <div className={cn(calendarHeaderVariants({ variant }), "calendar-header relative")}>
           <button
             type="button"
             onClick={handlePrevMonth}
@@ -338,9 +403,119 @@ const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>(
             <ChevronLeft className="h-4 w-4" />
           </button>
           
-          <span className={cn(calendarMonthSelectVariants({ variant }), "calendar-month-select")}>
-            {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-          </span>
+          <div className="flex items-center gap-1 relative">
+            <button
+              type="button"
+              onClick={() => {
+                setShowMonthSelector(!showMonthSelector);
+                setShowYearSelector(false);
+              }}
+              className={cn(
+                calendarMonthSelectVariants({ variant }), 
+                "calendar-month-select px-2 py-1 rounded cursor-pointer"
+              )}
+              aria-label="Select month"
+            >
+              {month.toLocaleDateString('en-US', { month: 'long' })}
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => {
+                setShowYearSelector(!showYearSelector);
+                setShowMonthSelector(false);
+              }}
+              className={cn(
+                calendarMonthSelectVariants({ variant }), 
+                "calendar-year-select px-2 py-1 rounded cursor-pointer"
+              )}
+              aria-label="Select year"
+            >
+              {month.getFullYear()}
+            </button>
+            
+            {/* Month Selector Dropdown */}
+            {showMonthSelector && (
+              <div className={cn(
+                calendarSelectorDropdownVariants({ type: "month" }),
+                "month-selector-container"
+              )}>
+                {monthNames.map((monthName, index) => (
+                  <button
+                    key={monthName}
+                    type="button"
+                    onClick={() => handleMonthSelect(index)}
+                    className={cn(
+                      calendarSelectorOptionVariants({
+                        type: "month",
+                        selected: index === month.getMonth()
+                      }),
+                      "calendar-selector-option"
+                    )}
+                  >
+                    {monthName.slice(0, 3)}
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            {/* Year Selector Dropdown */}
+            {showYearSelector && (
+              <div className={cn(
+                "absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-3 min-w-[160px]",
+                "year-selector-container"
+              )}>
+                <div className="flex items-center justify-between mb-2">
+                  <button
+                    type="button"
+                    onClick={handlePrevYear}
+                    disabled={selectedYear <= minYear}
+                    className={cn(
+                      "p-1 rounded hover:bg-gray-100 transition-colors",
+                      selectedYear <= minYear ? "opacity-50 cursor-not-allowed" : "text-gray-600 hover:text-gray-800"
+                    )}
+                    aria-label="Previous year"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  
+                  <span className="text-lg font-semibold text-gray-900 min-w-[60px] text-center">
+                    {selectedYear}
+                  </span>
+                  
+                  <button
+                    type="button"
+                    onClick={handleNextYear}
+                    disabled={selectedYear >= maxYear}
+                    className={cn(
+                      "p-1 rounded hover:bg-gray-100 transition-colors",
+                      selectedYear >= maxYear ? "opacity-50 cursor-not-allowed" : "text-gray-600 hover:text-gray-800"
+                    )}
+                    aria-label="Next year"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleYearSelect(selectedYear)}
+                    className="flex-1 px-3 py-2 text-sm bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors font-medium"
+                  >
+                    Select
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowYearSelector(false)}
+                    className="flex-1 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           
           <button
             type="button"
