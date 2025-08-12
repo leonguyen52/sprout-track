@@ -24,22 +24,14 @@ A Next.js application for tracking baby activities, milestones, and development.
 
 ## Live Demo
 
-Try out Sprout Track at our live demo: **[https://demo.sprout-track.com](https://demo.sprout-track.com)**
+Try out Sprout Track at our live demo: **[https://www.sprout-track.com/demo](https://www.sprout-track.com/demo)**
 
-*The demo environment is refreshed every 2 hours.*
+*The demo environment is refreshed every 1 hour.*
 
 ### Demo Login Information
 
-**Family Manager Access:**
-- URL: [https://demo.sprout-track.com/family-manager](https://demo.sprout-track.com/family-manager)
-- Password: `admin`
-
-**Family Access:**
-- URL: [https://demo.sprout-track.com](https://demo.sprout-track.com)
-- Available login IDs: `01`, `02`, `03` (1-3 ID's are randomly generated)
-- PIN: `111222`
-
-The demo is populated with semi-realistic 🙃 test data spanning multiple families and several days of baby tracking activities.
+- ID: '01'
+- PIN: `111111`
 
 ### Quick Docker Deployment
 
