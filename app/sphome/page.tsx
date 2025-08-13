@@ -108,7 +108,7 @@ const SaaSHomePage = () => {
           <div className="saas-nav-content">
             <div className="saas-logo">
               <img 
-                src="/spourt-256.png" 
+                src="/sprout-256.png" 
                 alt="Sprout Track Logo" 
                 className="saas-logo-image"
               />
@@ -426,7 +426,7 @@ const SaaSHomePage = () => {
           <div className="saas-footer-brand">
             <div className="saas-logo">
               <img 
-                src="/spourt-256.png" 
+                src="/sprout-256.png" 
                 alt="Sprout Track Logo" 
                 className="saas-logo-image"
               />
