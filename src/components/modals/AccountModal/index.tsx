@@ -561,17 +561,6 @@ export default function AccountModal({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="account-modal-content !p-0 max-w-md">
-        {/* Header with Logo */}
-        <div className="account-modal-header">
-          <div className="account-modal-logo">
-            <img 
-              src="/spourt-256.png" 
-              alt="Sprout Track Logo" 
-              className="w-8 h-8"
-            />
-            <span className="account-modal-brand">Sprout Track</span>
-          </div>
-        </div>
 
         <div className="account-modal-body">
           {!showSuccess && (
@@ -586,11 +575,11 @@ export default function AccountModal({
                   : 'Reset Password'
                 }
               </DialogTitle>
-              <DialogDescription className="account-modal-description text-center">
+              <DialogDescription className="account-modal-description-green text-center">
                 {mode === 'login' 
                   ? 'Sign in to access your family dashboard' 
                   : mode === 'register'
-                  ? 'Set up your account to get started for free! Beta users get free access for life!'
+                  ? 'Beta users get free access for life!'
                   : mode === 'verify'
                   ? 'Verifying your email address...'
                   : mode === 'reset-password'
