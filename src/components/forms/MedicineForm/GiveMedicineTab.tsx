@@ -154,18 +154,29 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // Handle empty string case - allow it to be empty
-    if (value === '') {
-      setFormData(prev => ({ ...prev, [name]: 0 }));
-    } else {
-      const numValue = parseFloat(value);
-      // Only update if it's a valid number
-      if (!isNaN(numValue)) {
-        setFormData(prev => ({ ...prev, [name]: numValue }));
-      }
-    }
+    // Allow any input during typing
+    setFormData(prev => ({ ...prev, [name]: value }));
     
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  // Validate and convert number input on blur
+  const handleNumberBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    if (value === '') {
+      setFormData(prev => ({ ...prev, [name]: 0 }));
+      return;
+    }
+    
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0) {
+      setFormData(prev => ({ ...prev, [name]: numValue }));
+    } else {
+      // Invalid number - show error and reset
+      setErrors(prev => ({ ...prev, [name]: 'Please enter a valid number' }));
+      setFormData(prev => ({ ...prev, [name]: 0 }));
+    }
   };
   
   const handleUnitChange = (unitAbbr: string) => {
@@ -287,12 +298,12 @@ const GiveMedicineTab: React.FC<GiveMedicineTabProps> = ({
                 <Input
                   id="doseAmount"
                   name="doseAmount"
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={formData.doseAmount || ''}
                   onChange={handleNumberChange}
+                  onBlur={handleNumberBlur}
                   className="flex-1"
-                  step="0.1"
-                  min="0"
                   placeholder="Enter dose amount"
                 />
                 <DropdownMenu>
