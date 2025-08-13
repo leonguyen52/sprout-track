@@ -1,6 +1,6 @@
 # Sprout Track Changelog
 
-## v0.94.21 - Feedback Additions and Family Manager Enhancements\Refactor
+## v0.94.22 - Feedback Additions and Family Manager Enhancements\Refactor
 
 ### Changes
 
@@ -17,6 +17,7 @@
 - Fixed spelling for spourt-256.png -> sprout-256.png and fixed references
 - Replaced coming-soon with home and removed sphome \ fixed references in app to the new home location in SaaS mode
 - SEO updates for home page
+- Fixed registration and login modal sizes for mobile screens when they extend past max screen size
 ---
 
 ## v0.94.11 - Feedback Additions and Family Manager Enhancements\Refactor
