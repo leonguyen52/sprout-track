@@ -2,7 +2,7 @@ import { ThemeProvider } from '@/src/context/theme';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Sprout Track - The Complete Baby Tracking Solution',
+  title: 'Sprout Track - The Shareable Baby Tracking Solution',
   description: 'Track your baby\'s sleep, feeding, diapers, milestones, and more with our intuitive, family-friendly platform. Simple to use, privacy-focused, accessible anywhere. Join the beta for free!',
   keywords: [
     'baby tracker',
@@ -36,8 +36,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://sprout-track.app/coming-soon',
-    title: 'Sprout Track - The Complete Baby Tracking Solution',
+    url: 'https://www.sprout-track.com',
+    title: 'Sprout Track - The Shareable Baby Tracking Solution',
     description: 'Track your baby\'s sleep, feeding, diapers, milestones, and more with our intuitive, family-friendly platform. Simple to use, privacy-focused, accessible anywhere.',
     siteName: 'Sprout Track',
     images: [
@@ -49,20 +49,20 @@ export const metadata: Metadata = {
       },
     ],
   },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Sprout Track - The Complete Baby Tracking Solution',
-    description: 'Track your baby\'s sleep, feeding, diapers, milestones, and more. Join our beta for free!',
-    images: ['/spourt-256.png'],
-    creator: '@SproutTrackApp', // Update when Twitter account exists
-  },
+  // twitter: {
+    // card: 'summary_large_image',
+    // title: 'Sprout Track - The Shareable Baby Tracking Solution',
+    // description: 'Track your baby\'s sleep, feeding, diapers, milestones, and more. Join our beta for free!',
+    // images: ['/spourt-256.png'],
+    // creator: '@SproutTrackApp', // Update when Twitter account exists
+  // },
   verification: {
     google: '', // Add Google Search Console verification code when available
     // yandex: '', // Add if targeting international markets
     // yahoo: '', // Add if needed
   },
   alternates: {
-    canonical: 'https://sprout-track.app/coming-soon',
+    canonical: 'https://www.sprout-track.com',
   },
   category: 'technology',
 };
