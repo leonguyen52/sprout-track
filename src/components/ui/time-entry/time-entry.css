@@ -48,11 +48,33 @@ html.dark .time-entry-ok-button {
 .time-entry-clock-face {
   position: relative;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  /* Minimal touch restrictions - only prevent text selection */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* Remove touch-action restrictions to allow normal touch behavior */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .time-entry-clock-hand {
   height: 80px;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Minimal restrictions - let touch events flow naturally */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.time-entry-selection-circle {
+  /* Minimal restrictions - let touch events flow naturally */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .time-entry-hour-marker,

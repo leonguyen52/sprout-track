@@ -49,7 +49,7 @@ export const calendarHeaderVariants = cva(
  * Calendar navigation button styles
  */
 export const calendarNavButtonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2",
+  "inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors",
   {
     variants: {
       variant: {
@@ -68,13 +68,75 @@ export const calendarNavButtonVariants = cva(
  * Calendar month select styles
  */
 export const calendarMonthSelectVariants = cva(
-  "font-semibold text-gray-900",
+  "font-semibold text-gray-900 hover:bg-gray-100 transition-colors",
   {
     variants: {
       variant: {
         default: "text-base",
         compact: "text-sm",
         "date-time-picker": "text-base",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+/**
+ * Legacy dropdown styles - kept for backwards compatibility
+ * These are no longer used in the page-based navigation system
+ */
+export const calendarSelectorDropdownVariants = cva(
+  "absolute top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-2",
+  {
+    variants: {
+      type: {
+        month: "left-[-50px] grid grid-cols-3 gap-1 min-w-[240px] z-[99999] overflow-visible",
+        year: "right-0 max-h-64 overflow-y-auto min-w-[120px] z-[99999]",
+      },
+    },
+    defaultVariants: {
+      type: "month",
+    },
+  }
+)
+
+/**
+ * Legacy selector option styles - kept for backwards compatibility
+ * These are no longer used in the page-based navigation system
+ */
+export const calendarSelectorOptionVariants = cva(
+  "text-sm rounded hover:bg-teal-50 hover:text-teal-700 transition-colors cursor-pointer",
+  {
+    variants: {
+      type: {
+        month: "px-3 py-2",
+        year: "block w-full px-3 py-2 text-left",
+      },
+      selected: {
+        true: "bg-teal-100 text-teal-800 font-medium",
+        false: "text-gray-700",
+      },
+    },
+    defaultVariants: {
+      type: "month",
+      selected: false,
+    },
+  }
+)
+
+/**
+ * Page-based selector header styles
+ */
+export const calendarPageHeaderVariants = cva(
+  "flex items-center justify-between p-4 border-b border-gray-200",
+  {
+    variants: {
+      variant: {
+        default: "",
+        compact: "p-3",
+        "date-time-picker": "p-4",
       },
     },
     defaultVariants: {

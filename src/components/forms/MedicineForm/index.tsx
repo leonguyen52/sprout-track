@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { cn } from '@/src/lib/utils';
-import { medicineFormStyles as styles } from './medicine-form.styles';
 import { MedicineFormProps, MedicineFormTab } from './medicine-form.types';
-import { PillBottle, Loader2 } from 'lucide-react';
+import { PillBottle, Loader2, Activity, Settings } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
-import { FormPage, FormPageContent, FormPageFooter } from '@/src/components/ui/form-page';
+import { FormPage, FormPageFooter } from '@/src/components/ui/form-page';
+import { FormPageTab } from '@/src/components/ui/form-page/form-page.types';
 import ActiveDosesTab from './ActiveDosesTab';
 import ManageMedicinesTab from './ManageMedicinesTab';
 import GiveMedicineForm from '../GiveMedicineForm';
@@ -30,7 +29,7 @@ import './medicine-form.css';
  * />
  * ```
  */
-  const MedicineForm: React.FC<MedicineFormProps> = ({
+const MedicineForm: React.FC<MedicineFormProps> = ({
   isOpen,
   onClose,
   babyId,
@@ -38,7 +37,7 @@ import './medicine-form.css';
   onSuccess,
   activity,
 }) => {
-  const [activeTab, setActiveTab] = useState<MedicineFormTab>('active-doses');
+  const [activeTab, setActiveTab] = useState<string>('active-doses');
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [showGiveMedicineForm, setShowGiveMedicineForm] = useState(false);
   
@@ -74,72 +73,56 @@ import './medicine-form.css';
       }
     }
   }, [isOpen, activity]);
+
+  // Define tabs using the form-page tabs system
+  const tabs: FormPageTab[] = [
+    {
+      id: 'active-doses',
+      label: 'Doses',
+      icon: Activity,
+      content: (
+        <ActiveDosesTab
+          babyId={babyId}
+          refreshData={refreshData}
+          onGiveMedicine={handleOpenGiveMedicine}
+          refreshTrigger={refreshTrigger}
+        />
+      ),
+    },
+    {
+      id: 'manage-medicines',
+      label: 'Medicines',
+      icon: Settings,
+      content: (
+        <ManageMedicinesTab
+          refreshData={refreshData}
+        />
+      ),
+    },
+  ];
   
   return (
-    <FormPage
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Medicine Tracker"
-    >
-      <FormPageContent>
-        {/* Tab navigation */}
-        <div className={cn(styles.tabContainer, "medicine-form-tab-container")}>
-          <Button
-            variant="ghost"
-            onClick={() => setActiveTab('active-doses')}
-            className={cn(
-              styles.tabButton, 
-              "medicine-form-tab-button",
-              activeTab === 'active-doses' && styles.tabButtonActive,
-              activeTab === 'active-doses' && "medicine-form-tab-button-active"
-            )}
-          >
-            Doses
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setActiveTab('manage-medicines')}
-            className={cn(
-              styles.tabButton, 
-              "medicine-form-tab-button",
-              activeTab === 'manage-medicines' && styles.tabButtonActive,
-              activeTab === 'manage-medicines' && "medicine-form-tab-button-active"
-            )}
-          >
-            Medicines
-          </Button>
-        </div>
-        
-        {/* Tab content - Added overflow-y-auto to enable scrolling */}
-        <div className="flex-1 overflow-y-auto">
-          {activeTab === 'active-doses' && (
-            <ActiveDosesTab
-              babyId={babyId}
-              refreshData={refreshData}
-              onGiveMedicine={handleOpenGiveMedicine}
-              refreshTrigger={refreshTrigger}
-            />
-          )}
-          
-          {activeTab === 'manage-medicines' && (
-            <ManageMedicinesTab
-              refreshData={refreshData}
-            />
-          )}
-        </div>
-      </FormPageContent>
-      
-      <FormPageFooter>
-        <div className="flex justify-end space-x-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-          >
-            Close
-          </Button>
-        </div>
-      </FormPageFooter>
+    <>
+      <FormPage
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Medicine Tracker"
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      >
+        <FormPageFooter>
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+            >
+              Close
+            </Button>
+          </div>
+        </FormPageFooter>
+      </FormPage>
       
       {/* Give Medicine Form - overlays the main form */}
       <GiveMedicineForm
@@ -151,7 +134,7 @@ import './medicine-form.css';
         refreshData={refreshData}
         activity={activity}
       />
-    </FormPage>
+    </>
   );
 };
 

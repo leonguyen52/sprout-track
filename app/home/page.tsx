@@ -11,9 +11,9 @@ import { useTheme } from '@/src/context/theme';
 import { Github, Users, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
 import PrivacyPolicyModal from '@/src/components/modals/privacy-policy';
 import TermsOfUseModal from '@/src/components/modals/terms-of-use';
-import './coming-soon.css';
+import './home.css';
 
-const ComingSoon = () => {
+const home = () => {
   const { theme } = useTheme();
   const [currentActivity, setCurrentActivity] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -184,7 +184,7 @@ const ComingSoon = () => {
           <div className="saas-nav-content">
             <div className="saas-logo">
               <img 
-                src="/spourt-256.png" 
+                src="/sprout-256.png" 
                 alt="Sprout Track Logo" 
                 className="saas-logo-image"
               />
@@ -586,7 +586,7 @@ const ComingSoon = () => {
           <div className="saas-footer-brand">
             <div className="saas-logo">
               <img 
-                src="/spourt-256.png" 
+                src="/sprout-256.png" 
                 alt="Sprout Track Logo" 
                 className="saas-logo-image"
               />
@@ -698,4 +698,4 @@ const ComingSoon = () => {
   );
 };
 
-export default ComingSoon;
+export default home;

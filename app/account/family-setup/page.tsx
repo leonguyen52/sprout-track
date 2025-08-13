@@ -12,7 +12,7 @@ import AccountModal from '@/src/components/modals/AccountModal';
 import { Loader2, AlertCircle } from 'lucide-react';
 import PrivacyPolicyModal from '@/src/components/modals/privacy-policy';
 import TermsOfUseModal from '@/src/components/modals/terms-of-use';
-import '../../coming-soon/coming-soon.css';
+import '../../home/coming-soon.css';
 
 interface AccountStatus {
   accountId: string;
@@ -123,7 +123,7 @@ export default function AccountFamilySetupPage() {
             <div className="saas-nav-content">
               <Link href="/" className="saas-logo">
                 <img 
-                  src="/spourt-256.png" 
+                  src="/sprout-256.png" 
                   alt="Sprout Track Logo" 
                   className="saas-logo-image"
                 />
@@ -161,7 +161,7 @@ export default function AccountFamilySetupPage() {
             <div className="saas-footer-brand">
               <Link href="/" className="saas-logo">
                 <img 
-                  src="/spourt-256.png" 
+                  src="/sprout-256.png" 
                   alt="Sprout Track Logo" 
                   className="saas-logo-image"
                 />
@@ -236,7 +236,7 @@ export default function AccountFamilySetupPage() {
             <div className="saas-nav-content">
               <Link href="/" className="saas-logo">
                 <img 
-                  src="/spourt-256.png" 
+                  src="/sprout-256.png" 
                   alt="Sprout Track Logo" 
                   className="saas-logo-image"
                 />
@@ -280,7 +280,7 @@ export default function AccountFamilySetupPage() {
             <div className="saas-footer-brand">
               <Link href="/" className="saas-logo">
                 <img 
-                  src="/spourt-256.png" 
+                  src="/sprout-256.png" 
                   alt="Sprout Track Logo" 
                   className="saas-logo-image"
                 />
@@ -358,7 +358,7 @@ export default function AccountFamilySetupPage() {
           <div className="saas-nav-content">
             <Link href="/" className="saas-logo">
               <img 
-                src="/spourt-256.png" 
+                src="/sprout-256.png" 
                 alt="Sprout Track Logo" 
                 className="saas-logo-image"
               />
@@ -389,7 +389,7 @@ export default function AccountFamilySetupPage() {
           <div className="saas-footer-brand">
             <Link href="/" className="saas-logo">
               <img 
-                src="/spourt-256.png" 
+                src="/sprout-256.png" 
                 alt="Sprout Track Logo" 
                 className="saas-logo-image"
               />

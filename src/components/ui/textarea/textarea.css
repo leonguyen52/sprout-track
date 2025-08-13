@@ -7,12 +7,11 @@ html.dark .textarea {
 
 html.dark .textarea:hover {
   background-color: #374151 !important; /* gray-700 */
-  border-color: #5eead4 !important; /* teal-300 */
 }
 
 html.dark .textarea:focus {
-  border-color: #5eead4 !important; /* teal-300 */
-  ring-color: rgba(94, 234, 212, 0.2) !important; /* teal-300 with opacity */
+  ring-color: rgba(16, 185, 129, 0.2) !important; /* emerald-300 with opacity */
+  border-color: #10b981 !important; /* emerald-300 */
 }
 
 html.dark .textarea::placeholder {

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FamilyResponse } from './api/types';
 import { ThemeProvider } from '@/src/context/theme';
-import ComingSoon from './coming-soon/page';
+import ComingSoon from './home/page';
 
 export default function HomePage() {
   const router = useRouter();

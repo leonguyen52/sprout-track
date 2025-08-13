@@ -212,20 +212,31 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    if (value === '') {
-      // Allow empty value (completely deleted input)
-      setFormData(prev => ({ ...prev, [name]: undefined }));
-    } else {
-      const numValue = parseFloat(value);
-      
-      if (!isNaN(numValue)) {
-        setFormData(prev => ({ ...prev, [name]: numValue }));
-      }
-    }
+    // Allow any input during typing
+    setFormData(prev => ({ ...prev, [name]: value }));
     
     // Clear error for the field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  // Validate and convert number input on blur
+  const handleNumberBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    if (value === '') {
+      setFormData(prev => ({ ...prev, [name]: undefined }));
+      return;
+    }
+    
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0) {
+      setFormData(prev => ({ ...prev, [name]: numValue }));
+    } else {
+      // Invalid number - show error and reset
+      setErrors(prev => ({ ...prev, [name]: 'Please enter a valid number' }));
+      setFormData(prev => ({ ...prev, [name]: undefined }));
     }
   };
   
@@ -433,12 +444,12 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
                   Typical Dose Size
                 </Label>
                 <Input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   name="typicalDoseSize"
                   value={formData.typicalDoseSize || ''}
                   onChange={handleNumberChange}
-                  min="0"
-                  step="0.1"
+                  onBlur={handleNumberBlur}
                   placeholder="Enter typical dose (optional)"
                 />
                 {errors.typicalDoseSize && (
@@ -487,13 +498,12 @@ const MedicineForm: React.FC<MedicineFormProps> = ({
                 <div className="flex items-center space-x-3">
                   <div className="relative flex-1">
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={doseTimeValue}
                       onChange={handleDoseTimeValueChange}
                       className="w-full pl-9"
                       placeholder="Enter time"
-                      min="0"
-                      step="0.1"
                     />
                     <Clock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                   </div>

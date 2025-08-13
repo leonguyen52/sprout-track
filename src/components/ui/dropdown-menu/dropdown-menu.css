@@ -10,13 +10,13 @@ html.dark .dropdown-menu-item {
 
 html.dark .dropdown-menu-item:hover {
   background-color: #374151 ; /* gray-700 */
-  color: #5eead4 ; /* teal-300 */
+  color: #10b981 ; /* emerald-300 */
 }
 
 /* Make focus state match hover state in dark mode */
 html.dark .dropdown-menu-item:focus {
   background-color: #374151 !important; /* gray-700 - same as hover */
-  color: #5eead4 !important; /* teal-300 - same as hover */
+  color: #10b981 !important; /* emerald-300 - same as hover */
   outline: none !important;
 }
 
@@ -37,16 +37,16 @@ html.dark .dropdown-menu-icon {
 }
 
 html.dark .dropdown-menu-check-icon {
-  color: #5eead4 ; /* teal-300 */
+    color: #10b981 ; /* emerald-300 */
 }
 
 html.dark .dropdown-menu-circle-icon {
-  fill: #5eead4 ; /* teal-300 */
+  fill: #10b981 ; /* emerald-300 */
 }
 
 /* Additional dark mode styles for menu button */
 html.dark .dropdown-menu-button {
-  border-color: #5eead4 ; /* teal-300 */
+  border-color: #10b981 ; /* emerald-300 */
   background-color: transparent ;
 }
 
@@ -55,7 +55,7 @@ html.dark .dropdown-menu-button:hover {
 }
 
 html.dark .dropdown-menu-button-icon {
-  color: #5eead4 ; /* teal-300 */
+  color: #10b981 ; /* emerald-300 */
 }
 
 /* Dark mode styles for drag handle */

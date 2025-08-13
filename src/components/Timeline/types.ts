@@ -30,6 +30,7 @@ export interface TimelineActivityListProps {
   settings: Settings | null;
   isLoading: boolean;
   isAnimated?: boolean;
+  selectedDate?: Date;
   itemsPerPage?: number;
   currentPage?: number;
   totalPages?: number;

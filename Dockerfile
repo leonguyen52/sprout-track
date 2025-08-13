@@ -33,7 +33,7 @@ RUN echo "Creating base .env file..." && \
     echo "TZ=UTC" >> .env && \
     echo "AUTH_LIFE=86400" >> .env && \
     echo "IDLE_TIME=28800" >> .env && \
-    echo "APP_VERSION=0.94.11" >> .env && \
+    echo "APP_VERSION=0.94.22" >> .env && \
     echo "COOKIE_SECURE=false" >> .env && \
     echo "Base .env file created (ENC_HASH will be generated at startup)"
 

@@ -1,119 +1,197 @@
-/* Dark mode overrides for Calendar component */
-html.dark .calendar-container {
+/* Dark mode overrides for Calendar page component - using specific selectors */
+html.dark .main-calendar-container {
   color: #e5e7eb !important; /* gray-200 */
 }
 
-html.dark .calendar-header {
+html.dark .main-calendar-header {
   background: linear-gradient(to right, #0d9488, #0f766e) !important; /* teal-600 to teal-700 */
   border-color: #374151 !important; /* gray-700 */
 }
 
-html.dark .calendar-content {
+html.dark .main-calendar-content {
   background-color: #1f2937 !important; /* gray-800 */
 }
 
-html.dark .calendar-grid {
+html.dark .main-calendar-grid {
   background-color: #1f2937 !important; /* gray-800 */
   border-color: #374151 !important; /* gray-700 */
 }
 
-html.dark .calendar-weekdays {
+html.dark .main-calendar-weekdays {
   background-color: #111827 !important; /* gray-900 */
   border-color: #374151 !important; /* gray-700 */
 }
 
-html.dark .calendar-weekday {
+html.dark .main-calendar-weekday {
   color: #9ca3af !important; /* gray-400 */
 }
 
-/* Calendar day styling in dark mode */
-html.dark .calendar-day {
+/* Main calendar day styling in dark mode */
+html.dark .main-calendar-day {
   border-color: #374151 !important; /* gray-700 */
 }
 
-html.dark .calendar-day-today {
+html.dark .main-calendar-day-today {
   background-color: rgba(20, 184, 166, 0.15) !important; /* teal-900/20 */
   border-color: #2dd4bf !important; /* teal-700 */
 }
 
-html.dark .calendar-day-other-month {
+html.dark .main-calendar-day-other-month {
   background-color: rgba(17, 24, 39, 0.5) !important; /* gray-900/50 */
   color: #4b5563 !important; /* gray-600 */
 }
 
-html.dark .calendar-day-current-month {
+html.dark .main-calendar-day-current-month {
   background-color: rgba(31, 41, 55, 0.3) !important; /* gray-800/30 */
 }
 
-html.dark .calendar-day-selected {
+html.dark .main-calendar-day-selected {
   --ring-color: #2dd4bf !important; /* teal-400 */
 }
 
-html.dark .calendar-today-text {
+html.dark .main-calendar-today-text {
   color: #5eead4 !important; /* teal-300 */
 }
 
-/* Event indicators in dark mode */
-html.dark .calendar-indicator-appointment {
+/* Main calendar event indicators in dark mode */
+html.dark .main-calendar-indicator-appointment {
   background-color: #60a5fa !important; /* blue-400 */
 }
 
-html.dark .calendar-indicator-caretaker {
+html.dark .main-calendar-indicator-caretaker {
   background-color: #4ade80 !important; /* green-400 */
 }
 
-html.dark .calendar-indicator-reminder {
+html.dark .main-calendar-indicator-reminder {
   background-color: #facc15 !important; /* yellow-400 */
 }
 
-html.dark .calendar-indicator-custom {
+html.dark .main-calendar-indicator-custom {
   background-color: #c084fc !important; /* purple-400 */
 }
 
-html.dark .calendar-indicator-default {
+html.dark .main-calendar-indicator-default {
   background-color: #9ca3af !important; /* gray-400 */
 }
 
-/* Responsive styles for mobile */
+/* Responsive styles for main calendar mobile */
 @media (max-width: 640px) {
-  .calendar-days > div {
-    min-height: 40px !important;
+  .main-calendar-container {
+    height: 100vh; /* Use full viewport height on mobile */
+    max-height: 100vh; /* Prevent overflow beyond viewport */
+  }
+  
+  .main-calendar-content {
+    flex: 1;
+    min-height: 0; /* Allow flex child to shrink */
+    height: calc(100vh - 64px); /* Full height minus header */
+  }
+  
+  .main-calendar-days > div {
+    min-height: 35px !important; /* Smaller min-height for mobile */
     height: auto !important;
   }
   
-  .calendar-weekdays > div {
+  .main-calendar-weekdays > div {
     padding: 0.25rem 0 !important;
   }
   
-  .calendar-days {
-    grid-template-rows: repeat(var(--calendar-row-count, 6), minmax(40px, 1fr)) !important;
+  .main-calendar-days {
+    grid-template-rows: repeat(var(--calendar-row-count, 6), minmax(35px, 1fr)) !important;
+    height: calc(100% - 32px); /* Subtract weekday header height */
+  }
+  
+  .main-calendar-grid {
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
   }
 }
 
-/* Ensure calendar takes up full height */
-.calendar-container {
+/* Ensure main calendar takes up full height */
+.main-calendar-container {
   height: 100%;
   display: flex;
   flex-direction: column;
   min-height: 100%;
 }
 
-.calendar-grid {
+/* Desktop and tablet specific styles for main calendar */
+@media (min-width: 641px) {
+  .main-calendar-container {
+    height: 100%;
+    min-height: 100%;
+  }
+  
+  .main-calendar-content {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+/* Date picker trigger button styles */
+.date-picker-trigger {
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.date-picker-trigger:hover {
+  background-color: rgba(20, 184, 166, 0.2);
+}
+
+/* Ensure UI calendar inside popover is isolated from main calendar styles */
+.date-picker-popover .calendar {
+  /* Reset any potential conflicts with main calendar */
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
+}
+
+/* Ensure popover content doesn't inherit main calendar styles */
+.date-picker-popover {
+  /* Popover handles positioning automatically */
+  z-index: 1000;
+  overflow: visible !important;
+}
+
+/* Allow month and year selectors to overflow on mobile - minimal changes to preserve original positioning */
+@media (max-width: 640px) {
+  /* Force all popover containers to allow overflow */
+  .date-picker-popover,
+  .date-picker-popover * {
+    overflow: visible !important;
+  }
+  
+  /* Force Radix popover containers to allow overflow */
+  [data-radix-popper-content-wrapper],
+  [data-radix-portal],
+  [data-radix-popper-content] {
+    overflow: visible !important;
+  }
+  
+  /* Just increase z-index to ensure visibility - keep original positioning */
+  .date-picker-popover .month-selector-container,
+  .date-picker-popover .year-selector-container {
+    z-index: 99999 !important;
+  }
+}
+
+.main-calendar-grid {
   flex: 1;
   /* display: flex; */
   flex-direction: column;
   min-height: 0; /* This is important for flex children to respect parent's height */
 }
 
-/* Ensure the calendar grid fills the available space */
-.calendar-grid > div {
+/* Ensure the main calendar grid fills the available space */
+.main-calendar-grid > div {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-/* Ensure calendar days fill available space */
-.calendar-days {
+/* Ensure main calendar days fill available space */
+.main-calendar-days {
   flex: 1;
   display: grid;
   grid-template-rows: repeat(var(--calendar-row-count, 6), 1fr); /* Dynamic rows based on month */
@@ -121,8 +199,8 @@ html.dark .calendar-indicator-default {
   height: 100%; /* Ensure it takes full height */
 }
 
-/* Ensure each day cell expands properly */
-.calendar-days > div {
+/* Ensure each main calendar day cell expands properly */
+.main-calendar-days > div {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -131,7 +209,7 @@ html.dark .calendar-indicator-default {
 
 /* Adjust for larger screens */
 @media (min-height: 700px) {
-  .calendar-days > div {
+  .main-calendar-days > div {
     min-height: 80px;
   }
 }

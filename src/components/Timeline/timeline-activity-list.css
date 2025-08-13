@@ -1,7 +1,131 @@
+/* Light mode styles for timeline components */
+.timeline-activity-scroll-container {
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  scroll-behavior: smooth;
+  contain: layout style paint; /* CSS containment for performance */
+}
+
+.timeline-vertical-line {
+  background-color: #e5e7eb; /* gray-200 */
+}
+
+.timeline-hour-marker {
+  background-color: #f3f4f6; /* gray-100 */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  position: sticky !important;
+  top: 8px !important;
+  z-index: 30 !important;
+  background: rgba(243, 244, 246, 0.95) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.timeline-hour-text {
+  color: #4b5563; /* gray-600 */
+}
+
+.timeline-hour-divider {
+  background-color: #e5e7eb; /* gray-200 */
+}
+
+.timeline-connector-line {
+  background-color: #d1d5db; /* gray-300 */
+  z-index: 5;
+}
+
+.timeline-activity-card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  will-change: transform, box-shadow;
+  transform: translateZ(0); /* Force hardware acceleration */
+  backface-visibility: hidden; /* Prevent flickering */
+}
+
+.timeline-activity-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px) translateZ(0);
+}
+
+.timeline-activity-card:active {
+  transform: translateY(1px) translateZ(0);
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.1s ease-in-out;
+}
+
+.timeline-activity-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: transparent;
+  transition: background-color 0.2s ease-in-out;
+  border-radius: 12px 0 0 12px; /* Rounded left edge to match card */
+}
+
+.timeline-activity-card:hover::before {
+  background-color: var(--activity-color);
+}
+
+.timeline-activity-time {
+  color: #6b7280; /* gray-500 */
+}
+
+.timeline-activity-wrapper {
+  position: relative;
+}
+
+.timeline-hour-group:not(:last-child) .timeline-activity-wrapper:last-child {
+  margin-bottom: 0;
+}
+
 /* Dark mode overrides for TimelineActivityList component */
 html.dark .timeline-activity-list,
 html.dark .timeline-activity-scroll-container {
   background-color: #1f2937 !important; /* gray-800 */
+}
+
+html.dark .timeline-vertical-line {
+  background-color: #4b5563 !important; /* gray-600 */
+}
+
+html.dark .timeline-hour-marker {
+  background: rgba(55, 65, 81, 0.95) !important; /* semi-transparent gray-700 */
+  backdrop-filter: blur(8px) !important;
+}
+
+html.dark .timeline-hour-group > div:first-child {
+  background-color: transparent !important; /* Remove background in dark mode */
+}
+
+html.dark .timeline-hour-text {
+  color: #d1d5db !important; /* gray-300 */
+}
+
+html.dark .timeline-hour-divider {
+  background-color: #4b5563 !important; /* gray-600 */
+}
+
+html.dark .timeline-connector-line {
+  background-color: #6b7280 !important; /* gray-500 */
+}
+
+html.dark .timeline-activity-card {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #4b5563 !important; /* gray-600 */
+}
+
+html.dark .timeline-activity-card:hover {
+  background-color: #4b5563 !important; /* gray-600 */
+}
+
+html.dark .timeline-activity-card::before {
+  background-color: transparent !important;
+}
+
+html.dark .timeline-activity-card:hover::before {
+  background-color: var(--activity-color) !important;
 }
 
 html.dark .timeline-activity-item {
@@ -20,6 +144,10 @@ html.dark .timeline-activity-type {
 
 html.dark .timeline-activity-details {
   color: #e5e7eb !important; /* gray-200 */
+}
+
+html.dark .timeline-activity-time {
+  color: #9ca3af !important; /* gray-400 */
 }
 
 html.dark .timeline-empty-state {

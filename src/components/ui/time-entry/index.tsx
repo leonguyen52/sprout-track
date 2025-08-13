@@ -167,9 +167,22 @@ export function TimeEntry({
       }
     };
     
-    // Convert touch events to mouse events
+    // Simple touch start handler - minimal interference
+    const handleTouchStart = (e: TouchEvent) => {
+      // Only prevent default on the clock face itself to prevent pull-to-refresh
+      // Don't interfere with draggable elements
+      if (e.target === clockFaceRef.current && !isDraggingRef.current) {
+        e.preventDefault();
+      }
+    };
+    
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
+        // Only prevent default during active dragging to avoid browser refresh
+        if (isDraggingRef.current) {
+          e.preventDefault();
+        }
+        
         const touch = e.touches[0];
         const mouseEvent = new MouseEvent('mousemove', {
           clientX: touch.clientX,
@@ -190,14 +203,18 @@ export function TimeEntry({
     document.addEventListener('mousedown', handleMouseDown);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+    
+    // Touch events with passive: false to allow preventDefault
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd);
-    document.addEventListener('touchcancel', handleTouchEnd);
+    document.addEventListener('touchend', handleTouchEnd, { passive: false });
+    document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
     
     return () => {
       document.removeEventListener('mousedown', handleMouseDown);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
       document.removeEventListener('touchcancel', handleTouchEnd);
@@ -494,6 +511,19 @@ export function TimeEntry({
           ref={clockFaceRef}
           className={cn(styles.clockFace, 'time-entry-clock-face')}
           onClick={handleClockClick}
+          onTouchStart={(e) => {
+            // Only prevent default for non-interactive parts to avoid pull-to-refresh
+            const isInteractiveElement = e.target !== clockFaceRef.current;
+            if (!isInteractiveElement) {
+              e.preventDefault();
+            }
+          }}
+          onTouchMove={(e) => {
+            // Only prevent default during active dragging
+            if (isDragging) {
+              e.preventDefault();
+            }
+          }}
         >
           {/* Clock markers (hours or minutes) */}
           {renderClockMarkers()}
@@ -523,13 +553,16 @@ export function TimeEntry({
              }}
              onMouseDown={(e) => {
                e.preventDefault();
+               e.stopPropagation();
                setIsDragging(true);
                isDraggingRef.current = true;
+               setPreviousAngle(null);
              }}
-             onTouchStart={(e) => {
-               e.preventDefault();
+             onTouchStart={() => {
+               // Don't prevent default here - let the global handler manage it
                setIsDragging(true);
                isDraggingRef.current = true;
+               setPreviousAngle(null);
              }}
            />
            
@@ -564,13 +597,16 @@ export function TimeEntry({
                }}
                onMouseDown={(e) => {
                  e.preventDefault();
+                 e.stopPropagation();
                  setIsDragging(true);
                  isDraggingRef.current = true;
+                 setPreviousAngle(null);
                }}
-               onTouchStart={(e) => {
-                 e.preventDefault();
+               onTouchStart={() => {
+                 // Don't prevent default here - let the global handler manage it
                  setIsDragging(true);
                  isDraggingRef.current = true;
+                 setPreviousAngle(null);
                }}
              >
                {state.mode === 'hours' ? state.hours : exactMinute !== null ? exactMinute : state.minutes}

@@ -19,6 +19,7 @@ import { Baby } from '@prisma/client';
 import BabySelector from '@/src/components/BabySelector';
 import BabyQuickInfo from '@/src/components/BabyQuickInfo';
 import SetupWizard from '@/src/components/SetupWizard';
+import { DynamicTitle } from '@/src/components/ui/dynamic-title';
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -656,6 +657,7 @@ export default function AppLayout({
         <BabyProvider>
           <TimezoneProvider>
             <ThemeProvider>
+              <DynamicTitle />
               <AppContent>{children}</AppContent>
             </ThemeProvider>
           </TimezoneProvider>
