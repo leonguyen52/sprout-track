@@ -1,6 +1,6 @@
 # Sprout Track Changelog
 
-## v0.94.22 - Feedback Additions and Family Manager Enhancements\Refactor
+## v0.94.22 - QoL, Enhancemens, Bugfixes - August, 13 2025
 
 ### Changes
 
