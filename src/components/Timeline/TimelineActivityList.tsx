@@ -460,21 +460,15 @@ const TimelineActivityList = ({
                                           }
                                           
                                           if ('condition' in activity) {
-                                            // Diaper activity
-                                            if (activity.type === 'WET') {
-                                              // For wet diapers, only show details if there's actually something to show
-                                              return '';
-                                            } else {
-                                              // For other diaper types, show condition and color if available
-                                              const details = [];
-                                              if (activity.condition) {
-                                                details.push(activity.condition.charAt(0) + activity.condition.slice(1).toLowerCase());
-                                              }
-                                              if (activity.color) {
-                                                details.push(activity.color.charAt(0) + activity.color.slice(1).toLowerCase());
-                                              }
-                                              return details.join(' • ') || 'Changed';
+                                            // Diaper activity - only show details if there's actually something to show
+                                            const details = [];
+                                            if (activity.condition) {
+                                              details.push(activity.condition.charAt(0) + activity.condition.slice(1).toLowerCase());
                                             }
+                                            if (activity.color) {
+                                              details.push(activity.color.charAt(0) + activity.color.slice(1).toLowerCase());
+                                            }
+                                            return details.join(' • ');
                                           }
                                           
                                           if ('content' in activity) {
