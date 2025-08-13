@@ -6,6 +6,11 @@ import './globals.css';
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NODE_ENV === 'production' ? 'https://www.sprout-track.com' : 'http://localhost:3000'),
   title: 'Sprout Track',
+  icons: {
+    icon: '/sprout-128.png',
+    shortcut: '/sprout-128.png',
+    apple: '/sprout-128.png',
+  },
   description: 'Track your baby\'s sleep, feeding, diapers, milestones, and more with our intuitive, family-friendly platform. Simple to use, privacy-focused, accessible anywhere. Join the beta for free!',
   keywords: [
     'baby tracker',
