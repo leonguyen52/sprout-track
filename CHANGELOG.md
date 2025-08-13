@@ -1,5 +1,24 @@
 # Sprout Track Changelog
 
+## v0.94.21 - Feedback Additions and Family Manager Enhancements\Refactor
+
+### Changes
+
+#### QoL, Enhancements, Bugfixes
+- Updated log entry timeline to have an actual timeline
+- Removed indigo colors around input forms, text areas, drop downs, and other components to match the rest of the app
+- Added the ability to select the month and year from the calendar widget
+- Fixed the time select widget so that if on mobile and drag the time bubble down the web browser doesn't refresh
+- Fixed the calnedar page on mobile so it properly renders to device height
+- Fixed the medicine form tabs to match the new form-page tab arcitecture
+- Fixed the medicine forms to properly allow for decimal points in the dose entry
+
+#### SaaS Updates
+- Fixed spelling for spourt-256.png -> sprout-256.png and fixed references
+- Replaced coming-soon with home and removed sphome \ fixed references in app to the new home location in SaaS mode
+- SEO updates for home page
+---
+
 ## v0.94.11 - Feedback Additions and Family Manager Enhancements\Refactor
 
 ### Changes

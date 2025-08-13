@@ -1,8 +1,64 @@
-'use client';
-
 import { Inter as FontSans } from 'next/font/google';
 import { cn } from '@/src/lib/utils';
+import { Metadata } from 'next';
 import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'Sprout Track',
+  description: 'Track your baby\'s sleep, feeding, diapers, milestones, and more with our intuitive, family-friendly platform. Simple to use, privacy-focused, accessible anywhere. Join the beta for free!',
+  keywords: [
+    'baby tracker',
+    'baby tracking app', 
+    'infant care',
+    'baby feeding tracker',
+    'baby sleep tracker',
+    'diaper tracker',
+    'baby milestones',
+    'newborn care',
+    'baby care app',
+    'family tracking',
+    'caretaker coordination',
+    'baby activities',
+    'parenting tools'
+  ],
+  authors: [{ name: 'Oak and Sprout' }],
+  creator: 'Oak and Sprout',
+  publisher: 'Oak and Sprout',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://www.sprout-track.com',
+    title: 'Sprout Track - The Shareable Baby Tracking Solution',
+    description: 'Track your baby\'s sleep, feeding, diapers, milestones, and more with our intuitive, family-friendly platform. Simple to use, privacy-focused, accessible anywhere.',
+    siteName: 'Sprout Track',
+    images: [
+      {
+        url: '/sprout-256.png',
+        width: 256,
+        height: 256,
+        alt: 'Sprout Track Logo - Baby Tracking App',
+      },
+    ],
+  },
+  verification: {
+    google: '', // Add Google Search Console verification code when available
+  },
+  alternates: {
+    canonical: 'https://www.sprout-track.com',
+  },
+  category: 'technology',
+};
 
 const fontSans = FontSans({
   subsets: ['latin'],
