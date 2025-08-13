@@ -11,9 +11,9 @@ import { useTheme } from '@/src/context/theme';
 import { Github, Users, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
 import PrivacyPolicyModal from '@/src/components/modals/privacy-policy';
 import TermsOfUseModal from '@/src/components/modals/terms-of-use';
-import './coming-soon.css';
+import './home.css';
 
-const ComingSoon = () => {
+const home = () => {
   const { theme } = useTheme();
   const [currentActivity, setCurrentActivity] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -698,4 +698,4 @@ const ComingSoon = () => {
   );
 };
 
-export default ComingSoon;
+export default home;

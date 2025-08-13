@@ -12,7 +12,7 @@ import AccountModal from '@/src/components/modals/AccountModal';
 import { Loader2, AlertCircle } from 'lucide-react';
 import PrivacyPolicyModal from '@/src/components/modals/privacy-policy';
 import TermsOfUseModal from '@/src/components/modals/terms-of-use';
-import '../../coming-soon/coming-soon.css';
+import '../../home/coming-soon.css';
 
 interface AccountStatus {
   accountId: string;
