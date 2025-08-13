@@ -54,16 +54,27 @@ const GiveMedicineForm: React.FC<GiveMedicineFormProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [medicines, setMedicines] = useState<MedicineWithContacts[]>([]);
   const [units, setUnits] = useState<{unitAbbr: string, unitName: string}[]>([]);
-  const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => new Date(initialTime));
+  const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
+    const safeInitialTime = initialTime ? new Date(initialTime) : new Date();
+    const isValidDate = safeInitialTime instanceof Date && !isNaN(safeInitialTime.getTime());
+    return isValidDate ? safeInitialTime : new Date();
+  });
   
-  const [formData, setFormData] = useState<Omit<MedicineLogFormData, 'familyId'>>(() => ({
-    babyId: babyId || '',
-    medicineId: activity?.medicineId || '',
-    time: toUTCString(new Date(initialTime)) || new Date(initialTime).toISOString(),
-    doseAmount: activity?.doseAmount || 0,
-    unitAbbr: activity?.unitAbbr || '',
-    notes: activity?.notes || '',
-  }));
+  const [formData, setFormData] = useState<Omit<MedicineLogFormData, 'familyId'>>(() => {
+    // Handle potentially invalid initialTime
+    const safeInitialTime = initialTime ? new Date(initialTime) : new Date();
+    const isValidDate = safeInitialTime instanceof Date && !isNaN(safeInitialTime.getTime());
+    const defaultDate = isValidDate ? safeInitialTime : new Date();
+    
+    return {
+      babyId: babyId || '',
+      medicineId: activity?.medicineId || '',
+      time: toUTCString(defaultDate) || defaultDate.toISOString(),
+      doseAmount: activity?.doseAmount || 0,
+      unitAbbr: activity?.unitAbbr || '',
+      notes: activity?.notes || '',
+    };
+  });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedMedicine, setSelectedMedicine] = useState<MedicineWithContacts | null>(null);
@@ -92,15 +103,19 @@ const GiveMedicineForm: React.FC<GiveMedicineFormProps> = ({
       }
     } else {
       // Reset form for new entry
+      const safeResetTime = initialTime ? new Date(initialTime) : new Date();
+      const isValidResetDate = safeResetTime instanceof Date && !isNaN(safeResetTime.getTime());
+      const defaultResetDate = isValidResetDate ? safeResetTime : new Date();
+      
       setFormData({
         babyId: babyId || '',
         medicineId: '',
-        time: toUTCString(new Date(initialTime)) || new Date(initialTime).toISOString(),
+        time: toUTCString(defaultResetDate) || defaultResetDate.toISOString(),
         doseAmount: 0,
         unitAbbr: '',
         notes: '',
       });
-      setSelectedDateTime(new Date(initialTime));
+      setSelectedDateTime(defaultResetDate);
       setSelectedMedicine(null);
     }
   }, [activity, babyId, initialTime, toUTCString, medicines]);
