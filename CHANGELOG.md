@@ -1,5 +1,15 @@
 # Sprout Track Changelog
 
+## v0.94.24 - Breastfeed Timer Patch - August, 24 2025
+
+### Changes
+
+#### Breastfeed Timer Fixes
+- Broke out the timer into seperate component to make more modular and easier to service
+- Fixed logic on touch or click to clear placeholder 00 and allow two digit input in all scenarios
+
+---
+
 ## v0.94.22 - QoL, Enhancemens, Bugfixes - August, 13 2025
 
 ### Changes
