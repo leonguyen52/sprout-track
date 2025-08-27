@@ -40,3 +40,7 @@ scripts/port-config.sh
 
 # environment variables
 .env
+
+# robots.txt and sitemap
+robots.txt
+sitemap.xml
