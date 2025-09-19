@@ -277,7 +277,8 @@ async function generateUnits() {
     { unitAbbr: 'L', unitName: 'Liters', activityTypes: 'medicine' },
     { unitAbbr: 'CC', unitName: 'Cubic Centimeters', activityTypes: 'medicine' },
     { unitAbbr: 'MOL', unitName: 'Moles', activityTypes: 'medicine' },
-    { unitAbbr: 'MMOL', unitName: 'Millimoles', activityTypes: 'medicine' }
+    { unitAbbr: 'MMOL', unitName: 'Millimoles', activityTypes: 'medicine' },
+    { unitAbbr: 'DROPS', unitName: 'Drops', activityTypes: 'medicine' }
   ];
 
   // Get existing units from the database
