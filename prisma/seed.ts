@@ -88,6 +88,7 @@ async function main() {
     { unitAbbr: 'CC', unitName: 'Cubic Centimeters', activityTypes: 'medicine' },
     { unitAbbr: 'MOL', unitName: 'Moles', activityTypes: 'medicine' },
     { unitAbbr: 'MMOL', unitName: 'Millimoles', activityTypes: 'medicine' },
+    { unitAbbr: 'DROPS', unitName: 'Drops', activityTypes: 'medicine' },
   ];
 
   // Handle units separately
@@ -110,12 +111,15 @@ async function updateUnits(unitData: UnitData[]): Promise<void> {
   });
   
   // Create a map of existing unit abbreviations for faster lookups
-  const existingUnitsMap = new Map(
-    existingUnits.map(unit => [unit.unitAbbr, { id: unit.id, activityTypes: unit.activityTypes }])
+  const existingUnitsMap: Map<string, { id: string; activityTypes: string | null }> = new Map(
+    existingUnits.map((unit: { id: string; unitAbbr: string; activityTypes: string | null }) => [
+      unit.unitAbbr,
+      { id: unit.id, activityTypes: unit.activityTypes }
+    ])
   );
   
   // Filter out units that already exist
-  const missingUnits = unitData.filter(unit => !existingUnitsMap.has(unit.unitAbbr));
+  const missingUnits = unitData.filter((unit: UnitData) => !existingUnitsMap.has(unit.unitAbbr));
   
   // Create the missing units
   if (missingUnits.length > 0) {
@@ -133,7 +137,7 @@ async function updateUnits(unitData: UnitData[]): Promise<void> {
   }
   
   // Update activity types for all existing units
-  const unitsToUpdate = [];
+  const unitsToUpdate: { id: string; unitAbbr: string; activityTypes?: string }[] = [];
   for (const unit of unitData) {
     const existingUnit = existingUnitsMap.get(unit.unitAbbr);
     if (existingUnit) {
