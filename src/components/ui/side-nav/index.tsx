@@ -257,6 +257,13 @@ export const SideNav: React.FC<SideNavProps> = ({
             onClick={onNavigate}
             className="side-nav-item"
           />
+          <SideNavItem
+            path="/chart"
+            label="Chart"
+            isActive={currentPath === '/chart'}
+            onClick={onNavigate}
+            className="side-nav-item"
+          />
         </nav>
 
         {/* Version display at bottom of nav items */}
