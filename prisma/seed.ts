@@ -63,7 +63,8 @@ async function main() {
         defaultWeightUnit: "LB",
         defaultTempUnit: "F",
         enableDebugTimer: false,
-        enableDebugTimezone: false
+        enableDebugTimezone: false,
+        enableSwipeDateChange: true
       }
     });
   } else {
