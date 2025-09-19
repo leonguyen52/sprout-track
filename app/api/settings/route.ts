@@ -94,7 +94,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
     const allowedFields: (keyof Settings)[] = [
       'familyName', 'securityPin', 'defaultBottleUnit', 'defaultSolidsUnit', 
       'defaultHeightUnit', 'defaultWeightUnit', 'defaultTempUnit', 
-      'enableDebugTimer', 'enableDebugTimezone'
+      'enableDebugTimer', 'enableDebugTimezone', 'enableSwipeDateChange'
     ];
 
     for (const field of allowedFields) {
