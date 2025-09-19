@@ -674,6 +674,22 @@ export default function SettingsForm({
                     />
                   </div>
                 </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="form-label">Enable Swipe to Change Date</Label>
+                    <p className="text-sm text-gray-500">Enable swiping left/right in Log Entry to change the day</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="enableSwipeDateChange"
+                      checked={(settings as any)?.enableSwipeDateChange !== false}
+                      onChange={(e) => handleSettingsChange({ enableSwipeDateChange: e.target.checked } as any)}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
