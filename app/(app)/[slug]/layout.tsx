@@ -566,6 +566,8 @@ function AppContent({ children }: { children: React.ReactNode }) {
                           ? 'Log Entry' 
                           : pathname?.includes('/calendar')
                           ? 'Calendar'
+                          : pathname?.includes('/chart')
+                          ? 'Chart'
                           : 'Full Log'}
                       </span>
                     </div>
