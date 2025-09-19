@@ -47,6 +47,7 @@ export const BabyQuickStats: React.FC<BabyQuickStatsProps> = ({
   activities: initialActivities = []
 }) => {
   const { family } = useFamily();
+  const [bottleUnitAbbr, setBottleUnitAbbr] = useState<'OZ' | 'ML'>('OZ');
   
   // State for time period selection
   const [mainPeriod, setMainPeriod] = useState<TimePeriod>('7day');
@@ -128,6 +129,29 @@ export const BabyQuickStats: React.FC<BabyQuickStatsProps> = ({
     
     fetchActivities();
   }, [selectedBaby, family?.id]);
+
+  // Fetch settings for default bottle unit
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+        const response = await fetch('/api/settings', {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : '',
+          },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data?.success && data?.data?.defaultBottleUnit) {
+          const unit = data.data.defaultBottleUnit === 'ML' ? 'ML' : 'OZ';
+          setBottleUnitAbbr(unit);
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    fetchSettings();
+  }, []);
 
   // Helper function to format minutes into hours and minutes
   const formatMinutes = (minutes: number): string => {
@@ -363,13 +387,23 @@ export const BabyQuickStats: React.FC<BabyQuickStatsProps> = ({
       
       feedingCount += feedingsForDay;
 
-      // Calculate feed amounts
-      dayActivities.forEach(a => {
-        if ('amount' in a && a.amount && typeof a.amount === 'number') {
-          totalFeedAmount += a.amount;
+    // Calculate feed amounts (convert to display unit for averages)
+    const ML_PER_OZ = 29.5735;
+    dayActivities.forEach(a => {
+      if ('amount' in a && a.amount && typeof a.amount === 'number') {
+        const unit = (a as any).unitAbbr as string | undefined;
+        if (unit === 'OZ' || unit === 'ML') {
+          let amountInDisplayUnit = a.amount as number;
+          if (unit === 'ML' && bottleUnitAbbr === 'OZ') {
+            amountInDisplayUnit = amountInDisplayUnit / ML_PER_OZ;
+          } else if (unit === 'OZ' && bottleUnitAbbr === 'ML') {
+            amountInDisplayUnit = amountInDisplayUnit * ML_PER_OZ;
+          }
+          totalFeedAmount += amountInDisplayUnit;
           feedAmountCount++;
         }
-      });
+      }
+    });
 
       // Count diapers and poops
       dayActivities.forEach(a => {
@@ -545,8 +579,8 @@ export const BabyQuickStats: React.FC<BabyQuickStatsProps> = ({
                   
                   <CardVisual
                     title="Avg Feed Amount"
-                    mainValue={mainStats.avgFeedAmount.toFixed(1) + ' oz'}
-                    comparativeValue={compareStats.avgFeedAmount.toFixed(1) + ' oz'}
+                    mainValue={mainStats.avgFeedAmount.toFixed(1) + (bottleUnitAbbr === 'ML' ? ' ml' : ' oz')}
+                    comparativeValue={compareStats.avgFeedAmount.toFixed(1) + (bottleUnitAbbr === 'ML' ? ' ml' : ' oz')}
                     trend={mainStats.avgFeedAmount >= compareStats.avgFeedAmount ? 'positive' : 'negative'}
                   />
                   
