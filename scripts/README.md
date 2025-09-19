@@ -360,3 +360,14 @@ For debugging, run with verbose output:
 set -x
 FAMILY_COUNT=3 DAYS_COUNT=14 CLEAR_DATA=true ./Scripts/generate-test-data.sh
 ```
+
+### Reset Admin password
+```
+npm run reset-admin -- "admin"
+# or
+bash scripts/reset-admin-password.sh "admin"
+```
+Or encrypt it:
+```
+ENC_HASH="your-long-secret" npm run reset-admin -- "admin" encrypt
+```
