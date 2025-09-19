@@ -244,12 +244,12 @@ const TimelineActivityList = ({
       <div 
         className="flex-1 overflow-y-auto relative bg-white timeline-activity-scroll-container" 
         ref={contentRef}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
+        onTouchStart={settings?.enableSwipeDateChange !== false ? onTouchStart : undefined}
+        onTouchMove={settings?.enableSwipeDateChange !== false ? onTouchMove : undefined}
+        onTouchEnd={settings?.enableSwipeDateChange !== false ? onTouchEnd : undefined}
       >
       {/* Visual swipe shadow effect */}
-      {swipeProgress > 0 && (
+      {settings?.enableSwipeDateChange !== false && swipeProgress > 0 && (
         <>
           {/* Left shadow (for right swipe - previous day) */}
           {swipeDirection === 'right' && (
