@@ -407,6 +407,65 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // Enable hardware keyboard input for desktop users
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Allow default typing in admin password field
+      if (adminMode) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          handleAuthenticate();
+        }
+        return;
+      }
+
+      if (lockoutTime) {
+        return;
+      }
+
+      const isDigit = event.key >= '0' && event.key <= '9';
+      const isLetter = /^[a-zA-Z]$/.test(event.key);
+
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        handleAuthenticate();
+        return;
+      }
+
+      if (event.key === 'Backspace') {
+        event.preventDefault();
+        handleDelete();
+        return;
+      }
+
+      // Route input based on active field
+      if (activeInput === 'loginId') {
+        if (isDigit || isLetter) {
+          event.preventDefault();
+          // For loginId we accept letters and digits. Normalize to uppercase.
+          if (loginId.length < 2) {
+            const next = loginId + event.key.toUpperCase();
+            setLoginId(next);
+            setError('');
+            if (next.length === 2) {
+              setActiveInput('pin');
+            }
+          }
+        }
+        return;
+      }
+
+      // activeInput === 'pin'
+      if (isDigit) {
+        event.preventDefault();
+        handleNumberClick(event.key);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [adminMode, lockoutTime, activeInput, loginId, pin]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white login-container">
       <div className="w-full max-w-md mx-auto p-6">
