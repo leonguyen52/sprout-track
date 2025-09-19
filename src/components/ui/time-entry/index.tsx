@@ -160,6 +160,9 @@ export function TimeEntry({
         // Reset previous angle when done dragging
         setPreviousAngle(null);
         
+        // If user was selecting hours via drag, auto-switch to minutes
+        setState(prev => ({ ...prev, mode: prev.mode === 'hours' ? 'minutes' : prev.mode }));
+        
         // Clear exact minute after a short delay to allow the UI to update
         setTimeout(() => {
           setExactMinute(null);
@@ -225,12 +228,12 @@ export function TimeEntry({
    const handleHourSelect = (hour: number) => {
      if (disabled) return;
  
-     const newState = {
-       ...state,
-       hours: hour,
-       // Keep the mode as 'hours' instead of switching to 'minutes'
-       mode: 'hours' as 'hours' | 'minutes',
-     };
+    const newState = {
+      ...state,
+      hours: hour,
+      // Auto-switch to minutes after selecting an hour
+      mode: 'minutes' as 'hours' | 'minutes',
+    };
  
      // Calculate new date based on the *intended* state
      const baseDate = value instanceof Date && !isNaN(value.getTime()) ? new Date(value) : new Date();
@@ -321,11 +324,11 @@ export function TimeEntry({
      let newState = { ...state };
      let newHours24 = 0;
  
-     if (state.mode === 'hours') {
+    if (state.mode === 'hours') {
        let hour = Math.round(angle / 30);
        if (hour === 0 || hour > 12) hour = 12;
-       // Keep the mode as 'hours' instead of switching to 'minutes'
-       newState = { ...state, hours: hour, mode: 'hours' };
+      // Auto-switch to minutes after clicking an hour
+      newState = { ...state, hours: hour, mode: 'minutes' };
        newHours24 = newState.isPM ? (hour === 12 ? 12 : hour + 12) : (hour === 12 ? 0 : hour);
        baseDate.setHours(newHours24);
        baseDate.setMinutes(newState.minutes); // Use existing minutes from newState
