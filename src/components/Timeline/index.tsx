@@ -84,7 +84,12 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
       }
     } catch (error) {
       console.error('Error fetching activities for date:', error);
-      setDateFilteredActivities([]);
+      // Don't set empty array on network errors, keep existing data
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.warn('Network error fetching activities, keeping existing data');
+      } else {
+        setDateFilteredActivities([]);
+      }
     } finally {
       if (isAnimated) {
         setIsLoadingActivities(false);
