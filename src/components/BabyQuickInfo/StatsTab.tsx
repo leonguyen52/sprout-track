@@ -35,6 +35,8 @@ const StatsTab: React.FC<StatsTabProps> = ({
   const [activities, setActivities] = useState<any[]>(initialActivities);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  // Settings: default bottle unit (OZ | ML)
+  const [bottleUnitAbbr, setBottleUnitAbbr] = useState<'OZ' | 'ML'>('OZ');
   
   // Fetch activities for the selected baby
   useEffect(() => {
@@ -95,6 +97,29 @@ const StatsTab: React.FC<StatsTabProps> = ({
     
     fetchActivities();
   }, [selectedBaby]);
+
+  // Fetch settings for default bottle unit
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+        const response = await fetch('/api/settings', {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : '',
+          },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data?.success && data?.data?.defaultBottleUnit) {
+          const unit = data.data.defaultBottleUnit === 'ML' ? 'ML' : 'OZ';
+          setBottleUnitAbbr(unit);
+        }
+      } catch (e) {
+        // noop
+      }
+    };
+    fetchSettings();
+  }, []);
 
   // Helper function to format minutes into hours and minutes
   const formatMinutes = (minutes: number): string => {
@@ -311,11 +336,21 @@ const StatsTab: React.FC<StatsTabProps> = ({
       
       feedingCount += feedingsForDay;
 
-      // Calculate feed amounts
+      // Calculate feed amounts (only entries with OZ/ML units, convert to display unit)
+      const ML_PER_OZ = 29.5735;
       dayActivities.forEach(a => {
         if ('amount' in a && a.amount && typeof a.amount === 'number') {
-          totalFeedAmount += a.amount;
-          feedAmountCount++;
+          const unit = (a as any).unitAbbr as string | undefined;
+          if (unit === 'OZ' || unit === 'ML') {
+            let amountInDisplayUnit = a.amount as number;
+            if (unit === 'ML' && bottleUnitAbbr === 'OZ') {
+              amountInDisplayUnit = amountInDisplayUnit / ML_PER_OZ;
+            } else if (unit === 'OZ' && bottleUnitAbbr === 'ML') {
+              amountInDisplayUnit = amountInDisplayUnit * ML_PER_OZ;
+            }
+            totalFeedAmount += amountInDisplayUnit;
+            feedAmountCount++;
+          }
         }
       });
 
@@ -489,8 +524,8 @@ const StatsTab: React.FC<StatsTabProps> = ({
           
           <CardVisual
             title="Avg Feed Amount"
-            mainValue={mainStats.avgFeedAmount.toFixed(1) + ' oz'}
-            comparativeValue={compareStats.avgFeedAmount.toFixed(1) + ' oz'}
+          mainValue={mainStats.avgFeedAmount.toFixed(1) + (bottleUnitAbbr === 'ML' ? ' ml' : ' oz')}
+          comparativeValue={compareStats.avgFeedAmount.toFixed(1) + (bottleUnitAbbr === 'ML' ? ' ml' : ' oz')}
             trend={mainStats.avgFeedAmount >= compareStats.avgFeedAmount ? 'positive' : 'negative'}
           />
           
