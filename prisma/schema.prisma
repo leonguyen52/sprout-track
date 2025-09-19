@@ -446,6 +446,7 @@ model Settings {
   activitySettings  String?  // JSON string for activity order and visibility settings
   enableDebugTimer  Boolean  @default(false)   // Enable debug session timer
   enableDebugTimezone Boolean @default(false)  // Enable debug timezone tool
+  enableSwipeDateChange Boolean @default(true) // Enable swipe gestures to change date on timeline
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   
