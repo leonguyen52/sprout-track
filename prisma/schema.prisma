@@ -330,6 +330,7 @@ model FeedLog {
   unitAbbr     String?
   side         BreastSide?
   food         String?     // Description of solid foods
+  note         String?     // Optional note about the feeding
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   deletedAt    DateTime?
