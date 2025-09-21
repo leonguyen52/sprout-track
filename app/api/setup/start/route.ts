@@ -230,13 +230,38 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
               },
             });
 
-            // Update the existing settings for this family
-            await tx.settings.updateMany({
+            // Update or create settings for this family
+            const existingSettings = await tx.settings.findFirst({
               where: { familyId: family.id },
-              data: {
-                familyName: name,
-              },
             });
+            
+            if (existingSettings) {
+              await tx.settings.update({
+                where: { id: existingSettings.id },
+                data: {
+                  familyName: name,
+                },
+              });
+            } else {
+              await tx.settings.create({
+                data: {
+                  familyId: family.id,
+                  familyName: name,
+                  securityPin: '111222', // Default PIN
+                  defaultBottleUnit: 'OZ',
+                  defaultSolidsUnit: 'TBSP',
+                  defaultHeightUnit: 'IN',
+                  defaultWeightUnit: 'LB',
+                  defaultTempUnit: 'F',
+                  activitySettings: JSON.stringify({
+                    global: {
+                      order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'],
+                      visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine']
+                    }
+                  })
+                },
+              });
+            }
           } else {
             // Fallback: create new family if default doesn't exist
             family = await tx.family.create({
@@ -251,6 +276,18 @@ async function handler(req: NextRequest): Promise<NextResponse<ApiResponse<Famil
               data: {
                 familyId: family.id,
                 familyName: name,
+                securityPin: '111222', // Default PIN
+                defaultBottleUnit: 'OZ',
+                defaultSolidsUnit: 'TBSP',
+                defaultHeightUnit: 'IN',
+                defaultWeightUnit: 'LB',
+                defaultTempUnit: 'F',
+                activitySettings: JSON.stringify({
+                  global: {
+                    order: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine'],
+                    visible: ['sleep', 'feed', 'diaper', 'note', 'bath', 'pump', 'measurement', 'milestone', 'medicine']
+                  }
+                })
               },
             });
 
