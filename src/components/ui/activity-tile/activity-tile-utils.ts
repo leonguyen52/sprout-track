@@ -107,9 +107,20 @@ export const useActivityDescription = () => {
         }
         
         const time = formatDateTime(activity.time);
+        const timeDetails = `${details} - ${time}`;
+        
+        // Add note if available - display on separate line
+        if (activity.note) {
+          const truncatedNote = activity.note.length > 50 ? activity.note.substring(0, 50) + '...' : activity.note;
+          return {
+            type: formatFeedType(activity.type),
+            details: `${timeDetails}\n${truncatedNote}`
+          };
+        }
+        
         return {
           type: formatFeedType(activity.type),
-          details: `${details} - ${time}`
+          details: timeDetails
         };
       }
       if ('condition' in activity) {
