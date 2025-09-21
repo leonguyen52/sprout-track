@@ -239,7 +239,7 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
 
       return {
         title: 'Feed Record',
-        details: [...details, ...caretakerDetail],
+        details: [...details, ...caretakerDetail, ...(activity.note ? [{ label: 'Note', value: activity.note }] : [])],
       };
     }
     if ('condition' in activity) {
@@ -535,9 +535,20 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
       }
       
       const time = formatTime(activity.time, settings, true);
+      const timeDetails = `${details} - ${time}`;
+      
+      // Add note if available - display on separate line
+      if (activity.note) {
+        const truncatedNote = activity.note.length > 50 ? activity.note.substring(0, 50) + '...' : activity.note;
+        return {
+          type: formatFeedType(activity.type),
+          details: `${timeDetails}\n${truncatedNote}`
+        };
+      }
+      
       return {
         type: formatFeedType(activity.type),
-        details: `${details} - ${time}`
+        details: timeDetails
       };
     }
     if ('condition' in activity) {
