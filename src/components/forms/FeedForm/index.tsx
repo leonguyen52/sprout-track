@@ -62,6 +62,7 @@ export default function FeedForm({
     unit: 'OZ', // Default unit
     side: '' as BreastSide | '',
     food: '',
+    note: '', // Optional note about the feeding
     feedDuration: 0, // Duration in seconds for breastfeeding timer
     leftDuration: 0, // Duration in seconds for left breast
     rightDuration: 0, // Duration in seconds for right breast
@@ -234,6 +235,7 @@ export default function FeedForm({
            activity.type === 'SOLIDS' ? defaultSettings.defaultSolidsUnit : ''),
         side: activity.side || '',
         food: activity.food || '',
+        note: activity.note || '',
         feedDuration: feedDuration,
         leftDuration: activity.side === 'LEFT' ? feedDuration : 0,
         rightDuration: activity.side === 'RIGHT' ? feedDuration : 0,
@@ -413,6 +415,7 @@ export default function FeedForm({
         unit: defaultSettings.defaultBottleUnit,
         side: '' as BreastSide | '',
         food: '',
+        note: '',
         feedDuration: 0,
         leftDuration: 0,
         rightDuration: 0,
@@ -480,6 +483,7 @@ export default function FeedForm({
         unitAbbr: formData.unit // This should correctly send 'TBSP' or 'G'
       }),
       ...(formData.type === 'SOLIDS' && formData.food && { food: formData.food }),
+      ...(formData.note !== undefined && { note: formData.note }),
     };
 
     console.log('Payload being sent:', payload); // Debug log for payload
@@ -591,6 +595,7 @@ export default function FeedForm({
       unit: defaultSettings.defaultBottleUnit,
       side: '' as BreastSide | '',
       food: '',
+      note: '',
       feedDuration: 0,
       leftDuration: 0,
       rightDuration: 0,
@@ -759,6 +764,35 @@ export default function FeedForm({
                 onIncrement={incrementAmount}
                 onDecrement={decrementAmount}
               />
+            )}
+
+            {/* Note field - appears for all feeding types */}
+            {formData.type && (
+              <div className="mb-6">
+                <label className="form-label">Note (Optional)</label>
+                <div className="relative">
+                  <Input
+                    value={formData.note}
+                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                    className="w-full pr-8"
+                    placeholder="Add a note about this feeding..."
+                    disabled={loading}
+                  />
+                  {formData.note && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, note: '' })}
+                      disabled={loading}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      title="Clear note"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
           </form>
