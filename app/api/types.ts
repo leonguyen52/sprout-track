@@ -111,6 +111,7 @@ export interface FeedLogCreate {
   startTime?: string;
   endTime?: string;
   feedDuration?: number; // Duration in seconds for feeding time
+  note?: string; // Optional note about the feeding
 }
 
 // Diaper log types
