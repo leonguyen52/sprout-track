@@ -81,13 +81,18 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
     });
     
     if (!existingSettings) {
-      return NextResponse.json<ApiResponse<Settings>>(
-        {
-          success: false,
-          error: 'Settings not found for this family.',
+      // Create settings if they don't exist
+      existingSettings = await prisma.settings.create({
+        data: {
+          familyName: 'My Family', // Default family name
+          defaultBottleUnit: 'OZ',
+          defaultSolidsUnit: 'TBSP',
+          defaultHeightUnit: 'IN',
+          defaultWeightUnit: 'LB',
+          defaultTempUnit: 'F',
+          familyId: targetFamilyId,
         },
-        { status: 404 }
-      );
+      });
     }
 
     const data: Partial<Settings> = {};
