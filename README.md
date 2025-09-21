@@ -103,7 +103,7 @@ docker-compose up -d
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/Oak-and-Sprout/sprout-track.git
+git clone https://github.com/leonguyen52/sprout-track.git
 cd sprout-track
 ```
 
