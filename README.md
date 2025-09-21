@@ -4,6 +4,7 @@ What's difference from original version? (Updated 21 Sep 2025)
 - Fixed time picker to automatically switch to minute selection
 - Fixed feeding default unit in Quick Stats
 - Allow to use keyboard at login screen for desktop user
+- Added new unit (drops) in medicine section
 - Added chart function to have an overview about entries
 - Added note function for feed entry
 - Added tool to reset admin password
