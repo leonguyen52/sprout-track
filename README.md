@@ -1,6 +1,13 @@
-# Sprout Track
+# Sprout Track (PLM Version - Modified for PLM Family)
 
-A Next.js application for tracking baby activities, milestones, and development.
+What's difference from original version? (Updated 21 Sep 2025)
+- Fixed time picker to automatically switch to minute selection
+- Fixed feeding default unit in Quick Stats
+- Allow to use keyboard at login screen for desktop user
+- Added chart function to have an overview about entries
+- Added note function for feed entry
+- Added tool to reset admin password
+- Added setting to enable/disable swiping to change date in log entry
 
 ## Screenshots
 
