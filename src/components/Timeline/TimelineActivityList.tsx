@@ -421,7 +421,7 @@ const TimelineActivityList = ({
                                           {timeStr}
                                         </span>
                                       </div>
-                                      <p className="text-sm text-gray-900 timeline-activity-details truncate">
+                                      <div className="text-sm text-gray-900 timeline-activity-details">
                                         {(() => {
                                           // Generate meaningful summaries for each activity type
                                           if ('duration' in activity) {
@@ -438,6 +438,7 @@ const TimelineActivityList = ({
                                           
                                           if ('amount' in activity) {
                                             // Feed activity
+                                            let feedDetails = '';
                                             if (activity.type === 'BREAST') {
                                               const side = activity.side ? activity.side.charAt(0) + activity.side.slice(1).toLowerCase() : '';
                                               let duration = '';
@@ -448,15 +449,28 @@ const TimelineActivityList = ({
                                               } else if (activity.amount) {
                                                 duration = `${activity.amount} min`;
                                               }
-                                              return [side + ' side', duration].filter(Boolean).join(' • ');
+                                              feedDetails = [side + ' side', duration].filter(Boolean).join(' • ');
                                             } else if (activity.type === 'BOTTLE') {
                                               const unit = ((activity as any).unitAbbr || 'oz').toLowerCase();
-                                              return `${activity.amount} ${unit}`;
+                                              feedDetails = `${activity.amount} ${unit}`;
                                             } else if (activity.type === 'SOLIDS') {
                                               const unit = ((activity as any).unitAbbr || 'g').toLowerCase();
                                               const food = activity.food ? ` of ${activity.food}` : '';
-                                              return `${activity.amount} ${unit}${food}`;
+                                              feedDetails = `${activity.amount} ${unit}${food}`;
                                             }
+                                            
+                                            // Return JSX with note on separate line if available
+                                            if ((activity as any).note) {
+                                              const truncatedNote = (activity as any).note.length > 30 ? (activity as any).note.substring(0, 30) + '...' : (activity as any).note;
+                                              return (
+                                                <>
+                                                  <div className="truncate">{feedDetails}</div>
+                                                  <div className="text-xs text-gray-500 mt-1">{truncatedNote}</div>
+                                                </>
+                                              );
+                                            }
+                                            
+                                            return <div className="truncate">{feedDetails}</div>;
                                           }
                                           
                                           if ('condition' in activity) {
@@ -468,14 +482,15 @@ const TimelineActivityList = ({
                                             if (activity.color) {
                                               details.push(activity.color.charAt(0) + activity.color.slice(1).toLowerCase());
                                             }
-                                            return details.join(' • ');
+                                            return <div className="truncate">{details.join(' • ')}</div>;
                                           }
                                           
                                           if ('content' in activity) {
                                             // Note activity
-                                            return activity.content.length > 50 ? 
+                                            const content = activity.content.length > 50 ? 
                                               activity.content.substring(0, 50) + '...' : 
                                               activity.content;
+                                            return <div className="truncate">{content}</div>;
                                           }
                                           
                                           if ('soapUsed' in activity) {
@@ -490,7 +505,7 @@ const TimelineActivityList = ({
                                                 activity.notes;
                                               details.push(notes);
                                             }
-                                            return details.join(' • ');
+                                            return <div className="truncate">{details.join(' • ')}</div>;
                                           }
                                           
                                           if ('leftAmount' in activity || 'rightAmount' in activity) {
@@ -500,7 +515,7 @@ const TimelineActivityList = ({
                                             if ((activity as any).leftAmount) amounts.push(`L: ${(activity as any).leftAmount} ${unit}`);
                                             if ((activity as any).rightAmount) amounts.push(`R: ${(activity as any).rightAmount} ${unit}`);
                                             if ((activity as any).totalAmount) amounts.push(`Total: ${(activity as any).totalAmount} ${unit}`);
-                                            return amounts.join(' • ');
+                                            return <div className="truncate">{amounts.join(' • ')}</div>;
                                           }
                                           
                                           if ('title' in activity && 'category' in activity) {
@@ -508,7 +523,7 @@ const TimelineActivityList = ({
                                             const title = activity.title.length > 40 ? 
                                               activity.title.substring(0, 40) + '...' : 
                                               activity.title;
-                                            return title;
+                                            return <div className="truncate">{title}</div>;
                                           }
                                           
                                           if ('value' in activity && 'unit' in activity) {
@@ -525,7 +540,7 @@ const TimelineActivityList = ({
                                               // Most other units like in, cm, kg, g stay the same in plural
                                             }
                                             
-                                            return `${activity.value} ${unit}`;
+                                            return <div className="truncate">{`${activity.value} ${unit}`}</div>;
                                           }
                                           
                                           if ('doseAmount' in activity && 'medicineId' in activity) {
@@ -536,12 +551,12 @@ const TimelineActivityList = ({
                                             if ('medicine' in activity && activity.medicine && typeof activity.medicine === 'object' && 'name' in activity.medicine) {
                                               medName = (activity.medicine as { name?: string }).name || medName;
                                             }
-                                            return `${medName} - ${dose}`;
+                                            return <div className="truncate">{`${medName} - ${dose}`}</div>;
                                           }
                                           
-                                          return 'Activity logged';
+                                          return <div className="truncate">Activity logged</div>;
                                         })()}
-                                      </p>
+                                      </div>
                                     </div>
                                   </div>
                                 </CardContent>
