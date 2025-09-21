@@ -6,7 +6,8 @@ What's difference from original version? (Updated 21 Sep 2025)
 - Allow to use keyboard at login screen for desktop user
 - Added new unit (drops) in medicine section
 - Added chart function to have an overview about entries
-- Added note function for feed entry (need to run "npx prisma generate" & "npx prisma migrate deploy" then rebuild to migrate to new db structure)
+- Added note function for feed entry
+  (need to backup db, run "npx prisma generate" & "npx prisma migrate deploy" then rebuild to migrate to new db structure if upgrading from previous version)
 - Added tool to reset admin password
 - Added setting to enable/disable swiping to change date in log entry
 
