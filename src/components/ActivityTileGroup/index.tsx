@@ -465,6 +465,7 @@ export function ActivityTileGroup({
                 startTime={lastFeedTime[selectedBaby.id].toISOString()}
                 warningTime={selectedBaby.feedWarningTime as string}
                 activityType="feed" // Explicitly specify this is for feed activities only
+                babyId={selectedBaby.id}
               />
             )}
           </div>
@@ -501,6 +502,7 @@ export function ActivityTileGroup({
                 startTime={lastDiaperTime[selectedBaby.id].toISOString()}
                 warningTime={selectedBaby.diaperWarningTime as string}
                 activityType="diaper" // Explicitly specify this is for diaper activities only
+                babyId={selectedBaby.id}
               />
             )}
           </div>
