@@ -84,6 +84,24 @@ export default function SettingsForm({
   const [warningTimesForm, setWarningTimesForm] = useState<{ feedWarningTime: string; diaperWarningTime: string }>({ feedWarningTime: '', diaperWarningTime: '' });
   const [savingWarningTimes, setSavingWarningTimes] = useState(false);
 
+  // Local notification settings form state
+  const [notificationForm, setNotificationForm] = useState({
+    notificationEnabled: false,
+    hermesApiKey: '',
+    notificationTitle: '‼️ Baby Tracker Warning',
+    notificationFeedSubtitle: 'Attention! It\'s time for feeding ♥️',
+    notificationFeedBody: 'Baby might be hungry soon, please be ready and prepare in advance~',
+    notificationDiaperSubtitle: 'Attention! It\'s time for diary ♥️',
+    notificationDiaperBody: 'Mom and Dad, please check diary in time for our baby~',
+  });
+  const [savingNotifications, setSavingNotifications] = useState(false);
+  const [testingNotification, setTestingNotification] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  
+  // Monitoring state
+  const [monitoringStatus, setMonitoringStatus] = useState<{ active: boolean; interval: number } | null>(null);
+  const [monitoringLoading, setMonitoringLoading] = useState(false);
+
   useEffect(() => {
     // Only set the selected baby ID if explicitly provided
     setLocalSelectedBabyId(selectedBabyId || '');
@@ -250,6 +268,9 @@ export default function SettingsForm({
 
       const settingsUrl = isSysAdmin && familyId ? `/api/settings?familyId=${familyId}` : '/api/settings';
 
+      console.log('Sending settings update to:', settingsUrl);
+      console.log('Updates:', updates);
+
       const response = await fetch(settingsUrl, {
         method: 'PUT',
         headers,
@@ -258,10 +279,16 @@ export default function SettingsForm({
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Settings update response:', data);
         setSettings(data.data);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Settings update failed:', response.status, errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
     } catch (error) {
       console.error('Error updating settings:', error);
+      throw error; // Re-throw so the calling function can handle it
     }
   };
 
@@ -351,6 +378,21 @@ export default function SettingsForm({
     }
   }, [babies, localSelectedBabyId, selectedBabyId]);
 
+  // Sync notification form with settings when they load
+  useEffect(() => {
+    if (settings) {
+      setNotificationForm({
+        notificationEnabled: (settings as any)?.notificationEnabled || false,
+        hermesApiKey: (settings as any)?.hermesApiKey || '',
+        notificationTitle: (settings as any)?.notificationTitle || '‼️ Baby Tracker Warning',
+        notificationFeedSubtitle: (settings as any)?.notificationFeedSubtitle || 'Attention! It\'s time for feeding ♥️',
+        notificationFeedBody: (settings as any)?.notificationFeedBody || 'Baby might be hungry soon, please be ready and prepare in advance~',
+        notificationDiaperSubtitle: (settings as any)?.notificationDiaperSubtitle || 'Attention! It\'s time for diary ♥️',
+        notificationDiaperBody: (settings as any)?.notificationDiaperBody || 'Mom and Dad, please check diary in time for our baby~',
+      });
+    }
+  }, [settings]);
+
   const handleSaveWarningTimes = async () => {
     const targetBabyId = localSelectedBabyId || selectedBabyId;
     if (!targetBabyId) return;
@@ -390,6 +432,133 @@ export default function SettingsForm({
       setSavingWarningTimes(false);
     }
   };
+
+  const handleSaveNotificationSettings = async () => {
+    try {
+      setSavingNotifications(true);
+      console.log('Saving notification settings:', notificationForm);
+      await handleSettingsChange(notificationForm as any);
+      console.log('Notification settings saved successfully');
+    } catch (error) {
+      console.error('Error saving notification settings:', error);
+      alert('Could not save notification settings. Please try again.');
+    } finally {
+      setSavingNotifications(false);
+    }
+  };
+
+  const handleTestNotification = async (type: 'FEED' | 'DIAPER') => {
+    try {
+      setTestingNotification(true);
+      setTestResult(null);
+
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/notify/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({ 
+          ...notificationForm,
+          hermesApiEndpoint: 'https://hermes.funk-isoft.com/api/sendAlert', // Fixed endpoint
+          type 
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setTestResult({ 
+          success: true, 
+          message: `Test ${type} notification sent successfully!` 
+        });
+      } else {
+        setTestResult({ 
+          success: false, 
+          message: `Failed to send test notification: ${data.error || 'Unknown error'}` 
+        });
+      }
+    } catch (error: any) {
+      setTestResult({ 
+        success: false, 
+        message: `Error sending test notification: ${error.message}` 
+      });
+    } finally {
+      setTestingNotification(false);
+    }
+  };
+
+  // Monitoring functions
+  const checkMonitoringStatus = async () => {
+    try {
+      const response = await fetch('/api/monitor/warnings?action=status');
+      const data = await response.json();
+      if (data.success) {
+        setMonitoringStatus({ active: data.active, interval: data.interval });
+      }
+    } catch (error) {
+      console.error('Error checking monitoring status:', error);
+    }
+  };
+
+  const startMonitoring = async () => {
+    try {
+      setMonitoringLoading(true);
+      const response = await fetch('/api/monitor/warnings?action=start');
+      const data = await response.json();
+      if (data.success) {
+        setMonitoringStatus({ active: data.active, interval: 60 }); // 1 minute
+        alert('Background monitoring started! Notifications will be sent every 1 minute.');
+      } else {
+        alert(`Failed to start monitoring: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`Error starting monitoring: ${error}`);
+    } finally {
+      setMonitoringLoading(false);
+    }
+  };
+
+  const stopMonitoring = async () => {
+    try {
+      setMonitoringLoading(true);
+      const response = await fetch('/api/monitor/warnings?action=stop');
+      const data = await response.json();
+      if (data.success) {
+        setMonitoringStatus({ active: data.active, interval: 0 });
+        alert('Background monitoring stopped.');
+      } else {
+        alert(`Failed to stop monitoring: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`Error stopping monitoring: ${error}`);
+    } finally {
+      setMonitoringLoading(false);
+    }
+  };
+
+  const runManualCheck = async () => {
+    try {
+      setMonitoringLoading(true);
+      const response = await fetch('/api/monitor/warnings?action=check');
+      const data = await response.json();
+      if (data.success) {
+        alert('Manual warning check completed! Check the server logs for details.');
+      } else {
+        alert(`Manual check failed: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`Error running manual check: ${error}`);
+    } finally {
+      setMonitoringLoading(false);
+    }
+  };
+
+  // Check monitoring status on component mount
+  useEffect(() => {
+    checkMonitoringStatus();
+  }, []);
 
   const handleBabyFormClose = () => {
     setShowBabyForm(false);
@@ -909,6 +1078,265 @@ export default function SettingsForm({
               </div>
             </div>
 
+            {/* Notifications Settings (Hermes) */}
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="form-label mb-4">Notifications (Hermes)</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="form-label">Enable Notifications</Label>
+                    <p className="text-sm text-gray-500">Send alerts when a timer crosses its warning threshold</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="notificationEnabled"
+                      checked={notificationForm.notificationEnabled}
+                      onChange={(e) => setNotificationForm(prev => ({ ...prev, notificationEnabled: e.target.checked }))}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="form-label">Hermes API Key</Label>
+                    <Input
+                      type="password"
+                      placeholder="Enter Hermes API key"
+                      value={notificationForm.hermesApiKey}
+                      onChange={(e) => setNotificationForm(prev => ({ ...prev, hermesApiKey: e.target.value }))}
+                      disabled={loading}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="form-label">Notification Title</Label>
+                    <Input
+                      type="text"
+                      placeholder="‼️ Baby Tracker Warning"
+                      value={notificationForm.notificationTitle}
+                      onChange={(e) => setNotificationForm(prev => ({ ...prev, notificationTitle: e.target.value }))}
+                      disabled={loading}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="form-label">Feed Subtitle</Label>
+                    <Input
+                      type="text"
+                      placeholder="Attention! It's time for feeding ♥️"
+                      value={notificationForm.notificationFeedSubtitle}
+                      onChange={(e) => setNotificationForm(prev => ({ ...prev, notificationFeedSubtitle: e.target.value }))}
+                      disabled={loading}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <Label className="form-label">Feed Body</Label>
+                    <Input
+                      type="text"
+                      placeholder="Baby might be hungry soon, please be ready and prepare in advance~"
+                      value={notificationForm.notificationFeedBody}
+                      onChange={(e) => setNotificationForm(prev => ({ ...prev, notificationFeedBody: e.target.value }))}
+                      disabled={loading}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="form-label">Diaper Subtitle</Label>
+                    <Input
+                      type="text"
+                      placeholder="Attention! It's time for diary ♥️"
+                      value={notificationForm.notificationDiaperSubtitle}
+                      onChange={(e) => setNotificationForm(prev => ({ ...prev, notificationDiaperSubtitle: e.target.value }))}
+                      disabled={loading}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <Label className="form-label">Diaper Body</Label>
+                    <Input
+                      type="text"
+                      placeholder="Mom and Dad, please check diary in time for our baby~"
+                      value={notificationForm.notificationDiaperBody}
+                      onChange={(e) => setNotificationForm(prev => ({ ...prev, notificationDiaperBody: e.target.value }))}
+                      disabled={loading}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-500">Hermes docs: https://hermes.funk-isoft.com/api-docs.html</p>
+                
+                {/* Preview Section */}
+                <div className="border-t border-gray-200 pt-4">
+                  <h4 className="form-label mb-3">Preview & Test</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <h5 className="font-medium text-sm mb-2">Feed Notification Preview</h5>
+                      <div className="text-xs space-y-1">
+                        <div className="font-semibold">{notificationForm.notificationTitle}</div>
+                        <div className="text-gray-600">{notificationForm.notificationFeedSubtitle}</div>
+                        <div className="text-gray-500">{notificationForm.notificationFeedBody}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <h5 className="font-medium text-sm mb-2">Diaper Notification Preview</h5>
+                      <div className="text-xs space-y-1">
+                        <div className="font-semibold">{notificationForm.notificationTitle}</div>
+                        <div className="text-gray-600">{notificationForm.notificationDiaperSubtitle}</div>
+                        <div className="text-gray-500">{notificationForm.notificationDiaperBody}</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 mb-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTestNotification('FEED')}
+                      disabled={testingNotification || loading || !notificationForm.hermesApiKey}
+                    >
+                      {testingNotification ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      Test Feed Notification
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTestNotification('DIAPER')}
+                      disabled={testingNotification || loading || !notificationForm.hermesApiKey}
+                    >
+                      {testingNotification ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      Test Diaper Notification
+                    </Button>
+                  </div>
+                  
+                  {testResult && (
+                    <div className={`p-3 rounded-md text-sm ${
+                      testResult.success 
+                        ? 'bg-green-50 text-green-800 border border-green-200' 
+                        : 'bg-red-50 text-red-800 border border-red-200'
+                    }`}>
+                      {testResult.message}
+                    </div>
+                  )}
+                  
+                  {!notificationForm.hermesApiKey && (
+                    <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                      ⚠️ Please enter your Hermes API Key to test notifications
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveNotificationSettings}
+                    disabled={savingNotifications || loading}
+                  >
+                    {savingNotifications ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    Save Notification Settings
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Background Monitoring Section */}
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="form-label mb-4">Background Monitoring</h3>
+              <div className="space-y-4">
+                <p className="text-sm text-gray-500">
+                  Enable background monitoring to receive notifications even when the app is closed. 
+                  The system will check all babies every 1 minute for warning thresholds.
+                </p>
+                
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h4 className="font-medium text-gray-900">Monitoring Status</h4>
+                      <p className="text-sm text-gray-500">
+                        {monitoringStatus?.active 
+                          ? `Active - Checking every ${monitoringStatus.interval} seconds`
+                          : 'Inactive - No background monitoring'
+                        }
+                      </p>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      monitoringStatus?.active 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {monitoringStatus?.active ? 'Running' : 'Stopped'}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      size="sm"
+                      onClick={startMonitoring}
+                      disabled={monitoringLoading || monitoringStatus?.active}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {monitoringLoading ? 'Starting...' : 'Start Monitoring'}
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      onClick={stopMonitoring}
+                      disabled={monitoringLoading || !monitoringStatus?.active}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      {monitoringLoading ? 'Stopping...' : 'Stop Monitoring'}
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      onClick={runManualCheck}
+                      disabled={monitoringLoading}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {monitoringLoading ? 'Checking...' : 'Manual Check'}
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      onClick={checkMonitoringStatus}
+                      disabled={monitoringLoading}
+                      variant="outline"
+                    >
+                      Status
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="text-xs text-gray-500 space-y-1">
+                  <p>• <strong>Start Monitoring:</strong> Begins background checking every 1 minute</p>
+                  <p>• <strong>Stop Monitoring:</strong> Stops background checking</p>
+                  <p>• <strong>Manual Check:</strong> Runs a one-time check immediately</p>
+                  <p>• <strong>Note:</strong> Monitoring works independently of the app being open</p>
+                </div>
+              </div>
+            </div>
+
             {/* Only show System Administration section in self-hosted mode */}
             {deploymentConfig?.deploymentMode !== 'saas' && (
               <div className="border-t border-slate-200 pt-6">
@@ -940,6 +1368,7 @@ export default function SettingsForm({
             if (localSelectedBabyId || selectedBabyId) {
               await handleSaveWarningTimes();
             }
+            await handleSaveNotificationSettings();
             onClose();
           }}>
             Save
