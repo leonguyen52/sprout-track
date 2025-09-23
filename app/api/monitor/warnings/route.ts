@@ -51,14 +51,16 @@ async function checkBabyWarnings(baby: BabyWithWarnings, settings: any): Promise
   if (baby.lastFeedTime) {
     const feedDuration = calculateDurationMinutes(baby.lastFeedTime);
     const feedWarningThreshold = getWarningMinutes(baby.feedWarningTime);
+    const feedAdvance = Math.max(0, Number((settings as any)?.notificationFeedAdvanceMinutes ?? 0));
+    const feedEffective = Math.max(0, feedWarningThreshold - feedAdvance);
     
-    if (feedDuration >= feedWarningThreshold) {
+    if (feedDuration >= feedEffective) {
       warnings.push({
         type: 'FEED' as const,
         babyId: baby.id,
         babyName: `${baby.firstName} ${baby.lastName}`,
         duration: feedDuration,
-        threshold: feedWarningThreshold
+        threshold: feedEffective
       });
     }
   }
@@ -67,14 +69,16 @@ async function checkBabyWarnings(baby: BabyWithWarnings, settings: any): Promise
   if (baby.lastDiaperTime) {
     const diaperDuration = calculateDurationMinutes(baby.lastDiaperTime);
     const diaperWarningThreshold = getWarningMinutes(baby.diaperWarningTime);
+    const diaperAdvance = Math.max(0, Number((settings as any)?.notificationDiaperAdvanceMinutes ?? 0));
+    const diaperEffective = Math.max(0, diaperWarningThreshold - diaperAdvance);
     
-    if (diaperDuration >= diaperWarningThreshold) {
+    if (diaperDuration >= diaperEffective) {
       warnings.push({
         type: 'DIAPER' as const,
         babyId: baby.id,
         babyName: `${baby.firstName} ${baby.lastName}`,
         duration: diaperDuration,
-        threshold: diaperWarningThreshold
+        threshold: diaperEffective
       });
     }
   }
