@@ -4,6 +4,19 @@ import { ApiResponse } from '../types';
 import { Settings } from '@prisma/client';
 import { withAuthContext, AuthResult } from '../utils/auth';
 
+// Resolve a provided family identifier (id or slug) into a valid family ID
+async function resolveFamilyId(familyIdentifier: string | null): Promise<string | null> {
+  if (!familyIdentifier) return null;
+
+  // Try direct ID lookup first
+  const byId = await prisma.family.findUnique({ where: { id: familyIdentifier } });
+  if (byId) return byId.id;
+
+  // Fallback: treat identifier as slug
+  const bySlug = await prisma.family.findUnique({ where: { slug: familyIdentifier } });
+  return bySlug ? bySlug.id : null;
+}
+
 async function handleGet(req: NextRequest, authContext: AuthResult) {
   try {
     const { familyId: userFamilyId, isSetupAuth, isSysAdmin, isAccountAuth } = authContext;
@@ -22,8 +35,14 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
 
+    // Normalize/validate family ID
+    const normalizedFamilyId = await resolveFamilyId(targetFamilyId);
+    if (!normalizedFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Family not found.' }, { status: 404 });
+    }
+
     let settings = await prisma.settings.findFirst({
-      where: { familyId: targetFamilyId },
+      where: { familyId: normalizedFamilyId },
     });
     
     if (!settings) {
@@ -35,7 +54,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
           defaultHeightUnit: 'IN',
           defaultWeightUnit: 'LB',
           defaultTempUnit: 'F',
-          familyId: targetFamilyId,
+          familyId: normalizedFamilyId,
         },
       });
     }
@@ -76,21 +95,27 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
 
     const body = await req.json();
     
+    // Normalize/validate family ID
+    const normalizedFamilyId = await resolveFamilyId(targetFamilyId);
+    if (!normalizedFamilyId) {
+      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Family not found.' }, { status: 404 });
+    }
+
     let existingSettings = await prisma.settings.findFirst({
-      where: { familyId: targetFamilyId },
+      where: { familyId: normalizedFamilyId },
     });
     
+    // Create default settings if missing so updates like setting a PIN work immediately after family creation
     if (!existingSettings) {
-      // Create settings if they don't exist
       existingSettings = await prisma.settings.create({
         data: {
-          familyName: 'My Family', // Default family name
+          familyId: normalizedFamilyId,
+          familyName: 'My Family',
           defaultBottleUnit: 'OZ',
           defaultSolidsUnit: 'TBSP',
           defaultHeightUnit: 'IN',
           defaultWeightUnit: 'LB',
           defaultTempUnit: 'F',
-          familyId: targetFamilyId,
         },
       });
     }
@@ -99,7 +124,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
     const allowedFields: (keyof Settings)[] = [
       'familyName', 'securityPin', 'defaultBottleUnit', 'defaultSolidsUnit', 
       'defaultHeightUnit', 'defaultWeightUnit', 'defaultTempUnit', 
-      'enableDebugTimer', 'enableDebugTimezone', 'enableSwipeDateChange'
+      'enableDebugTimer', 'enableDebugTimezone'
     ];
 
     for (const field of allowedFields) {
@@ -119,7 +144,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
         const systemCaretaker = await prisma.caretaker.findFirst({
           where: { 
             loginId: '00',
-            familyId: targetFamilyId 
+            familyId: normalizedFamilyId 
           }
         });
 
