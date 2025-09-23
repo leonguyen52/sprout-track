@@ -448,6 +448,16 @@ model Settings {
   enableDebugTimer  Boolean  @default(false)   // Enable debug session timer
   enableDebugTimezone Boolean @default(false)  // Enable debug timezone tool
   enableSwipeDateChange Boolean @default(true) // Enable swipe gestures to change date on timeline
+  // Notification settings (Hermes)
+  notificationEnabled        Boolean  @default(false)
+  notificationProvider       String?  @default("HERMES")
+  hermesApiEndpoint          String?  @default("https://hermes.funk-isoft.com/api/sendAlert")
+  hermesApiKey               String?
+  notificationTitle          String   @default("‼️ Baby Tracker Warning")
+  notificationFeedSubtitle   String   @default("Attention! It's time for feeding ♥️")
+  notificationFeedBody       String   @default("Baby might be hungry soon, please be ready and prepare in advance~")
+  notificationDiaperSubtitle String   @default("Attention! It's time for diary ♥️")
+  notificationDiaperBody     String   @default("Mom and Dad, please check diary in time for our baby~")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   
@@ -455,6 +465,18 @@ model Settings {
   family            Family?  @relation(fields: [familyId], references: [id])
   familyId          String?  // Nullable initially for migration
   
+  @@index([familyId])
+}
+
+// Log to help deduplicate outbound notifications
+model NotificationLog {
+  id        String   @id @default(uuid())
+  babyId    String
+  type      String   // FEED | DIAPER | other future types
+  sentAt    DateTime @default(now())
+  familyId  String?
+
+  @@index([babyId, type, sentAt])
   @@index([familyId])
 }
 
