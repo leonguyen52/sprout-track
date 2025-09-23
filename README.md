@@ -1,5 +1,5 @@
 # Baby Tracker (PLM Version)
-Modified and based on Original Application: Sprout Track (https://github.com/Oak-and-Sprout/sprout-track)
+Modified to fit my family use, this version is based on Original Application here: Sprout Track (https://github.com/Oak-and-Sprout/sprout-track)
 
 ### What's difference from original version? (Updated 23 Sep 2025)
 - Fixed time picker to automatically switch to minute selection
