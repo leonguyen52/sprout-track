@@ -60,7 +60,7 @@ chmod +x scripts/*.sh
   <tr>
     <td width="33%"><img src="public/Login-Mobile.png" width="100%" alt="Login Screen"/><br/><em>Secure login with IP-based lockout</em></td>
     <td width="33%"><img src="public/SetupPage1-Mobile.png" width="100%" alt="Setup Wizard"/><br/><em>User-friendly setup wizard</em></td>
-    <td width="33%"><img src="public/ChartFunction.jpg" width="100%" alt="Chart Function"/><br/><em>Chart Function</em></td>
+    <td width="33%"><img src="public/ChartFunction.jpg" width="100%" alt="Chart Function"/><br/><em>Chart Function for quick activities overview</em></td>
   </tr>
 </table>
 
