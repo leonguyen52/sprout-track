@@ -177,11 +177,11 @@ export async function POST(req: NextRequest) {
             familyId: targetFamily.id,
             familyName: targetFamily.name,
             securityPin: '111222', // Default PIN
-            defaultBottleUnit: 'OZ',
+            defaultBottleUnit: 'ML',
             defaultSolidsUnit: 'TBSP',
-            defaultHeightUnit: 'IN',
-            defaultWeightUnit: 'LB',
-            defaultTempUnit: 'F',
+            defaultHeightUnit: 'CM',
+            defaultWeightUnit: 'KG',
+            defaultTempUnit: 'C',
           },
         });
         console.log(`Created default settings for family ${targetFamily.name}`);
