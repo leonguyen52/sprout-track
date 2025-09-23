@@ -94,6 +94,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
     }
 
     const body = await req.json();
+    console.log('Settings PUT request body:', body);
     
     // Normalize/validate family ID
     const normalizedFamilyId = await resolveFamilyId(targetFamilyId);
@@ -124,7 +125,11 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
     const allowedFields: (keyof Settings)[] = [
       'familyName', 'securityPin', 'defaultBottleUnit', 'defaultSolidsUnit', 
       'defaultHeightUnit', 'defaultWeightUnit', 'defaultTempUnit', 
-      'enableDebugTimer', 'enableDebugTimezone'
+      'enableDebugTimer', 'enableDebugTimezone', 'enableSwipeDateChange',
+      // Notification fields
+      'notificationEnabled', 'notificationProvider', 'hermesApiKey',
+      'notificationTitle', 'notificationFeedSubtitle', 'notificationFeedBody',
+      'notificationDiaperSubtitle', 'notificationDiaperBody'
     ];
 
     for (const field of allowedFields) {
@@ -133,10 +138,14 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       }
     }
     
+    console.log('Settings data to update:', data);
+    
     const settings = await prisma.settings.update({
       where: { id: existingSettings.id },
       data,
     });
+    
+    console.log('Settings updated successfully:', settings);
 
     // If securityPin was updated, also update system caretaker's pin
     if (body.securityPin !== undefined) {
@@ -172,7 +181,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
     return NextResponse.json<ApiResponse<Settings>>(
       {
         success: false,
-        error: 'Failed to update settings',
+        error: `Failed to update settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
       },
       { status: 500 }
     );
