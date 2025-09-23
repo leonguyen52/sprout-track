@@ -88,11 +88,13 @@ export default function SettingsForm({
   const [notificationForm, setNotificationForm] = useState({
     notificationEnabled: false,
     hermesApiKey: '',
-    notificationTitle: '‼️ Baby Tracker Warning',
-    notificationFeedSubtitle: 'Attention! It\'s time for feeding ♥️',
+    notificationTitle: '‼️ Warning',
+    notificationFeedSubtitle: 'It\'s time for feeding ♥️',
     notificationFeedBody: 'Baby might be hungry soon, please be ready and prepare in advance~',
-    notificationDiaperSubtitle: 'Attention! It\'s time for diary ♥️',
+    notificationDiaperSubtitle: 'It\'s time for diary ♥️',
     notificationDiaperBody: 'Mom and Dad, please check diary in time for our baby~',
+    notificationFeedAdvanceMinutes: 0,
+    notificationDiaperAdvanceMinutes: 0,
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [testingNotification, setTestingNotification] = useState(false);
@@ -389,6 +391,8 @@ export default function SettingsForm({
         notificationFeedBody: (settings as any)?.notificationFeedBody || 'Baby might be hungry soon, please be ready and prepare in advance~',
         notificationDiaperSubtitle: (settings as any)?.notificationDiaperSubtitle || 'Attention! It\'s time for diary ♥️',
         notificationDiaperBody: (settings as any)?.notificationDiaperBody || 'Mom and Dad, please check diary in time for our baby~',
+        notificationFeedAdvanceMinutes: (settings as any)?.notificationFeedAdvanceMinutes ?? 0,
+        notificationDiaperAdvanceMinutes: (settings as any)?.notificationDiaperAdvanceMinutes ?? 0,
       });
     }
   }, [settings]);
@@ -1148,6 +1152,43 @@ export default function SettingsForm({
                       disabled={loading}
                       className="w-full"
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="form-label">Feed Advance</Label>
+                    <Select
+                      value={String(notificationForm.notificationFeedAdvanceMinutes)}
+                      onValueChange={(v) => setNotificationForm(prev => ({ ...prev, notificationFeedAdvanceMinutes: parseInt(v, 10) }))}
+                      disabled={loading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Notify before" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0,1,5,10,15,30].map((m) => (
+                          <SelectItem key={`feed-adv-${m}`} value={String(m)}>{m === 0 ? 'At time' : `${m} min before`}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="form-label">Diaper Advance</Label>
+                    <Select
+                      value={String(notificationForm.notificationDiaperAdvanceMinutes)}
+                      onValueChange={(v) => setNotificationForm(prev => ({ ...prev, notificationDiaperAdvanceMinutes: parseInt(v, 10) }))}
+                      disabled={loading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Notify before" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0,1,5,10,15,30].map((m) => (
+                          <SelectItem key={`diaper-adv-${m}`} value={String(m)}>{m === 0 ? 'At time' : `${m} min before`}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
