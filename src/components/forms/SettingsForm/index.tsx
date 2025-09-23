@@ -80,6 +80,10 @@ export default function SettingsForm({
   const [checkingSlug, setCheckingSlug] = useState(false);
   const [savingFamily, setSavingFamily] = useState(false);
 
+  // Local warning time form state for selected baby
+  const [warningTimesForm, setWarningTimesForm] = useState<{ feedWarningTime: string; diaperWarningTime: string }>({ feedWarningTime: '', diaperWarningTime: '' });
+  const [savingWarningTimes, setSavingWarningTimes] = useState(false);
+
   useEffect(() => {
     // Only set the selected baby ID if explicitly provided
     setLocalSelectedBabyId(selectedBabyId || '');
@@ -332,6 +336,59 @@ export default function SettingsForm({
 
   const handleOpenFamilyManager = () => {
     router.push('/family-manager');
+  };
+
+  // Sync warning time form with currently selected baby
+  useEffect(() => {
+    const selected = babies.find(b => b.id === (localSelectedBabyId || selectedBabyId));
+    if (selected) {
+      setWarningTimesForm({
+        feedWarningTime: (selected as any).feedWarningTime || '02:00',
+        diaperWarningTime: (selected as any).diaperWarningTime || '03:00',
+      });
+    } else {
+      setWarningTimesForm({ feedWarningTime: '', diaperWarningTime: '' });
+    }
+  }, [babies, localSelectedBabyId, selectedBabyId]);
+
+  const handleSaveWarningTimes = async () => {
+    const targetBabyId = localSelectedBabyId || selectedBabyId;
+    if (!targetBabyId) return;
+    try {
+      setSavingWarningTimes(true);
+      const authToken = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+      };
+
+      const response = await fetch('/api/baby', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          id: targetBabyId,
+          feedWarningTime: warningTimesForm.feedWarningTime,
+          diaperWarningTime: warningTimesForm.diaperWarningTime,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save warning times');
+      }
+
+      const updated = await response.json();
+      if (updated?.data) {
+        setBabies(prev => prev.map(b => (b.id === targetBabyId ? { ...b, ...updated.data } as any : b)));
+      } else {
+        // Fallback: refresh data
+        await fetchData();
+      }
+    } catch (error) {
+      console.error('Error saving warning times:', error);
+      alert('Could not save warning times. Please try again.');
+    } finally {
+      setSavingWarningTimes(false);
+    }
   };
 
   const handleBabyFormClose = () => {
@@ -815,6 +872,43 @@ export default function SettingsForm({
               </div>
             </div>
 
+            {/* Warning Times Section (per-baby) */}
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="form-label mb-4">Warning Times</h3>
+              <div className="space-y-4">
+                <p className="text-sm text-gray-500">Configure when counters turn red for the selected baby. Format: hh:mm</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="form-label">Feed Warning Time</Label>
+                    <Input
+                      type="text"
+                      pattern="[0-9]{2}:[0-9]{2}"
+                      placeholder="02:00"
+                      value={warningTimesForm.feedWarningTime}
+                      onChange={(e) => setWarningTimesForm(v => ({ ...v, feedWarningTime: e.target.value }))}
+                      disabled={loading || !(localSelectedBabyId || selectedBabyId)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <Label className="form-label">Diaper Warning Time</Label>
+                    <Input
+                      type="text"
+                      pattern="[0-9]{2}:[0-9]{2}"
+                      placeholder="03:00"
+                      value={warningTimesForm.diaperWarningTime}
+                      onChange={(e) => setWarningTimesForm(v => ({ ...v, diaperWarningTime: e.target.value }))}
+                      disabled={loading || !(localSelectedBabyId || selectedBabyId)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                {!(localSelectedBabyId || selectedBabyId) && (
+                  <p className="text-xs text-gray-500">Select a baby above in Manage Babies to edit warning times.</p>
+                )}
+              </div>
+            </div>
+
             {/* Only show System Administration section in self-hosted mode */}
             {deploymentConfig?.deploymentMode !== 'saas' && (
               <div className="border-t border-slate-200 pt-6">
@@ -842,7 +936,12 @@ export default function SettingsForm({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={onClose}>
+          <Button onClick={async () => {
+            if (localSelectedBabyId || selectedBabyId) {
+              await handleSaveWarningTimes();
+            }
+            onClose();
+          }}>
             Save
           </Button>
         </FormPageFooter>
