@@ -71,11 +71,11 @@ export const POST = withAuthContext(async (req: NextRequest, auth: AuthResult) =
           familyId: family.id,
           familyName: body.name,
           securityPin: body.useSystemPin && body.systemPin ? body.systemPin : '111222',
-          defaultBottleUnit: 'OZ',
+          defaultBottleUnit: 'ML',
           defaultSolidsUnit: 'TBSP',
-          defaultHeightUnit: 'IN',
-          defaultWeightUnit: 'LB',
-          defaultTempUnit: 'F',
+          defaultHeightUnit: 'CM',
+          defaultWeightUnit: 'KG',
+          defaultTempUnit: 'C',
         },
       });
 
