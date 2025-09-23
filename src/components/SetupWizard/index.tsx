@@ -119,34 +119,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
         return;
       }
       
-      try {
-        setLoading(true);
-        // Create family using the setup/start endpoint
-        const response = await fetch('/api/setup/start', {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            name: familyName,
-            slug: familySlug,
-            token: token, // Include token if this is invitation-based setup
-          }),
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          // Store the created family for later use
-          setCreatedFamily(data.data);
-          setStage(2);
-        } else {
-          setError(data.error || 'Failed to create family');
-        }
-      } catch (error) {
-        console.error('Error creating family:', error);
-        setError('Failed to create family. Please try again.');
-      } finally {
-        setLoading(false);
-      }
+      // Defer DB writes until final step; simply advance
+      setStage(2);
     } else if (stage === 2) {
       // Validate security setup
       if (useSystemPin) {
@@ -160,53 +134,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
           return;
         }
         
-        // For token-based setup or account-based setup, defer system PIN saving until final stage
-        // to avoid authentication conflicts
-        if (token || isAccountAuth()) {
-          setStage(3);
-          return;
-        }
-        
-        try {
-          setLoading(true);
-          
-          // Save system PIN to settings (this will also update system caretaker automatically)
-          const settingsResponse = await fetch(`/api/settings?familyId=${createdFamily?.id}`, {
-            method: 'PUT',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-              securityPin: systemPin,
-            }),
-          });
-          
-          if (!settingsResponse.ok) {
-            throw new Error('Failed to save security PIN to settings');
-          }
-          
-          // For non-token auth, update system caretaker if we have a caretaker ID
-          const caretakerId = localStorage.getItem('caretakerId');
-          if (caretakerId) {
-            const caretakerResponse = await fetch('/api/caretaker', {
-              method: 'PUT',
-              headers: getAuthHeaders(),
-              body: JSON.stringify({
-                id: caretakerId,
-                securityPin: systemPin,
-              }),
-            });
-            
-            if (!caretakerResponse.ok) {
-              console.warn('Failed to update system caretaker PIN (non-fatal)');
-            }
-          }
-          
-          setStage(3);
-        } catch (error) {
-          console.error('Error saving security PIN:', error);
-          setError('Failed to save security PIN. Please try again.');
-        } finally {
-          setLoading(false);
-        }
+        // Always defer PIN save to final step
+        setStage(3);
       } else {
         // Validate caretakers
         if (caretakers.length === 0) {
@@ -214,38 +143,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
           return;
         }
         
-        // For token-based setup or account-based setup, defer caretaker creation until final stage
-        // to avoid authentication conflicts
-        if (token || isAccountAuth()) {
-          setStage(3);
-          return;
-        }
-        
-        try {
-          setLoading(true);
-          // Save caretakers for the created family (non-token setup only)
-          for (const caretaker of caretakers) {
-            const response = await fetch('/api/caretaker', {
-              method: 'POST',
-              headers: getAuthHeaders(),
-              body: JSON.stringify({
-                ...caretaker,
-                familyId: createdFamily?.id,
-              }),
-            });
-            
-            if (!response.ok) {
-              throw new Error(`Failed to save caretaker: ${caretaker.name}`);
-            }
-          }
-          
-          setStage(3);
-        } catch (error) {
-          console.error('Error saving caretakers:', error);
-          setError('Failed to save caretakers. Please try again.');
-        } finally {
-          setLoading(false);
-        }
+        // Always defer caretaker creation to final step
+        setStage(3);
       }
     } else if (stage === 3) {
       // Validate baby information
@@ -271,158 +170,37 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, token, initialSet
       
       try {
         setLoading(true);
-        
-        // For token-based setup or account-based setup, save baby first, then security settings/caretakers
-        // This avoids authentication conflicts where creating caretakers disables token access
-        if (token || isAccountAuth()) {
-          // Step 1: Save baby information first
-          const babyResponse = await fetch('/api/baby', {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
+        const response = await fetch('/api/setup/finalize', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            name: familyName,
+            slug: familySlug,
+            token,
+            useSystemPin,
+            systemPin,
+            caretakers: useSystemPin ? [] : caretakers,
+            baby: {
               firstName: babyFirstName,
               lastName: babyLastName,
-              birthDate: new Date(babyBirthDate),
+              birthDate: new Date(babyBirthDate as Date).toISOString(),
               gender: babyGender,
               feedWarningTime,
               diaperWarningTime,
-              familyId: createdFamily?.id,
-            }),
-          });
-          
-          if (!babyResponse.ok) {
-            throw new Error('Failed to save baby information');
-          }
-          
-          // Step 2: Save security settings/caretakers after baby is created
-          if (useSystemPin) {
-            // Save system PIN to settings
-            const settingsResponse = await fetch(`/api/settings?familyId=${createdFamily?.id}`, {
-              method: 'PUT',
-              headers: getAuthHeaders(),
-              body: JSON.stringify({
-                securityPin: systemPin,
-              }),
-            });
-            
-            if (!settingsResponse.ok) {
-              throw new Error('Failed to save security PIN to settings');
-            }
-            
-            // For account authentication, link to the system caretaker
-            if (isAccountAuth()) {
-              try {
-                // Get the system caretaker (loginId '00') for this family
-                const systemCaretakerResponse = await fetch(`/api/caretaker/system?familyId=${createdFamily?.id}`, {
-                  headers: getAuthHeaders(),
-                });
-                
-                if (systemCaretakerResponse.ok) {
-                  const systemCaretakerData = await systemCaretakerResponse.json();
-                  if (systemCaretakerData.success && systemCaretakerData.data?.id) {
-                    // Link the account to the system caretaker
-                    const linkResponse = await fetch('/api/accounts/link-caretaker', {
-                      method: 'POST',
-                      headers: getAuthHeaders(),
-                      body: JSON.stringify({
-                        caretakerId: systemCaretakerData.data.id,
-                      }),
-                    });
-                    
-                    if (!linkResponse.ok) {
-                      console.error('Failed to link account to system caretaker');
-                    } else {
-                      console.log('Successfully linked account to system caretaker');
-                    }
-                  }
-                } else {
-                  console.error('Failed to fetch system caretaker for linking');
-                }
-              } catch (error) {
-                console.error('Error linking account to system caretaker:', error);
-                // Don't throw error here as the main setup is complete
-              }
-            }
-          } else {
-            // Save caretakers
-            let accountCaretakerId: string | null = null;
-            
-            for (const caretaker of caretakers) {
-              const caretakerResponse = await fetch('/api/caretaker', {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                  ...caretaker,
-                  familyId: createdFamily?.id,
-                }),
-              });
-              
-              if (!caretakerResponse.ok) {
-                throw new Error(`Failed to save caretaker: ${caretaker.name}`);
-              }
-              
-              // For account authentication, link the first (and only) caretaker to the account
-              if (isAccountAuth() && !accountCaretakerId) {
-                const caretakerData = await caretakerResponse.json();
-                if (caretakerData.success && caretakerData.data?.id) {
-                  accountCaretakerId = caretakerData.data.id;
-                }
-              }
-            }
-            
-            // Link the caretaker to the account
-            if (isAccountAuth() && accountCaretakerId) {
-              try {
-                const linkResponse = await fetch('/api/accounts/link-caretaker', {
-                  method: 'POST',
-                  headers: getAuthHeaders(),
-                  body: JSON.stringify({
-                    caretakerId: accountCaretakerId,
-                  }),
-                });
-                
-                if (!linkResponse.ok) {
-                  console.error('Failed to link caretaker to account, but continuing setup');
-                  // Don't throw error here as the main setup is complete
-                }
-              } catch (error) {
-                console.error('Error linking caretaker to account:', error);
-                // Don't throw error here as the main setup is complete
-              }
-            }
-          }
-        } else {
-          // For non-token setup, just save baby (security was already handled in stage 2)
-          const babyResponse = await fetch('/api/baby', {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-              firstName: babyFirstName,
-              lastName: babyLastName,
-              birthDate: new Date(babyBirthDate),
-              gender: babyGender,
-              feedWarningTime,
-              diaperWarningTime,
-              familyId: createdFamily?.id,
-            }),
-          });
-          
-          if (!babyResponse.ok) {
-            throw new Error('Failed to save baby information');
-          }
+            },
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to complete setup');
         }
-        
-        // Setup complete - pass the family data to the callback
-        if (createdFamily) {
-          // For non-account authentication, clear tokens to force re-login with new family context
-          // For account authentication, keep the user logged in
-          if (!isAccountAuth()) {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('unlockTime');
-            localStorage.removeItem('caretakerId');
-          }
-          
-          onComplete(createdFamily);
+        // Completed; let caller know
+        onComplete(data.data);
+        // For non-account auth, clear legacy items
+        if (!isAccountAuth()) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('unlockTime');
+          localStorage.removeItem('caretakerId');
         }
       } catch (error) {
         console.error('Error completing setup:', error);
