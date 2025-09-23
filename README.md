@@ -11,6 +11,7 @@ Modified and based on Original Application: Sprout Track (https://github.com/Oak
 - Added tool to reset admin password
 - Added setting to enable/disable swiping to change date in log entry
 - Change Setup Wizard logic
+- Add support for Hermes notification service when it's time for feeding or diary 
 
 ### Prerequisites
 
