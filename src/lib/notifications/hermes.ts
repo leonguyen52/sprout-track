@@ -16,7 +16,7 @@ export async function sendHermesNotification(
       return { success: false, error: 'Notifications disabled' };
     }
 
-    const endpoint = (settings as any).hermesApiEndpoint || 'https://hermes.funk-isoft.com/api/sendAlert';
+    const endpoint = 'https://hermes.funk-isoft.com/api/sendAlert';
     const apiKey = (settings as any).hermesApiKey as string | undefined;
     if (!apiKey) {
       return { success: false, error: 'Hermes API key missing' };
