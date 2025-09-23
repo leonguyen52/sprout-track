@@ -122,14 +122,15 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
     }
 
     const data: Partial<Settings> = {};
-    const allowedFields: (keyof Settings)[] = [
+    const allowedFields: (keyof Settings | 'notificationFeedAdvanceMinutes' | 'notificationDiaperAdvanceMinutes')[] = [
       'familyName', 'securityPin', 'defaultBottleUnit', 'defaultSolidsUnit', 
       'defaultHeightUnit', 'defaultWeightUnit', 'defaultTempUnit', 
       'enableDebugTimer', 'enableDebugTimezone', 'enableSwipeDateChange',
       // Notification fields
       'notificationEnabled', 'notificationProvider', 'hermesApiKey',
       'notificationTitle', 'notificationFeedSubtitle', 'notificationFeedBody',
-      'notificationDiaperSubtitle', 'notificationDiaperBody'
+      'notificationDiaperSubtitle', 'notificationDiaperBody',
+      'notificationFeedAdvanceMinutes', 'notificationDiaperAdvanceMinutes'
     ];
 
     for (const field of allowedFields) {
