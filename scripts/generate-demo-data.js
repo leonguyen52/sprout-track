@@ -344,11 +344,11 @@ async function createDemoFamily() {
       familyId: family.id,
       familyName: family.name,
       securityPin: DEMO_CARETAKER_PIN,
-      defaultBottleUnit: 'OZ',
+      defaultBottleUnit: 'ML',
       defaultSolidsUnit: 'TBSP',
-      defaultHeightUnit: 'IN',
-      defaultWeightUnit: 'LB',
-      defaultTempUnit: 'F'
+      defaultHeightUnit: 'CM',
+      defaultWeightUnit: 'KG',
+      defaultTempUnit: 'C'
     }
   });
   
