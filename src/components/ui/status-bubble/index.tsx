@@ -23,8 +23,9 @@ export function StatusBubble({
   warningTime, 
   className,
   startTime, // Add startTime prop
-  activityType // Add activityType prop
-}: StatusBubbleProps & { startTime?: string }) {
+  activityType, // Add activityType prop
+  babyId,
+}: StatusBubbleProps & { startTime?: string; babyId?: string }) {
   const { userTimezone, calculateDurationMinutes, formatDuration } = useTimezone();
   const [calculatedDuration, setCalculatedDuration] = useState(durationInMinutes);
   
@@ -83,6 +84,23 @@ export function StatusBubble({
   
   // Check if duration exceeds warning time
   const isWarning = warningTime && displayDuration >= getWarningMinutes(warningTime);
+
+  // Fire notification once per mount when crossing warning
+  const [sent, setSent] = React.useState(false);
+  useEffect(() => {
+    if (!sent && isWarning && babyId && (activityType === 'feed' || activityType === 'diaper')) {
+      setSent(true);
+      const authToken = localStorage.getItem('authToken');
+      fetch('/api/notify/warning', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({ babyId, type: activityType === 'feed' ? 'FEED' : 'DIAPER' }),
+      }).catch(() => {});
+    }
+  }, [sent, isWarning, babyId, activityType]);
 
   // Get status-specific styles and icon
   const getStatusStyles = (): StatusStyle => {
