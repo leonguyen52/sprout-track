@@ -1,15 +1,48 @@
-# Sprout Track (PLM Version - Modified for PLM Family)
+# Baby Tracker (PLM Version)
+Modified and based on Original Application: Sprout Track (https://github.com/Oak-and-Sprout/sprout-track)
 
-What's difference from original version? (Updated 21 Sep 2025)
+### What's difference from original version? (Updated 23 Sep 2025)
 - Fixed time picker to automatically switch to minute selection
 - Fixed feeding default unit in Quick Stats
 - Allow to use keyboard at login screen for desktop user
 - Added new unit (drops) in medicine section
 - Added chart function to have an overview about entries
 - Added note function for feed entry
-  (need to backup db, run "npx prisma generate" & "npx prisma migrate deploy" then rebuild to migrate to new db structure if upgrading from previous version)
 - Added tool to reset admin password
 - Added setting to enable/disable swiping to change date in log entry
+- Change Setup Wizard logic
+
+### Prerequisites
+
+- Git (to clone the repository)
+- Node.js (v22+) and NPM (v10+)
+- Bash shell (for running the setup script)
+
+### Quick Setup (Recommended)
+
+1. Clone the repository:
+```bash
+git clone https://github.com/leonguyen52/sprout-track.git
+cd sprout-track
+```
+
+2. If deploying to a restricted directory (like /var/www), set proper permissions:
+```bash
+# For standard web server directories like /var/www
+sudo chown -R $(whoami):$(whoami) .
+# Or specify your web server user (e.g., www-data)
+# sudo chown -R www-data:www-data .
+```
+
+3. Give execute permissions to the scripts folder:
+```bash
+chmod +x scripts/*.sh
+```
+
+4. Run the setup script:
+```bash
+./scripts/setup.sh
+```
 
 ## Screenshots
 
@@ -31,7 +64,7 @@ What's difference from original version? (Updated 21 Sep 2025)
   </tr>
 </table>
 
-## Live Demo
+## Live Demo (From Original Version, I don't provide demo for my modified version)
 
 Try out Sprout Track at our live demo: **[https://www.sprout-track.com/demo](https://www.sprout-track.com/demo)**
 
