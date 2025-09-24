@@ -37,6 +37,7 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [goButtonClicks, setGoButtonClicks] = useState(0);
   const [clickTimer, setClickTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   // Track when component has mounted to prevent hydration issues
   useEffect(() => {
@@ -159,8 +160,11 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
   };
 
   const handleAdminAuthenticate = async () => {
+    if (isAuthenticating) return;
+    setIsAuthenticating(true);
     if (!adminPassword.trim()) {
       setError('Admin password is required');
+      setIsAuthenticating(false);
       return;
     }
 
@@ -218,13 +222,18 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
       console.error('Admin authentication error:', error);
       setError('Authentication failed. Please try again.');
       setAdminPassword('');
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
   const handleAuthenticate = async () => {
+    if (isAuthenticating) return;
+    setIsAuthenticating(true);
     // Handle admin mode authentication
     if (adminMode) {
       await handleAdminAuthenticate();
+      // handleAdminAuthenticate manages isAuthenticating
       return;
     }
 
@@ -232,6 +241,7 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
     if (hasCaretakers && loginId.length !== 2) {
       setError('Please enter a valid 2-character login ID first');
       setActiveInput('loginId');
+      setIsAuthenticating(false);
       return;
     }
 
@@ -239,6 +249,7 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
     if (pin.length < 6) {
       setError('Please enter a PIN with at least 6 digits');
       setActiveInput('pin');
+      setIsAuthenticating(false);
       return;
     }
 
@@ -310,6 +321,8 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
       console.error('Authentication error:', error);
       setError('Authentication failed. Please try again.');
       setPin('');
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -392,6 +405,24 @@ export default function LoginSecurity({ onUnlock, familySlug, familyName }: Logi
       }
     };
   }, [clickTimer]);
+
+  // Auto-submit when PIN is complete (debounced) and prerequisites are met
+  useEffect(() => {
+    if (adminMode || lockoutTime) return;
+    const loginIdReady = !hasCaretakers || loginId.length === 2;
+    const pinReady = pin.length >= 6;
+    if (!loginIdReady || !pinReady || isAuthenticating) return;
+    const t = setTimeout(() => {
+      // Re-check before submitting in case state changed during debounce
+      if (!adminMode && !lockoutTime) {
+        const stillLoginReady = !hasCaretakers || loginId.length === 2;
+        if (stillLoginReady && pin.length >= 6 && !isAuthenticating) {
+          handleAuthenticate();
+        }
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [pin, loginId, hasCaretakers, adminMode, lockoutTime, isAuthenticating]);
 
   // Handle logo click - redirect to home in SaaS mode
   const handleLogoClick = () => {
