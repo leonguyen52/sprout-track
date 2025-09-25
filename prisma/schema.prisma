@@ -458,6 +458,9 @@ model Settings {
   notificationFeedBody       String   @default("Baby might be hungry soon, please be ready and prepare in advance~")
   notificationDiaperSubtitle String   @default("Attention! It's time for diary ♥️")
   notificationDiaperBody     String   @default("Mom and Dad, please check diary in time for our baby~")
+
+  notificationFeedAdvanceMinutes Int  @default(0)  // Minutes to advance feed notifications
+  notificationDiaperAdvanceMinutes Int @default(0) // Minutes to advance diaper notifications
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   
