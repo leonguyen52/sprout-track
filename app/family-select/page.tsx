@@ -78,6 +78,10 @@ export default function FamilySelectPage() {
           if (data.success && Array.isArray(data.data)) {
             setFamilies(data.data);
             setFilteredFamilies(data.data);
+            // If multiple families exist, open the dropdown by default for visibility
+            if (data.data.length > 1) {
+              setDropdownOpen(true);
+            }
           }
         }
       } catch (error) {
