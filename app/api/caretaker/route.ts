@@ -137,12 +137,15 @@ async function putHandler(req: NextRequest, authContext: AuthResult) {
       }
     }
 
+    // TypeScript narrowing: ensure non-null family id for subsequent queries
+    const ensuredFamilyId: string = targetFamilyId as string;
+
     // Note: System caretaker can be updated (e.g., for PIN changes during setup)
 
     const existingCaretaker = await prisma.caretaker.findFirst({
       where: { 
         id, 
-        familyId: targetFamilyId,
+        familyId: ensuredFamilyId,
       },
     });
 
@@ -162,7 +165,7 @@ async function putHandler(req: NextRequest, authContext: AuthResult) {
           loginId: updateData.loginId,
           id: { not: id },
           deletedAt: null,
-          familyId: targetFamilyId,
+          familyId: ensuredFamilyId,
         },
       });
 
@@ -181,7 +184,7 @@ async function putHandler(req: NextRequest, authContext: AuthResult) {
       where: { id },
       data: {
         ...updateData,
-        familyId: targetFamilyId,
+        familyId: ensuredFamilyId,
       },
     });
 
@@ -233,6 +236,9 @@ async function deleteHandler(req: NextRequest, authContext: AuthResult) {
       }
     }
 
+    // TypeScript narrowing: ensure non-null family id for subsequent queries
+    const ensuredFamilyId: string = targetFamilyId as string;
+
     if (!id) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Caretaker ID is required' }, { status: 400 });
     }
@@ -242,7 +248,7 @@ async function deleteHandler(req: NextRequest, authContext: AuthResult) {
       where: { 
         id,
         loginId: '00',
-        familyId: targetFamilyId 
+        familyId: ensuredFamilyId 
       }
     });
 
@@ -257,7 +263,7 @@ async function deleteHandler(req: NextRequest, authContext: AuthResult) {
     }
 
     const existingCaretaker = await prisma.caretaker.findFirst({
-      where: { id, familyId: targetFamilyId },
+      where: { id, familyId: ensuredFamilyId },
     });
 
     if (!existingCaretaker) {
@@ -275,7 +281,7 @@ async function deleteHandler(req: NextRequest, authContext: AuthResult) {
       await prisma.familyMember.deleteMany({
         where: {
           caretakerId: id,
-          familyId: targetFamilyId,
+          familyId: ensuredFamilyId,
         },
       });
     }
