@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
 import { ApiResponse, SleepLogCreate, SleepLogResponse } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
-import { toUTC, formatForResponse, calculateDurationMinutes } from '../utils/timezone';
+import { toUTC, formatForResponse, calculateDurationMinutes, splitByMidnight, fromLocalToUTC } from '../utils/timezone';
 
 async function handlePost(req: NextRequest, authContext: AuthResult) {
   try {
@@ -12,6 +12,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
     }
 
     const body: SleepLogCreate = await req.json();
+    const clientTz = req.headers.get('x-user-timezone') || 'Asia/Bangkok';
 
     const baby = await prisma.baby.findFirst({
       where: { id: body.babyId, familyId: userFamilyId },
@@ -21,12 +22,46 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Baby not found in this family.' }, { status: 404 });
     }
     
-    // Convert times to UTC for storage
-    const startTimeUTC = toUTC(body.startTime);
-    const endTimeUTC = body.endTime ? toUTC(body.endTime) : null;
+    // Convert times to UTC for storage. Interpret naive inputs as local time in provided timezone.
+    const startTimeUTC = fromLocalToUTC(body.startTime, clientTz);
+    const endTimeUTC = body.endTime ? fromLocalToUTC(body.endTime, clientTz) : null;
     
     // Calculate duration if both start and end times are present
     const duration = endTimeUTC ? calculateDurationMinutes(startTimeUTC, endTimeUTC) : undefined;
+
+    // If both start and end provided, split across midnights in client timezone
+    if (endTimeUTC) {
+      const segments = splitByMidnight(startTimeUTC.toISOString(), endTimeUTC.toISOString(), clientTz);
+      if (segments.length > 1) {
+        const created = await Promise.all(segments.map(({ start, end }) => {
+          const segDuration = calculateDurationMinutes(start, end);
+          return prisma.sleepLog.create({
+            data: {
+              ...body,
+              startTime: start,
+              endTime: end,
+              duration: segDuration,
+              caretakerId: caretakerId,
+              familyId: userFamilyId,
+            }
+          });
+        }));
+
+        const response: SleepLogResponse[] = created.map(sleepLog => ({
+          ...sleepLog,
+          startTime: formatForResponse(sleepLog.startTime) || '',
+          endTime: formatForResponse(sleepLog.endTime) || null,
+          createdAt: formatForResponse(sleepLog.createdAt) || '',
+          updatedAt: formatForResponse(sleepLog.updatedAt) || '',
+          deletedAt: formatForResponse(sleepLog.deletedAt),
+        }));
+
+        return NextResponse.json<ApiResponse<SleepLogResponse[]>>({
+          success: true,
+          data: response,
+        });
+      }
+    }
 
     const sleepLog = await prisma.sleepLog.create({
       data: {
@@ -39,7 +74,6 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
       },
     });
 
-    // Format dates as ISO strings for response
     const response: SleepLogResponse = {
       ...sleepLog,
       startTime: formatForResponse(sleepLog.startTime) || '',
@@ -100,11 +134,63 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       );
     }
 
-    // Convert times to UTC for storage
-    const startTimeUTC = body.startTime ? toUTC(body.startTime) : undefined;
-    const endTimeUTC = body.endTime ? toUTC(body.endTime) : undefined;
+    // Convert times to UTC for storage using client timezone if present
+    const clientTz = req.headers.get('x-user-timezone') || 'Asia/Bangkok';
+    const startTimeUTC = body.startTime ? fromLocalToUTC(body.startTime, clientTz) : undefined;
+    const endTimeUTC = body.endTime ? fromLocalToUTC(body.endTime, clientTz) : undefined;
     
-    // Calculate duration if end time is provided
+    // If providing an end time and it crosses midnight in client timezone, split.
+    if (endTimeUTC) {
+      const baseStart = startTimeUTC || existingSleepLog.startTime;
+      const segments = splitByMidnight(baseStart.toISOString(), endTimeUTC.toISOString(), clientTz);
+      if (segments.length > 1) {
+        // Update current record to first segment
+        const first = segments[0];
+        const firstDuration = calculateDurationMinutes(first.start, first.end);
+        const updated = await prisma.sleepLog.update({
+          where: { id },
+          data: {
+            ...(body.type ? { type: body.type } : {}),
+            ...(body.location !== undefined ? { location: body.location } : {}),
+            ...(body.quality !== undefined ? { quality: body.quality } : {}),
+            startTime: first.start,
+            endTime: first.end,
+            duration: firstDuration,
+          },
+        });
+
+        // Create the rest segments as new records
+        const created = await Promise.all(segments.slice(1).map(({ start, end }) => {
+          const segDuration = calculateDurationMinutes(start, end);
+          return prisma.sleepLog.create({
+            data: {
+              babyId: updated.babyId,
+              familyId: updated.familyId,
+              caretakerId: updated.caretakerId,
+              type: body.type ?? updated.type,
+              location: body.location ?? updated.location,
+              quality: body.quality ?? updated.quality,
+              startTime: start,
+              endTime: end,
+              duration: segDuration,
+            }
+          });
+        }));
+
+        const response: SleepLogResponse[] = [updated, ...created].map(sleepLog => ({
+          ...sleepLog,
+          startTime: formatForResponse(sleepLog.startTime) || '',
+          endTime: formatForResponse(sleepLog.endTime) || null,
+          createdAt: formatForResponse(sleepLog.createdAt) || '',
+          updatedAt: formatForResponse(sleepLog.updatedAt) || '',
+          deletedAt: formatForResponse(sleepLog.deletedAt),
+        }));
+
+        return NextResponse.json<ApiResponse<SleepLogResponse[]>>({ success: true, data: response });
+      }
+    }
+
+    // No split required; proceed with normal update
     const duration = endTimeUTC 
       ? calculateDurationMinutes(startTimeUTC || existingSleepLog.startTime, endTimeUTC) 
       : undefined;
@@ -119,7 +205,6 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       },
     });
 
-    // Format dates as ISO strings for response
     const response: SleepLogResponse = {
       ...sleepLog,
       startTime: formatForResponse(sleepLog.startTime) || '',
@@ -129,10 +214,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
       deletedAt: formatForResponse(sleepLog.deletedAt),
     };
 
-    return NextResponse.json<ApiResponse<SleepLogResponse>>({
-      success: true,
-      data: response,
-    });
+    return NextResponse.json<ApiResponse<SleepLogResponse>>({ success: true, data: response });
   } catch (error) {
     console.error('Error updating sleep log:', error);
     return NextResponse.json<ApiResponse<SleepLogResponse>>(

@@ -16,10 +16,12 @@ import TimelineFilter from './TimelineFilter';
 import TimelineActivityList from './TimelineActivityList';
 import TimelineActivityDetails from './TimelineActivityDetails';
 import { getActivityEndpoint, getActivityTime } from './utils';
+import { useTimezone } from '@/app/context/timezone';
 import { PumpLogResponse } from '@/app/api/types';
 
 const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
   const [settings, setSettings] = useState<Settings | null>(null);
+  const { userTimezone } = useTimezone();
   const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>(null);
   const [editModalType, setEditModalType] = useState<'sleep' | 'feed' | 'diaper' | 'medicine' | 'note' | 'bath' | 'pump' | 'milestone' | 'measurement' | null>(null);
@@ -66,7 +68,8 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
           'Pragma': 'no-cache',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Expires': '0',
-          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+          'x-user-timezone': userTimezone || 'Asia/Bangkok',
         }
       });
       

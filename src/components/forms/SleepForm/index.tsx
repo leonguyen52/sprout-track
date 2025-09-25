@@ -42,7 +42,7 @@ export default function SleepForm({
   activity,
   onSuccess,
 }: SleepFormProps) {
-  const { formatDate, calculateDurationMinutes, toUTCString } = useTimezone();
+  const { formatDate, calculateDurationMinutes, toUTCString, userTimezone } = useTimezone();
   const [startDateTime, setStartDateTime] = useState<Date>(() => {
     try {
       // Try to parse the initialTime
@@ -259,6 +259,7 @@ export default function SleepForm({
           headers: {
             'Content-Type': 'application/json',
             'Authorization': authToken ? `Bearer ${authToken}` : '',
+            'x-user-timezone': userTimezone || 'Asia/Bangkok',
           },
           body: JSON.stringify(payload),
         });
@@ -285,6 +286,7 @@ export default function SleepForm({
           headers: {
             'Content-Type': 'application/json',
             'Authorization': authToken ? `Bearer ${authToken}` : '',
+            'x-user-timezone': userTimezone || 'Asia/Bangkok',
           },
           body: JSON.stringify({
             endTime: utcEndTime,
@@ -312,6 +314,7 @@ export default function SleepForm({
           headers: {
             'Content-Type': 'application/json',
             'Authorization': authToken ? `Bearer ${authToken}` : '',
+            'x-user-timezone': userTimezone || 'Asia/Bangkok',
           },
           body: JSON.stringify(payload),
         });

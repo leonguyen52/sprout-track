@@ -106,7 +106,7 @@ const TimezoneContext = createContext<TimezoneContextType | undefined>(undefined
  */
 export function TimezoneProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [userTimezone, setUserTimezone] = useState<string>('UTC');
+  const [userTimezone, setUserTimezone] = useState<string>('Asia/Bangkok');
   const [isDST, setIsDST] = useState<boolean>(false);
 
   /**
@@ -128,13 +128,13 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
       console.log(`Current time: ${now.toISOString()}, Offset: ${now.getTimezoneOffset()}`);
       
       // Update state
-      setUserTimezone(detectedTimezone);
+      setUserTimezone(detectedTimezone || 'Asia/Bangkok');
       setIsDST(isDSTActive);
       setIsLoading(false);
     } catch (error) {
       console.error('Error detecting timezone:', error);
-      // Fallback to UTC
-      setUserTimezone('UTC');
+      // Fallback to UTC+7 (Asia/Bangkok)
+      setUserTimezone('Asia/Bangkok');
       setIsDST(false);
       setIsLoading(false);
     }

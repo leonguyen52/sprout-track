@@ -214,3 +214,126 @@ export function formatDuration(minutes: number): string {
     return '0:00';
   }
 }
+
+/**
+ * Convert a local time string (ISO or 'YYYY-MM-DDTHH:mm[:ss]') interpreted in a given IANA timezone to a UTC Date
+ * If no timezone provided, defaults to 'Asia/Bangkok' (UTC+7)
+ */
+export function fromLocalToUTC(dateInput: string | Date, timezone: string = 'Asia/Bangkok'): Date {
+  try {
+    if (dateInput instanceof Date) {
+      // Assume the Date represents the local wall time in the given timezone
+      // Extract components in that timezone then build UTC via Intl parts
+      const iso = dateInput.toISOString();
+      return fromLocalToUTC(iso, timezone);
+    }
+
+    if (typeof dateInput !== 'string' || !dateInput) {
+      throw new Error('Invalid local date input');
+    }
+
+    // If input carries explicit offset or Z, just parse and return
+    if (/[+-]\d{2}:?\d{2}$/.test(dateInput) || dateInput.endsWith('Z')) {
+      return new Date(dateInput);
+    }
+
+    // Build a Date from parts in the specified timezone using Intl to get calendar fields
+    // 1) Create a base instant from the naive string treated as UTC
+    const [datePart, timePart = '00:00:00'] = dateInput.split('T');
+    const [yearStr, monthStr, dayStr] = (datePart || '').split('-');
+    const [hStr, mStr, sStr = '0'] = timePart.split(':');
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+    const hour = Number(hStr);
+    const minute = Number(mStr);
+    const second = Number(sStr);
+
+    // Create a temporary Date in UTC for that wall time
+    const tempUtc = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+
+    // Now get what those calendar fields would be in the target timezone at that instant
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    }).formatToParts(tempUtc);
+
+    const get = (t: string) => parts.find(p => p.type === t)?.value || '00';
+    const tzYear = Number(get('year'));
+    const tzMonth = Number(get('month'));
+    const tzDay = Number(get('day'));
+    const tzHour = Number(get('hour'));
+    const tzMinute = Number(get('minute'));
+    const tzSecond = Number(get('second'));
+
+    // We want the instant that corresponds to the provided wall time in that timezone.
+    // Construct an ISO for that wall time tagged with the timezone offset by formatting back.
+    // Approach: format the intended wall time as if it were local in timezone, then compute the UTC instant by comparing offsets.
+    // Simpler: Use the provided wall time components directly with Date.UTC and then adjust by difference between temp wall and desired wall.
+    // Compute delta minutes between desired wall (input) and formatted wall (tz parts) and adjust tempUtc accordingly.
+    const desiredWall = Date.UTC(year, month - 1, day, hour, minute, second);
+    const formattedWall = Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute, tzSecond);
+    const diffMs = desiredWall - formattedWall;
+    return new Date(tempUtc.getTime() + diffMs);
+  } catch (error) {
+    console.error('Error converting from local to UTC with timezone:', error);
+    return toUTC(dateInput as any);
+  }
+}
+
+/**
+ * Split a time range by midnight boundaries for a given timezone.
+ * Returns array of [segmentStartUTC, segmentEndUTC] Date pairs.
+ */
+export function splitByMidnight(
+  startISO: string,
+  endISO: string,
+  timezone: string = 'Asia/Bangkok'
+): Array<{ start: Date; end: Date }> {
+  try {
+    const start = new Date(startISO);
+    const end = new Date(endISO);
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) return [];
+
+    const segments: Array<{ start: Date; end: Date }> = [];
+
+    // Helper to get midnight for a date in tz
+    const getMidnightUTC = (d: Date): Date => {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+      }).formatToParts(d);
+      const year = Number(parts.find(p => p.type === 'year')?.value || '0');
+      const month = Number(parts.find(p => p.type === 'month')?.value || '1');
+      const day = Number(parts.find(p => p.type === 'day')?.value || '1');
+      // Local midnight wall time in tz
+      const localMidnight = `${year.toString().padStart(4, '0')}-${month
+        .toString()
+        .padStart(2, '0')}-${day.toString().padStart(2, '0')}T00:00:00`;
+      return fromLocalToUTC(localMidnight, timezone);
+    };
+
+    // Iterate day by day boundaries in tz
+    let segStart = start;
+    while (true) {
+      const midnightAfterStartUTC = getMidnightUTC(segStart);
+      const nextMidnightUTC = new Date(midnightAfterStartUTC.getTime() + 24 * 60 * 60 * 1000);
+
+      // If this is not the final segment, end 1ms before midnight to avoid UI showing into next day
+      const isFinal = end <= nextMidnightUTC;
+      const rawEnd = isFinal ? end : nextMidnightUTC;
+      const segEnd = isFinal ? rawEnd : new Date(rawEnd.getTime() - 1);
+      segments.push({ start: segStart, end: segEnd });
+
+      if (rawEnd >= end) break;
+      segStart = rawEnd;
+    }
+
+    return segments;
+  } catch (error) {
+    console.error('Error splitting by midnight:', error);
+    return [{ start: new Date(startISO), end: new Date(endISO) }];
+  }
+}

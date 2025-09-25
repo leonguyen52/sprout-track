@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../db';
 import { ApiResponse, SleepLogResponse, FeedLogResponse, DiaperLogResponse, NoteResponse, BathLogResponse, PumpLogResponse, MilestoneResponse, MeasurementResponse, MedicineLogResponse, MedicineResponse } from '../types';
 import { withAuthContext, AuthResult } from '../utils/auth';
-import { toUTC, formatForResponse } from '../utils/timezone';
+import { toUTC, formatForResponse, fromLocalToUTC } from '../utils/timezone';
 
 // Extended activity types with caretaker information
 type ActivityTypeWithCaretaker = (
@@ -103,6 +103,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     const limit = Number(searchParams.get('limit')) || 200;
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const clientTz = req.headers.get('x-user-timezone') || 'Asia/Bangkok';
     
     console.log(`API Request - babyId: ${babyId}, startDate: ${startDate}, endDate: ${endDate}`);
 
@@ -124,9 +125,9 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
     console.log(`Effective start date: ${effectiveStartDate}`);
     console.log(`Effective end date: ${effectiveEndDate}`);
     
-    // Convert date strings to UTC for database queries
-    const startDateUTC = effectiveStartDate ? toUTC(effectiveStartDate) : undefined;
-    const endDateUTC = effectiveEndDate ? toUTC(effectiveEndDate) : undefined;
+    // Convert date strings to UTC for database queries using client timezone
+    const startDateUTC = effectiveStartDate ? fromLocalToUTC(effectiveStartDate, clientTz) : undefined;
+    const endDateUTC = effectiveEndDate ? fromLocalToUTC(effectiveEndDate, clientTz) : undefined;
     
     // Get recent activities from each type with caretaker information
     const [sleepLogs, feedLogs, diaperLogs, noteLogs, bathLogs, pumpLogs, milestoneLogs, measurementLogs, medicineLogs] = await Promise.all([
