@@ -128,6 +128,10 @@ export default function FamilyManagerPage() {
   const [caretakersDialogOpen, setCaretakersDialogOpen] = useState(false);
   const [selectedFamilyCaretakers, setSelectedFamilyCaretakers] = useState<CaretakerData[]>([]);
   const [loadingCaretakers, setLoadingCaretakers] = useState(false);
+  const [selectedFamilyForCaretakers, setSelectedFamilyForCaretakers] = useState<FamilyData | null>(null);
+  const [editingCaretaker, setEditingCaretaker] = useState<CaretakerData | null>(null);
+  const [caretakerModalOpen, setCaretakerModalOpen] = useState(false);
+  const [deletingCaretakerId, setDeletingCaretakerId] = useState<string | null>(null);
   const [slugError, setSlugError] = useState<string>('');
   const [checkingSlug, setCheckingSlug] = useState(false);
   const [showFamilyForm, setShowFamilyForm] = useState(false);
@@ -569,6 +573,7 @@ export default function FamilyManagerPage() {
 
   // Handle view caretakers
   const handleViewCaretakers = async (family: FamilyData) => {
+    setSelectedFamilyForCaretakers(family);
     setCaretakersDialogOpen(true);
     await fetchCaretakers(family.id);
   };
@@ -857,53 +862,165 @@ export default function FamilyManagerPage() {
       </div>
 
       {/* Caretakers Dialog */}
-      <Dialog open={caretakersDialogOpen} onOpenChange={setCaretakersDialogOpen}>
-        <DialogContent className="max-w-4xl">
+      <Dialog open={caretakersDialogOpen} onOpenChange={(open) => { setCaretakersDialogOpen(open); if (!open) { setSelectedFamilyForCaretakers(null); } }}>
+        <DialogContent className="w-[90vw] max-w-[1400px]">
           <DialogHeader>
             <DialogTitle>Family Caretakers</DialogTitle>
           </DialogHeader>
-          <div className="mt-4">
+          <div className="mt-4 max-h-[70vh] overflow-auto">
             {loadingCaretakers ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
             ) : selectedFamilyCaretakers.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Login ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedFamilyCaretakers.map((caretaker) => (
-                    <TableRow key={caretaker.id}>
-                      <TableCell className="font-mono">{caretaker.loginId}</TableCell>
-                      <TableCell>{caretaker.name}</TableCell>
-                      <TableCell>{caretaker.type || 'N/A'}</TableCell>
-                      <TableCell>{caretaker.role}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            !caretaker.inactive
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {!caretaker.inactive ? 'Active' : 'Inactive'}
-                        </span>
-                      </TableCell>
+              <div>
+                <Table className="table-fixed">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-16">Login</TableHead>
+                      <TableHead className="w-[220px]">Name</TableHead>
+                      <TableHead className="w-[160px]">Type</TableHead>
+                      <TableHead className="w-20">Role</TableHead>
+                      <TableHead className="w-24">Status</TableHead>
+                      <TableHead className="w-24 text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedFamilyCaretakers.map((caretaker) => (
+                      <TableRow key={caretaker.id}>
+                        <TableCell className="font-mono text-sm whitespace-nowrap">{caretaker.loginId}</TableCell>
+                        <TableCell className="font-medium max-w-[220px] truncate">{caretaker.name}</TableCell>
+                        <TableCell className="text-sm max-w-[160px] truncate">{caretaker.type || 'N/A'}</TableCell>
+                        <TableCell className="text-sm">{caretaker.role}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              !caretaker.inactive
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {!caretaker.inactive ? 'Active' : 'Inactive'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-1 justify-end">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => { setEditingCaretaker(caretaker); setCaretakerModalOpen(true); }}
+                              className="h-8 w-8 p-0"
+                              title="Edit caretaker"
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                if (!selectedFamilyForCaretakers) return;
+                                if (!window.confirm('Delete this caretaker?')) return;
+                                try {
+                                  setDeletingCaretakerId(caretaker.id);
+                                  const authToken = localStorage.getItem('authToken');
+                                  const resp = await fetch(`/api/caretaker?id=${encodeURIComponent(caretaker.id)}&familyId=${encodeURIComponent(selectedFamilyForCaretakers.id)}`, {
+                                    method: 'DELETE',
+                                    headers: { 'Authorization': `Bearer ${authToken}` },
+                                  });
+                                  const data = await resp.json();
+                                  if (!data.success) throw new Error(data.error || 'Failed to delete caretaker');
+                                  await fetchCaretakers(selectedFamilyForCaretakers.id);
+                                } catch (e) {
+                                  console.error('Failed to delete caretaker', e);
+                                  alert('Failed to delete caretaker');
+                                } finally {
+                                  setDeletingCaretakerId(null);
+                                }
+                              }}
+                              disabled={deletingCaretakerId === caretaker.id}
+                              className="h-8 w-8 p-0"
+                              title="Delete caretaker"
+                            >
+                              {deletingCaretakerId === caretaker.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
               <p className="text-center py-8 text-gray-500">No caretakers found for this family.</p>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Caretaker Modal */}
+      <Dialog open={caretakerModalOpen} onOpenChange={(open) => { setCaretakerModalOpen(open); if (!open) setEditingCaretaker(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Caretaker</DialogTitle>
+          </DialogHeader>
+          {editingCaretaker && (
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  value={editingCaretaker.name}
+                  onChange={(e) => setEditingCaretaker({ ...editingCaretaker, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Type</label>
+                <Input
+                  value={editingCaretaker.type || ''}
+                  onChange={(e) => setEditingCaretaker({ ...editingCaretaker, type: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={!editingCaretaker.inactive}
+                  onCheckedChange={(checked) => setEditingCaretaker({ ...editingCaretaker, inactive: !checked })}
+                />
+                <span className="text-sm">Active</span>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => { setCaretakerModalOpen(false); setEditingCaretaker(null); }}>Cancel</Button>
+                <Button
+                  onClick={async () => {
+                    if (!editingCaretaker || !selectedFamilyForCaretakers) return;
+                    try {
+                      const authToken = localStorage.getItem('authToken');
+                      const response = await fetch(`/api/caretaker?familyId=${encodeURIComponent(selectedFamilyForCaretakers.id)}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${authToken}`,
+                        },
+                        body: JSON.stringify({ id: editingCaretaker.id, name: editingCaretaker.name, type: editingCaretaker.type, inactive: editingCaretaker.inactive }),
+                      });
+                      const data = await response.json();
+                      if (!data.success) throw new Error(data.error || 'Failed to update caretaker');
+                      await fetchCaretakers(selectedFamilyForCaretakers.id);
+                      setCaretakerModalOpen(false);
+                      setEditingCaretaker(null);
+                    } catch (err) {
+                      console.error('Failed to save caretaker', err);
+                      alert('Failed to save caretaker');
+                    }
+                  }}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

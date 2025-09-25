@@ -112,24 +112,37 @@ async function postHandler(req: NextRequest, authContext: AuthResult) {
 
 async function putHandler(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId: userFamilyId, caretakerRole } = authContext;
+    const { familyId: userFamilyId, caretakerRole, isSysAdmin, isSetupAuth, isAccountAuth } = authContext;
 
-    if (!userFamilyId) {
-      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
-    }
-    if (caretakerRole !== 'ADMIN') {
-      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Only admins can update caretakers.' }, { status: 403 });
-    }
+    const requestBody: CaretakerUpdate & { familyId?: string } = await req.json();
+    const { id, familyId: bodyFamilyId, ...updateData } = requestBody;
 
-    const body: CaretakerUpdate = await req.json();
-    const { id, ...updateData } = body;
+    // Determine target family id. SysAdmin/Setup/Account can specify familyId via body or query
+    let targetFamilyId = userFamilyId;
+    if (isSysAdmin || isSetupAuth || isAccountAuth) {
+      const { searchParams } = new URL(req.url);
+      const queryFamilyId = searchParams.get('familyId');
+      targetFamilyId = bodyFamilyId || queryFamilyId || userFamilyId;
+      if (!targetFamilyId) {
+        const userType = isSysAdmin ? 'System administrators' : isSetupAuth ? 'Setup authentication' : 'Account authentication';
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: `${userType} must specify familyId parameter or in request body.` }, { status: 400 });
+      }
+    } else {
+      // Regular users must be in a family and be ADMIN
+      if (!userFamilyId) {
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+      }
+      if (caretakerRole !== 'ADMIN') {
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Only admins can update caretakers.' }, { status: 403 });
+      }
+    }
 
     // Note: System caretaker can be updated (e.g., for PIN changes during setup)
 
     const existingCaretaker = await prisma.caretaker.findFirst({
       where: { 
         id, 
-        familyId: userFamilyId,
+        familyId: targetFamilyId,
       },
     });
 
@@ -149,7 +162,7 @@ async function putHandler(req: NextRequest, authContext: AuthResult) {
           loginId: updateData.loginId,
           id: { not: id },
           deletedAt: null,
-          familyId: userFamilyId,
+          familyId: targetFamilyId,
         },
       });
 
@@ -168,7 +181,7 @@ async function putHandler(req: NextRequest, authContext: AuthResult) {
       where: { id },
       data: {
         ...updateData,
-        familyId: userFamilyId,
+        familyId: targetFamilyId,
       },
     });
 
@@ -197,17 +210,28 @@ async function putHandler(req: NextRequest, authContext: AuthResult) {
 
 async function deleteHandler(req: NextRequest, authContext: AuthResult) {
   try {
-    const { familyId: userFamilyId, caretakerRole } = authContext;
-
-    if (!userFamilyId) {
-      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
-    }
-    if (caretakerRole !== 'ADMIN') {
-      return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Only admins can delete caretakers.' }, { status: 403 });
-    }
+    const { familyId: userFamilyId, caretakerRole, isSysAdmin, isSetupAuth, isAccountAuth } = authContext;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
+    const queryFamilyId = searchParams.get('familyId');
+
+    // Determine target family id. SysAdmin/Setup/Account can specify familyId via query
+    let targetFamilyId = userFamilyId;
+    if (isSysAdmin || isSetupAuth || isAccountAuth) {
+      targetFamilyId = queryFamilyId || userFamilyId;
+      if (!targetFamilyId) {
+        const userType = isSysAdmin ? 'System administrators' : isSetupAuth ? 'Setup authentication' : 'Account authentication';
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: `${userType} must specify familyId parameter.` }, { status: 400 });
+      }
+    } else {
+      if (!userFamilyId) {
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
+      }
+      if (caretakerRole !== 'ADMIN') {
+        return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Only admins can delete caretakers.' }, { status: 403 });
+      }
+    }
 
     if (!id) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'Caretaker ID is required' }, { status: 400 });
@@ -218,7 +242,7 @@ async function deleteHandler(req: NextRequest, authContext: AuthResult) {
       where: { 
         id,
         loginId: '00',
-        familyId: userFamilyId 
+        familyId: targetFamilyId 
       }
     });
 
@@ -233,7 +257,7 @@ async function deleteHandler(req: NextRequest, authContext: AuthResult) {
     }
 
     const existingCaretaker = await prisma.caretaker.findFirst({
-      where: { id, familyId: userFamilyId },
+      where: { id, familyId: targetFamilyId },
     });
 
     if (!existingCaretaker) {
@@ -251,7 +275,7 @@ async function deleteHandler(req: NextRequest, authContext: AuthResult) {
       await prisma.familyMember.deleteMany({
         where: {
           caretakerId: id,
-          familyId: userFamilyId,
+          familyId: targetFamilyId,
         },
       });
     }
